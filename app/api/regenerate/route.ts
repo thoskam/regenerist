@@ -4,6 +4,9 @@ import { randomClass, randomRace, randomEffect, generateCharacterName } from '@/
 import { mapStatsForClass, getStatModifier } from '@/lib/statMapper'
 import { calculateMaxHp } from '@/lib/calculations'
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime'
+import { getSubclassDecision } from '@/lib/subclassDecisions'
+import { applyASIs } from '@/lib/asiCalculator'
+import { selectSkillProficiencies } from '@/lib/proficiencyEngine'
 
 const bedrockClient = new BedrockRuntimeClient({
   region: process.env.AWS_REGION || 'us-east-1',
@@ -105,7 +108,8 @@ async function generateStory(
   subclass: string,
   effect: string,
   lifeNumber: number,
-  previousLife?: { name: string; race: string; class: string; subclass: string } | null
+  previousLife?: { name: string; race: string; class: string; subclass: string } | null,
+  subclassChoice?: string | null
 ): Promise<string> {
   try {
     const previousLifeContext = previousLife
@@ -140,15 +144,19 @@ Output Format (Required - use these exact markdown headers):
 
 Constraint: Be specific about D&D 5e mechanics. Reference actual class features, racial abilities, and subclass capabilities by name when relevant.`
 
+    const subclassChoiceContext = subclassChoice
+      ? `\nSubclass Choice: ${subclassChoice}`
+      : ''
+
     const userPrompt = `Describe the ${lifeNumber}${getOrdinalSuffix(lifeNumber)} regeneration of ${name}.
 
 ${previousLifeContext}
 
-New form: ${race} ${className} (${subclass})
+New form: ${race} ${className} (${subclass})${subclassChoiceContext}
 
 Post-Regeneration Quirk rolled: "${effect}"
 
-Remember to fill in the markdown table with accurate D&D 5e mechanical details for the race and class/subclass.`
+Remember to fill in the markdown table with accurate D&D 5e mechanical details for the race and class/subclass.${subclassChoice ? ` Be sure to mention their ${subclassChoice} choice in the tactical advice.` : ''}`
 
     const payload = {
       anthropic_version: 'bedrock-2023-05-31',
@@ -207,6 +215,7 @@ export async function POST(request: Request) {
   try {
     const body = await request.json().catch(() => ({}))
     const currentLevel = body.level || 1
+    const uniqueSubclasses = body.uniqueSubclasses || false
 
     // Level changes on regeneration: current level - (1d4 - 2)
     // This means: roll 1-4, subtract 2 (result: -1, 0, 1, 2), then subtract from level
@@ -233,16 +242,34 @@ export async function POST(request: Request) {
     })
     const newLifeNumber = (lastLife?.lifeNumber || 0) + 1
 
+    // Get previously used subclasses if unique mode is enabled
+    let excludedSubclasses: string[] = []
+    if (uniqueSubclasses) {
+      const pastLives = await prisma.life.findMany({
+        select: { subclass: true },
+      })
+      excludedSubclasses = pastLives.map(life => life.subclass)
+    }
+
     // Generate new character
     const name = generateCharacterName()
     const race = randomRace()
-    const { className, subclass } = randomClass()
+    const { className, subclass } = randomClass(excludedSubclasses)
     const effect = randomEffect()
 
+    // Get subclass decision if applicable (totem animal, draconic ancestor, etc.)
+    const subclassChoice = getSubclassDecision(className, subclass)
+
+    // Select skill proficiencies based on class
+    const skillProficiencies = selectSkillProficiencies(className)
+
     // Get base stats from class priority and apply racial bonuses
-    const baseStats = mapStatsForClass(className)
+    const classStats = mapStatsForClass(className)
     const racialBonuses = await getRacialBonuses(race)
-    const stats = applyRacialBonuses(baseStats, racialBonuses)
+    const baseStats = applyRacialBonuses(classStats, racialBonuses)
+
+    // Apply ASIs based on level (stats with ASI applied)
+    const stats = applyASIs(baseStats, className, level)
 
     const conMod = getStatModifier(stats.con)
     const maxHp = calculateMaxHp(className, level, conMod)
@@ -260,7 +287,8 @@ export async function POST(request: Request) {
         race: currentLife.race,
         class: currentLife.class,
         subclass: currentLife.subclass,
-      } : null
+      } : null,
+      subclassChoice
     )
 
     // Create new life
@@ -272,11 +300,14 @@ export async function POST(request: Request) {
         class: className,
         subclass,
         level,
-        stats,
+        stats: stats as unknown as Record<string, number>,
+        baseStats: baseStats as unknown as Record<string, number>,
         currentHp: maxHp,
         maxHp,
         effect,
         story,
+        skillProficiencies,
+        subclassChoice,
         isActive: true,
       },
     })

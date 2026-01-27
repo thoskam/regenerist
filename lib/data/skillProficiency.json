@@ -1,0 +1,16 @@
+{
+  "Artificer": { "count": 2, "options": ["Arcana", "History", "Investigation", "Medicine", "Nature", "Perception", "Sleight of Hand"] },
+  "Barbarian": { "count": 2, "options": ["Animal Handling", "Athletics", "Intimidation", "Nature", "Perception", "Survival"] },
+  "Bard": { "count": 3, "options": ["Acrobatics", "Animal Handling", "Arcana", "Athletics", "Deception", "History", "Insight", "Intimidation", "Investigation", "Medicine", "Nature", "Perception", "Performance", "Persuasion", "Religion", "Sleight of Hand", "Stealth", "Survival"] },
+  "Cleric": { "count": 2, "options": ["History", "Insight", "Medicine", "Persuasion", "Religion"] },
+  "Druid": { "count": 2, "options": ["Arcana", "Animal Handling", "Insight", "Medicine", "Nature", "Perception", "Religion", "Survival"] },
+  "Fighter": { "count": 2, "options": ["Acrobatics", "Animal Handling", "Athletics", "History", "Insight", "Intimidation", "Perception", "Survival"] },
+  "Monk": { "count": 2, "options": ["Acrobatics", "Athletics", "History", "Insight", "Religion", "Stealth"] },
+  "Paladin": { "count": 2, "options": ["Athletics", "Insight", "Intimidation", "Medicine", "Persuasion", "Religion"] },
+  "Ranger": { "count": 3, "options": ["Animal Handling", "Athletics", "Insight", "Investigation", "Nature", "Perception", "Stealth", "Survival"] },
+  "Rogue": { "count": 4, "options": ["Acrobatics", "Athletics", "Deception", "Insight", "Intimidation", "Investigation", "Perception", "Performance", "Persuasion", "Sleight of Hand", "Stealth"] },
+  "Sorcerer": { "count": 2, "options": ["Arcana", "Deception", "Insight", "Intimidation", "Persuasion", "Religion"] },
+  "Warlock": { "count": 2, "options": ["Arcana", "Deception", "History", "Intimidation", "Investigation", "Nature", "Religion"] },
+  "Wizard": { "count": 2, "options": ["Arcana", "History", "Insight", "Investigation", "Medicine", "Religion"] },
+  "Blood Hunter": { "count": 2, "options": ["Athletics", "Arcana", "History", "Insight", "Investigation", "Survival"] }
+}

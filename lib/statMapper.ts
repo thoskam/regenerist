@@ -11,7 +11,7 @@ export interface Stats {
 
 const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8]
 
-const STAT_PRIORITY: Record<string, StatName[]> = {
+export const STAT_PRIORITY: Record<string, StatName[]> = {
   Artificer: ['int', 'con', 'dex', 'wis', 'cha', 'str'],
   Barbarian: ['str', 'con', 'dex', 'wis', 'cha', 'int'],
   Bard: ['cha', 'dex', 'con', 'wis', 'int', 'str'],

@@ -1,3 +1,5 @@
+version: "3.8"
+
 services:
   app:
     build:
@@ -5,9 +7,9 @@ services:
       dockerfile: Dockerfile
     container_name: regenerist-app
     ports:
-      - "3000:3000"
+      - "3080:3000"  # Using 3080 to avoid conflicts
     environment:
-      - DATABASE_URL=postgresql://postgres:regenerist_password@db:5432/regenerist
+      - DATABASE_URL=postgresql://postgres:regenerist_password@regenerist-db:5432/regenerist
       - AWS_REGION=${AWS_REGION:-us-east-1}
       - AWS_ACCESS_KEY_ID=${AWS_ACCESS_KEY_ID}
       - AWS_SECRET_ACCESS_KEY=${AWS_SECRET_ACCESS_KEY}
@@ -23,13 +25,13 @@ services:
     image: postgres:16-alpine
     container_name: regenerist-db
     ports:
-      - "5432:5432"
+      - "5433:5432"  # External port 5433 to avoid conflicts
     environment:
       - POSTGRES_USER=postgres
       - POSTGRES_PASSWORD=regenerist_password
       - POSTGRES_DB=regenerist
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - /mnt/user/appdata/regenerist/postgres_data:/var/lib/postgresql/data
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     networks:
       - regenerist-network
@@ -43,6 +45,3 @@ services:
 networks:
   regenerist-network:
     driver: bridge
-
-volumes:
-  postgres_data:

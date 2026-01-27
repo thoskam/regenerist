@@ -8,10 +8,18 @@ CREATE TABLE IF NOT EXISTS "Life" (
     "subclass" TEXT NOT NULL,
     "level" INTEGER NOT NULL DEFAULT 1,
     "stats" JSONB NOT NULL,
+    "baseStats" JSONB,
     "currentHp" INTEGER NOT NULL,
     "maxHp" INTEGER NOT NULL,
     "effect" TEXT NOT NULL,
     "story" TEXT NOT NULL,
+    "skillProficiencies" TEXT[] DEFAULT '{}',
+    "subclassChoice" TEXT,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "isActive" BOOLEAN NOT NULL DEFAULT false
 );
+
+-- Migration for existing databases
+ALTER TABLE "Life" ADD COLUMN IF NOT EXISTS "skillProficiencies" TEXT[] DEFAULT '{}';
+ALTER TABLE "Life" ADD COLUMN IF NOT EXISTS "subclassChoice" TEXT;
+ALTER TABLE "Life" ADD COLUMN IF NOT EXISTS "baseStats" JSONB;

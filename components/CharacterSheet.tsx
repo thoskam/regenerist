@@ -8,9 +8,11 @@ import RegenerateButton from './RegenerateButton'
 import StoryDisplay from './StoryDisplay'
 import LifeHistory from './LifeHistory'
 import FormSummary from './FormSummary'
-import { Life } from '@/lib/types'
+import ProficiencyList from './ProficiencyList'
+import { Life, Stats } from '@/lib/types'
 import { calculateProficiencyBonus, calculateAC, calculateInitiative, calculateSpeed, formatModifier, calculateMaxHp } from '@/lib/calculations'
-import { getStatModifier, mapStatsForClass } from '@/lib/statMapper'
+import { getStatModifier } from '@/lib/statMapper'
+import { applyASIs } from '@/lib/asiCalculator'
 
 export default function CharacterSheet() {
   const [currentLife, setCurrentLife] = useState<Life | null>(null)
@@ -18,6 +20,7 @@ export default function CharacterSheet() {
   const [isLoading, setIsLoading] = useState(false)
   const [isRegenerating, setIsRegenerating] = useState(false)
   const [level, setLevel] = useState(1)
+  const [uniqueSubclasses, setUniqueSubclasses] = useState(false)
 
   useEffect(() => {
     fetchLives()
@@ -47,7 +50,7 @@ export default function CharacterSheet() {
       const res = await fetch('/api/regenerate', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ level }),
+        body: JSON.stringify({ level, uniqueSubclasses }),
       })
       const newLife = await res.json()
       setCurrentLife(newLife)
@@ -77,18 +80,32 @@ export default function CharacterSheet() {
     setLevel(newLevel)
     if (!currentLife) return
 
-    const stats = currentLife.stats as { str: number; dex: number; con: number; int: number; wis: number; cha: number }
-    const conMod = getStatModifier(stats.con)
+    // Recalculate stats with ASI for new level
+    const baseStats = (currentLife.baseStats || currentLife.stats) as Stats
+    const newStats = applyASIs(baseStats, currentLife.class, newLevel)
+
+    const conMod = getStatModifier(newStats.con)
     const newMaxHp = calculateMaxHp(currentLife.class, newLevel, conMod)
     const newCurrentHp = Math.min(currentLife.currentHp, newMaxHp)
 
-    setCurrentLife({ ...currentLife, level: newLevel, maxHp: newMaxHp, currentHp: newCurrentHp })
+    setCurrentLife({
+      ...currentLife,
+      level: newLevel,
+      stats: newStats,
+      maxHp: newMaxHp,
+      currentHp: newCurrentHp
+    })
 
     try {
       await fetch(`/api/lives/${currentLife.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ level: newLevel, maxHp: newMaxHp, currentHp: newCurrentHp }),
+        body: JSON.stringify({
+          level: newLevel,
+          stats: newStats,
+          maxHp: newMaxHp,
+          currentHp: newCurrentHp
+        }),
       })
     } catch (error) {
       console.error('Failed to update level:', error)
@@ -122,8 +139,10 @@ export default function CharacterSheet() {
     )
   }
 
-  const stats = currentLife?.stats as { str: number; dex: number; con: number; int: number; wis: number; cha: number } | undefined
-  const baseStats = currentLife ? mapStatsForClass(currentLife.class) : undefined
+  const stats = currentLife?.stats as Stats | undefined
+  const baseStats = (currentLife?.baseStats || currentLife?.stats) as Stats | undefined
+  const proficiencyBonus = calculateProficiencyBonus(level)
+  const skillProficiencies = currentLife?.skillProficiencies || []
 
   return (
     <div className={`min-h-screen bg-slate-900 text-white ${isRegenerating ? 'animate-regenerate-glow' : ''}`}>
@@ -138,18 +157,51 @@ export default function CharacterSheet() {
               Life #{currentLife.lifeNumber}
             </p>
           )}
+
+          {/* Unique Subclasses Toggle */}
+          <div className="mt-4 flex items-center justify-center gap-3">
+            <label className="flex items-center gap-2 cursor-pointer">
+              <div className="relative">
+                <input
+                  type="checkbox"
+                  checked={uniqueSubclasses}
+                  onChange={(e) => setUniqueSubclasses(e.target.checked)}
+                  className="sr-only peer"
+                />
+                <div className="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-gold-500 transition-colors"></div>
+                <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+              </div>
+              <span className="text-sm text-slate-400">
+                Unique Subclasses
+              </span>
+            </label>
+            {uniqueSubclasses && (
+              <span className="text-xs text-slate-500">
+                ({allLives.length} used)
+              </span>
+            )}
+          </div>
         </div>
 
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {/* Left Sidebar - Life History */}
-          <div className="lg:col-span-1">
+          {/* Left Sidebar - Life History & Skills */}
+          <div className="lg:col-span-1 space-y-6">
             <LifeHistory
               lives={allLives}
               currentLifeId={currentLife?.id || null}
               onSelectLife={handleSelectLife}
               onClearHistory={handleClearHistory}
             />
+
+            {/* Skills/Proficiencies */}
+            {currentLife && stats && (
+              <ProficiencyList
+                stats={stats}
+                proficiencies={skillProficiencies}
+                proficiencyBonus={proficiencyBonus}
+              />
+            )}
           </div>
 
           {/* Main Character Sheet */}
@@ -164,6 +216,11 @@ export default function CharacterSheet() {
                       <p className="text-gold-400 text-lg">{currentLife.race}</p>
                       <p className="text-slate-400">
                         {currentLife.class} ({currentLife.subclass})
+                        {currentLife.subclassChoice && (
+                          <span className="text-gold-400 ml-1">
+                            — {currentLife.subclassChoice}
+                          </span>
+                        )}
                       </p>
                     </div>
                     <LevelSelector level={level} onChange={handleLevelChange} />
@@ -196,7 +253,7 @@ export default function CharacterSheet() {
                 <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 text-center">
                   <span className="text-xs text-slate-400 font-semibold tracking-wider block">PROFICIENCY BONUS</span>
                   <span className="text-2xl font-bold text-gold-400">
-                    {formatModifier(calculateProficiencyBonus(level))}
+                    {formatModifier(proficiencyBonus)}
                   </span>
                 </div>
 

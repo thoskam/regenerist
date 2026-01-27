@@ -1,0 +1,13 @@
+{
+  "Barbarian: Path of the Totem Warrior": ["Bear (Resistance)", "Eagle (Dash)", "Wolf (Advantage)", "Tiger (Skills)", "Elk (Speed)"],
+  "Barbarian: Path of the Storm Herald": ["Desert (Fire)", "Sea (Lightning)", "Tundra (Frost)"],
+  "Cleric: Arcana Domain": ["Wizard Cantrips: Fire Bolt & Mage Hand", "Wizard Cantrips: Ray of Frost & Prestidigitation"],
+  "Draconic Bloodline (Sorcerer)": ["Black (Acid)", "Blue (Lightning)", "Brass (Fire)", "Bronze (Lightning)", "Copper (Acid)", "Gold (Fire)", "Green (Poison)", "Red (Fire)", "Silver (Cold)", "White (Cold)"],
+  "Warlock: Pact Boon": ["Pact of the Chain", "Pact of the Blade", "Pact of the Tome", "Pact of the Talisman"],
+  "Fighter: Rune Knight": ["Cloud Rune", "Fire Rune", "Frost Rune", "Stone Rune", "Hill Rune", "Storm Rune"],
+  "Fighter: Battle Master": ["Maneuvers: Trip, Disarm, Menacing", "Maneuvers: Riposte, Precision, Goading", "Maneuvers: Ambush, Tactical, Bait"],
+  "Druid: Circle of the Land": ["Arctic", "Coast", "Desert", "Forest", "Grassland", "Mountain", "Swamp", "Underdark"],
+  "Rogue: Arcane Trickster": ["Spells: Silent Image, Find Familiar, Tasha's Laughter"],
+  "Wizard: School of Illusion": ["Cantrip: Improved Minor Illusion"],
+  "Blood Hunter: Order of the Profane Soul": ["Patron: The Archfey", "Patron: The Fiend", "Patron: The Celestial", "Patron: The Hexblade"]
+}

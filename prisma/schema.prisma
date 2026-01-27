@@ -8,18 +8,21 @@ datasource db {
 }
 
 model Life {
-  id         Int      @id @default(autoincrement())
-  lifeNumber Int      @unique
-  name       String
-  race       String
-  class      String
-  subclass   String
-  level      Int      @default(1)
-  stats      Json     // {str, dex, con, int, wis, cha}
-  currentHp  Int
-  maxHp      Int
-  effect     String
-  story      String   @db.Text
-  createdAt  DateTime @default(now())
-  isActive   Boolean  @default(false)
+  id                  Int      @id @default(autoincrement())
+  lifeNumber          Int      @unique
+  name                String
+  race                String
+  class               String
+  subclass            String
+  level               Int      @default(1)
+  stats               Json     // {str, dex, con, int, wis, cha} - final stats with ASI applied
+  baseStats           Json?    // {str, dex, con, int, wis, cha} - stats before ASI (standard array + racial)
+  currentHp           Int
+  maxHp               Int
+  effect              String
+  story               String   @db.Text
+  skillProficiencies  String[] @default([])
+  subclassChoice      String?
+  createdAt           DateTime @default(now())
+  isActive            Boolean  @default(false)
 }
