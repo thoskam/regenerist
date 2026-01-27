@@ -7,22 +7,48 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+model Character {
+  id        Int      @id @default(autoincrement())
+  name      String
+  slug      String   @unique
+  level     Int      @default(1)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  lives     Life[]
+}
+
 model Life {
-  id                  Int      @id @default(autoincrement())
-  lifeNumber          Int      @unique
+  id                  Int       @id @default(autoincrement())
+  lifeNumber          Int
   name                String
   race                String
   class               String
   subclass            String
-  level               Int      @default(1)
-  stats               Json     // {str, dex, con, int, wis, cha} - final stats with ASI applied
-  baseStats           Json?    // {str, dex, con, int, wis, cha} - stats before ASI (standard array + racial)
+  level               Int       @default(1)
+  stats               Json      // {str, dex, con, int, wis, cha} - final stats with ASI applied
+  baseStats           Json?     // {str, dex, con, int, wis, cha} - stats before ASI (standard array + racial)
   currentHp           Int
   maxHp               Int
   effect              String
-  story               String   @db.Text
-  skillProficiencies  String[] @default([])
+  story               String    @db.Text
+  skillProficiencies  String[]  @default([])
   subclassChoice      String?
-  createdAt           DateTime @default(now())
-  isActive            Boolean  @default(false)
+  createdAt           DateTime  @default(now())
+  isActive            Boolean   @default(false)
+
+  // Relationship to Character
+  characterId         Int
+  character           Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  // lifeNumber is unique per character, not globally
+  @@unique([characterId, lifeNumber])
+}
+
+model Quirk {
+  id          Int      @id @default(autoincrement())
+  name        String
+  description String   @db.Text
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

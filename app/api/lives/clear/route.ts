@@ -1,15 +1,9 @@
 import { NextResponse } from 'next/server'
-import { prisma } from '@/lib/prisma'
 
+// This route is deprecated - use /api/characters/[slug]/lives instead
 export async function DELETE() {
-  try {
-    await prisma.life.deleteMany({})
-    return NextResponse.json({ success: true })
-  } catch (error) {
-    console.error('Error clearing lives:', error)
-    return NextResponse.json(
-      { error: 'Failed to clear lives' },
-      { status: 500 }
-    )
-  }
+  return NextResponse.json(
+    { error: 'This endpoint is deprecated. Use DELETE /api/characters/[slug]/lives instead.' },
+    { status: 410 }
+  )
 }

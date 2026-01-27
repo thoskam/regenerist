@@ -7,6 +7,16 @@ export interface Stats {
   cha: number
 }
 
+export interface Character {
+  id: number
+  name: string
+  slug: string
+  level: number
+  createdAt: Date
+  updatedAt: Date
+  lives?: Life[]
+}
+
 export interface Life {
   id: number
   lifeNumber: number
@@ -25,4 +35,20 @@ export interface Life {
   subclassChoice: string | null
   createdAt: Date
   isActive: boolean
+  characterId: number
+  character?: Character
+}
+
+export interface Quirk {
+  id: number
+  name: string
+  description: string
+  isActive: boolean
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface CharacterWithCurrentLife extends Character {
+  currentLife: Life | null
+  totalLives: number
 }
