@@ -1,0 +1,57 @@
+services:
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: regenerist-app
+    ports:
+      - "3000:3000"
+    environment:
+      - DATABASE_URL=postgresql://postgres:regenerist_password@db:5432/regenerist
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - regenerist-network
+    restart: unless-stopped
+
+  db:
+    image: postgres:16-alpine
+    container_name: regenerist-db
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=regenerist_password
+      - POSTGRES_DB=regenerist
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    networks:
+      - regenerist-network
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d regenerist"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  # One-time migration runner
+  migrate:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: regenerist-migrate
+    command: npx prisma db push
+    environment:
+      - DATABASE_URL=postgresql://postgres:regenerist_password@db:5432/regenerist
+    depends_on:
+      db:
+        condition: service_healthy
+    networks:
+      - regenerist-network
+
+networks:
+  regenerist-network:
+    driver: bridge
+
+volumes:
+  postgres_data:

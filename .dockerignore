@@ -1,0 +1,23 @@
+# dependencies
+node_modules
+
+# next.js
+.next
+
+# git
+.git
+.gitignore
+
+# misc
+.DS_Store
+*.md
+.env*
+!.env.example
+
+# docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# json data folder (data is copied to lib/data)
+/json

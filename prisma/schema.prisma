@@ -1,0 +1,25 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Life {
+  id         Int      @id @default(autoincrement())
+  lifeNumber Int      @unique
+  name       String
+  race       String
+  class      String
+  subclass   String
+  level      Int      @default(1)
+  stats      String   // JSON string: {str, dex, con, int, wis, cha}
+  currentHp  Int
+  maxHp      Int
+  effect     String
+  story      String
+  createdAt  DateTime @default(now())
+  isActive   Boolean  @default(false)
+}
