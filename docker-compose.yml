@@ -43,7 +43,7 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: regenerist-migrate
-    command: npx prisma db push
+    command: node_modules/.bin/prisma db push
     environment:
       - DATABASE_URL=postgresql://postgres:regenerist_password@db:5432/regenerist
     depends_on:
