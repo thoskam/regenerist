@@ -1,6 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { randomClass, randomRace, randomFromArray, generateCharacterName } from '@/lib/randomizer'
+import { randomClass, randomRace, randomFromArray } from '@/lib/randomizer'
 import { mapStatsForClass, getStatModifier } from '@/lib/statMapper'
 import { calculateMaxHp } from '@/lib/calculations'
 import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedrock-runtime'
@@ -282,7 +282,7 @@ export async function POST(
     }
 
     // Generate new character details
-    const name = generateCharacterName()
+    const name = character.name  // Use the character's name
     const race = randomRace()
     const { className, subclass } = randomClass(excludedSubclasses)
 
