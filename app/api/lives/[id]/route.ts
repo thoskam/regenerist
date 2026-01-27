@@ -18,11 +18,7 @@ export async function GET(
       )
     }
 
-    // Parse stats JSON string
-    return NextResponse.json({
-      ...life,
-      stats: JSON.parse(life.stats),
-    })
+    return NextResponse.json(life)
   } catch (error) {
     console.error('Error fetching life:', error)
     return NextResponse.json(

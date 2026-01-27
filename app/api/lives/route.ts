@@ -6,12 +6,7 @@ export async function GET() {
     const lives = await prisma.life.findMany({
       orderBy: { lifeNumber: 'desc' },
     })
-    // Parse stats JSON string for each life
-    const parsedLives = lives.map((life) => ({
-      ...life,
-      stats: JSON.parse(life.stats),
-    }))
-    return NextResponse.json(parsedLives)
+    return NextResponse.json(lives)
   } catch (error) {
     console.error('Error fetching lives:', error)
     return NextResponse.json(

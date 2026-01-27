@@ -3,7 +3,7 @@ generator client {
 }
 
 datasource db {
-  provider = "sqlite"
+  provider = "postgresql"
   url      = env("DATABASE_URL")
 }
 
@@ -15,11 +15,11 @@ model Life {
   class      String
   subclass   String
   level      Int      @default(1)
-  stats      String   // JSON string: {str, dex, con, int, wis, cha}
+  stats      Json     // {str, dex, con, int, wis, cha}
   currentHp  Int
   maxHp      Int
   effect     String
-  story      String
+  story      String   @db.Text
   createdAt  DateTime @default(now())
   isActive   Boolean  @default(false)
 }

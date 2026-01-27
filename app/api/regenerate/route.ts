@@ -263,7 +263,7 @@ export async function POST(request: Request) {
       } : null
     )
 
-    // Create new life (store stats as JSON string for SQLite)
+    // Create new life
     const newLife = await prisma.life.create({
       data: {
         lifeNumber: newLifeNumber,
@@ -272,7 +272,7 @@ export async function POST(request: Request) {
         class: className,
         subclass,
         level,
-        stats: JSON.stringify(stats),
+        stats,
         currentHp: maxHp,
         maxHp,
         effect,
@@ -281,11 +281,7 @@ export async function POST(request: Request) {
       },
     })
 
-    // Return with stats parsed back to object
-    return NextResponse.json({
-      ...newLife,
-      stats,
-    })
+    return NextResponse.json(newLife)
   } catch (error) {
     console.error('Regeneration error:', error)
     return NextResponse.json(
