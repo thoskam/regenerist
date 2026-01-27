@@ -10,7 +10,7 @@ import LifeHistory from './LifeHistory'
 import FormSummary from './FormSummary'
 import { Life } from '@/lib/types'
 import { calculateProficiencyBonus, calculateAC, calculateInitiative, calculateSpeed, formatModifier, calculateMaxHp } from '@/lib/calculations'
-import { getStatModifier } from '@/lib/statMapper'
+import { getStatModifier, mapStatsForClass } from '@/lib/statMapper'
 
 export default function CharacterSheet() {
   const [currentLife, setCurrentLife] = useState<Life | null>(null)
@@ -123,6 +123,7 @@ export default function CharacterSheet() {
   }
 
   const stats = currentLife?.stats as { str: number; dex: number; con: number; int: number; wis: number; cha: number } | undefined
+  const baseStats = currentLife ? mapStatsForClass(currentLife.class) : undefined
 
   return (
     <div className={`min-h-screen bg-slate-900 text-white ${isRegenerating ? 'animate-regenerate-glow' : ''}`}>
@@ -213,6 +214,7 @@ export default function CharacterSheet() {
                       key={stat}
                       name={stat}
                       value={stats[stat as keyof typeof stats]}
+                      baseValue={baseStats?.[stat as keyof typeof baseStats]}
                       animate={isRegenerating}
                     />
                   ))}

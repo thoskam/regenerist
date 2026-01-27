@@ -6,6 +6,7 @@ import { formatModifier } from '@/lib/calculations'
 interface StatBlockProps {
   name: string
   value: number
+  baseValue?: number
   animate?: boolean
 }
 
@@ -18,15 +19,19 @@ const STAT_LABELS: Record<string, string> = {
   cha: 'CHA',
 }
 
-export default function StatBlock({ name, value, animate = false }: StatBlockProps) {
+export default function StatBlock({ name, value, baseValue, animate = false }: StatBlockProps) {
   const modifier = getStatModifier(value)
+  const hasBonus = baseValue !== undefined && baseValue !== value
 
   return (
     <div className={`flex flex-col items-center bg-slate-800 rounded-lg p-3 border border-slate-700 ${animate ? 'animate-stat-change' : ''}`}>
       <span className="text-xs text-slate-400 font-semibold tracking-wider">
         {STAT_LABELS[name] || name.toUpperCase()}
       </span>
-      <span className="text-2xl font-bold text-white">{value}</span>
+      {hasBonus && (
+        <span className="text-xs text-slate-500">({baseValue})</span>
+      )}
+      <span className={`text-2xl font-bold ${hasBonus ? 'text-green-400' : 'text-white'}`}>{value}</span>
       <span className="text-sm text-gold-400 font-medium">
         {formatModifier(modifier)}
       </span>
