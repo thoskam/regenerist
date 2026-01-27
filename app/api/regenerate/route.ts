@@ -140,9 +140,11 @@ Output Format (Required - use these exact markdown headers):
 
 ## Signature Catchphrase
 
-*"[A bold, character-defining quote that captures this incarnation's personality and vibe]"*
+*"[4 words maximum - a punchy, memorable battle cry or motto]"*
 
-Constraint: Be specific about D&D 5e mechanics. Reference actual class features, racial abilities, and subclass capabilities by name when relevant.`
+Constraints:
+- Signature catchphrase must be exactly 4 words or fewer
+- Be specific about D&D 5e mechanics. Reference actual class features, racial abilities, and subclass capabilities by name when relevant.`
 
     const subclassChoiceContext = subclassChoice
       ? `\nSubclass Choice: ${subclassChoice}`
