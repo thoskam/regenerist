@@ -79,3 +79,65 @@ BEDROCK_MODEL_ID=us.anthropic.claude-3-5-sonnet-20241022-v2:0
 - `POST /api/characters/[slug]/regenerate` - Generate new life
 - `GET/PUT /api/characters/[slug]/lives/[lifeId]` - Life management
 - `GET/POST/PUT/DELETE /api/quirks[/id]` - Quirk CRUD
+
+## Regeneration Animation System
+
+The regeneration UI has a Doctor Who-inspired animation sequence with multiple phases.
+
+### Animation Phases (`regenPhase` state)
+
+1. **`idle`** - Normal state, no animations
+2. **`fading-out`** (0.8s) - Text fades to transparent with amber flash midway, boxes remain visible
+3. **`loading`** (min 1.5s) - Grid boxes pulse with golden glow while waiting for API response
+4. **`flashing-in`** (1s) - Screen flash overlay + text fades back in from amber
+
+### Key Files
+
+- `app/character/[slug]/page.tsx` - Main state machine (`regenPhase`, `handleRegenerate`)
+- `app/globals.css` - All animation keyframes (`regenerate-text-out`, `regenerate-text-in`, `grid-pulse`, `screen-flash`)
+- `components/StatBlock.tsx` - Ability score boxes with `pulseStyle` prop
+
+### Animation CSS Classes
+
+- `.animate-regenerate-out` - Text fade out (applied to content wrappers)
+- `.animate-regenerate-in` - Text fade in with amber flash
+- `.regeneration-flash` - Full-screen golden flash overlay
+- `grid-pulse` keyframe - Applied via inline styles during loading phase
+
+### Important Notes
+
+- Grid box pulse animations use **inline styles** (not CSS classes) because Tailwind classes can conflict
+- Minimum 1.5s loading time ensures pulse animation is visible even with fast API responses
+- The `animate-regenerate-out/in` classes use `animation-fill-mode: forwards`
+
+## Development Workflow
+
+### Local Development (Recommended)
+
+Run Next.js locally while using Docker for the database:
+
+```bash
+docker-compose stop app          # Stop the app container
+docker-compose up -d db          # Keep database running
+npm run dev                      # Start local dev server
+```
+
+This allows hot-reloading without rebuilding Docker images.
+
+### Docker Development
+
+If running fully in Docker, code changes require rebuild:
+
+```bash
+docker-compose up --build -d app
+```
+
+### Deployment to Unraid
+
+SSH into Unraid server and run:
+
+```bash
+cd /path/to/dnd
+git pull
+docker-compose up --build -d app
+```
