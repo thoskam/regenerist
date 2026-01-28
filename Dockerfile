@@ -51,6 +51,9 @@ COPY --from=builder --chown=nextjs:nodejs /app/node_modules/prisma ./node_module
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/.bin ./node_modules/.bin
 COPY --from=builder --chown=nextjs:nodejs /app/node_modules/@prisma ./node_modules/@prisma
 
+# Copy 5etools data files
+COPY --from=builder --chown=nextjs:nodejs /app/data ./data
+
 USER nextjs
 
 EXPOSE 3000
