@@ -11,7 +11,10 @@ import StoryDisplay from '@/components/StoryDisplay'
 import LifeHistory from '@/components/LifeHistory'
 import FormSummary from '@/components/FormSummary'
 import ProficiencyList from '@/components/ProficiencyList'
+import FeatureDisplay from '@/components/FeatureDisplay'
+import SpellList from '@/components/SpellList'
 import { Character, Life, Stats } from '@/lib/types'
+import { HydratedCharacterData } from '@/lib/types/5etools'
 import { calculateProficiencyBonus, calculateAC, calculateInitiative, calculateSpeed, formatModifier, calculateMaxHp } from '@/lib/calculations'
 import { getStatModifier } from '@/lib/statMapper'
 import { applyASIs } from '@/lib/asiCalculator'
@@ -33,6 +36,8 @@ export default function CharacterPage() {
   const [level, setLevel] = useState(1)
   const [uniqueSubclasses, setUniqueSubclasses] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  const [hydratedData, setHydratedData] = useState<HydratedCharacterData | null>(null)
+  const [activeTab, setActiveTab] = useState<'story' | 'features' | 'spells'>('story')
 
   const fetchCharacter = useCallback(async () => {
     try {
@@ -65,6 +70,28 @@ export default function CharacterPage() {
   useEffect(() => {
     fetchCharacter()
   }, [fetchCharacter])
+
+  // Fetch hydrated data when character has an active life
+  const fetchHydratedData = useCallback(async () => {
+    if (!character || !currentLife) {
+      setHydratedData(null)
+      return
+    }
+
+    try {
+      const res = await fetch(`/api/characters/${slug}/hydrate`)
+      if (res.ok) {
+        const data = await res.json()
+        setHydratedData(data)
+      }
+    } catch (err) {
+      console.error('Failed to fetch hydrated data:', err)
+    }
+  }, [slug, character, currentLife])
+
+  useEffect(() => {
+    fetchHydratedData()
+  }, [fetchHydratedData])
 
   const handleRegenerate = async () => {
     if (!character) return
@@ -357,6 +384,19 @@ export default function CharacterPage() {
                   effect={currentLife.effect}
                   story={currentLife.story}
                 />
+
+                {/* Race Traits */}
+                {hydratedData?.raceInfo && hydratedData.raceInfo.traits.length > 0 && (
+                  <FeatureDisplay
+                    title={`${hydratedData.raceInfo.name.toUpperCase()} TRAITS`}
+                    features={hydratedData.raceInfo.traits.map((trait) => ({
+                      name: trait.name,
+                      level: 1,
+                      description: trait.description,
+                    }))}
+                    currentLevel={level}
+                  />
+                )}
               </>
             ) : (
               <div className="bg-slate-800 rounded-lg p-8 border border-slate-700 text-center">
@@ -372,10 +412,81 @@ export default function CharacterPage() {
             </div>
           </div>
 
-          {/* Right Sidebar - Story */}
-          <div className="lg:col-span-1">
+          {/* Right Sidebar - Story, Features, Spells */}
+          <div className="lg:col-span-1 space-y-4">
             {currentLife && (
-              <StoryDisplay story={currentLife.story} effect={currentLife.effect} />
+              <>
+                {/* Tab Navigation */}
+                <div className="flex border-b border-slate-700">
+                  <button
+                    onClick={() => setActiveTab('story')}
+                    className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
+                      activeTab === 'story'
+                        ? 'text-gold-400 border-b-2 border-gold-400'
+                        : 'text-slate-400 hover:text-slate-300'
+                    }`}
+                  >
+                    Story
+                  </button>
+                  <button
+                    onClick={() => setActiveTab('features')}
+                    className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
+                      activeTab === 'features'
+                        ? 'text-gold-400 border-b-2 border-gold-400'
+                        : 'text-slate-400 hover:text-slate-300'
+                    }`}
+                  >
+                    Features
+                  </button>
+                  {hydratedData?.isSpellcaster && (
+                    <button
+                      onClick={() => setActiveTab('spells')}
+                      className={`flex-1 px-3 py-2 text-sm font-medium transition-colors ${
+                        activeTab === 'spells'
+                          ? 'text-gold-400 border-b-2 border-gold-400'
+                          : 'text-slate-400 hover:text-slate-300'
+                      }`}
+                    >
+                      Spells
+                    </button>
+                  )}
+                </div>
+
+                {/* Tab Content */}
+                {activeTab === 'story' && (
+                  <StoryDisplay story={currentLife.story} effect={currentLife.effect} />
+                )}
+
+                {activeTab === 'features' && hydratedData && (
+                  <div className="space-y-4">
+                    {/* Class Features */}
+                    {hydratedData.classInfo && (
+                      <FeatureDisplay
+                        title={`${hydratedData.classInfo.name.toUpperCase()} FEATURES`}
+                        features={hydratedData.classInfo.features}
+                        currentLevel={level}
+                      />
+                    )}
+
+                    {/* Subclass Features */}
+                    {hydratedData.subclassInfo && hydratedData.subclassInfo.features.length > 0 && (
+                      <FeatureDisplay
+                        title={`${hydratedData.subclassInfo.name.toUpperCase()} FEATURES`}
+                        features={hydratedData.subclassInfo.features}
+                        currentLevel={level}
+                      />
+                    )}
+                  </div>
+                )}
+
+                {activeTab === 'spells' && hydratedData?.spells && hydratedData.spellcastingAbility && (
+                  <SpellList
+                    spells={hydratedData.spells}
+                    maxSpellLevel={hydratedData.maxSpellLevel || 0}
+                    spellcastingAbility={hydratedData.spellcastingAbility}
+                  />
+                )}
+              </>
             )}
           </div>
         </div>

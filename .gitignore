@@ -41,3 +41,6 @@ prisma/*.db-journal
 
 # json data (original files in /json folder)
 /json
+
+#the data files from 5e 
+/data

@@ -4,6 +4,7 @@ import { Stats } from '@/lib/types'
 import { SKILLS_BY_ABILITY, SKILL_ABILITIES, calculateSkillModifier } from '@/lib/proficiencyEngine'
 import { formatModifier } from '@/lib/calculations'
 import { StatName } from '@/lib/statMapper'
+import SkillTooltip from './SkillTooltip'
 
 interface ProficiencyListProps {
   stats: Stats
@@ -55,13 +56,15 @@ export default function ProficiencyList({ stats, proficiencies, proficiencyBonus
                             isProficient ? 'bg-gold-400' : 'bg-slate-600'
                           }`}
                         />
-                        <span
-                          className={`text-sm ${
-                            isProficient ? 'text-gold-400 font-medium' : 'text-slate-400'
-                          }`}
-                        >
-                          {skill}
-                        </span>
+                        <SkillTooltip skillName={skill}>
+                          <span
+                            className={`text-sm ${
+                              isProficient ? 'text-gold-400 font-medium' : 'text-slate-400'
+                            }`}
+                          >
+                            {skill}
+                          </span>
+                        </SkillTooltip>
                       </div>
                       <span
                         className={`text-sm font-mono ${
