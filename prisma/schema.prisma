@@ -33,6 +33,7 @@ model Life {
   story               String    @db.Text
   skillProficiencies  String[]  @default([])
   subclassChoice      String?
+  spellbook           Json?     // {spellNames: string[], archivistNote: string}
   createdAt           DateTime  @default(now())
   isActive            Boolean   @default(false)
 

@@ -563,11 +563,17 @@ export default function CharacterPage() {
                   </div>
                 )}
 
-                {activeTab === 'spells' && hydratedData?.spells && hydratedData.spellcastingAbility && (
+                {activeTab === 'spells' && hydratedData?.isSpellcaster && hydratedData.spellcastingAbility && stats && (
                   <SpellList
-                    spells={hydratedData.spells}
+                    selectedSpellbook={hydratedData.selectedSpellbook}
+                    allAvailableSpells={hydratedData.spells || undefined}
                     maxSpellLevel={hydratedData.maxSpellLevel || 0}
                     spellcastingAbility={hydratedData.spellcastingAbility}
+                    stats={stats}
+                    proficiencyBonus={proficiencyBonus}
+                    slug={slug}
+                    lifeId={currentLife?.id}
+                    onSpellbookUpdate={() => fetchHydratedData()}
                   />
                 )}
               </>

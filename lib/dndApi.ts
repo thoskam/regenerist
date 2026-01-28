@@ -496,6 +496,90 @@ export async function getHydratedRaceInfo(raceName: string): Promise<HydratedRac
 }
 
 /**
+ * Get available spell names only (for Bedrock prompt)
+ * Returns separate arrays for cantrips and leveled spells
+ */
+export async function getAvailableSpellNames(
+  className: string,
+  subclassName: string,
+  level: number
+): Promise<{ cantrips: string[]; spells: string[] }> {
+  const casterType = getCasterType(className, subclassName)
+  if (!casterType) return { cantrips: [], spells: [] }
+
+  const maxSpellLevel = getMaxSpellLevelInternal(casterType, level)
+  if (maxSpellLevel === 0 && casterType !== 'full') {
+    // Non-casters or casters below spell-granting level
+    return { cantrips: [], spells: [] }
+  }
+
+  const allSpells = await loadSpells()
+  const normalizedClass = normalizeName(className)
+
+  // Get allowed schools for this class (or all schools if not defined)
+  const allowedSchools = CLASS_SPELL_SCHOOLS[normalizedClass] || ['A', 'C', 'D', 'E', 'V', 'I', 'N', 'T']
+
+  const cantrips: string[] = []
+  const spells: string[] = []
+
+  for (const spell of allSpells) {
+    // Only include spells from PHB for now
+    if (spell.source !== 'PHB') continue
+    // Filter by class-appropriate schools
+    if (!allowedSchools.includes(spell.school)) continue
+
+    if (spell.level === 0) {
+      cantrips.push(spell.name)
+    } else if (spell.level <= maxSpellLevel) {
+      spells.push(spell.name)
+    }
+  }
+
+  return { cantrips, spells }
+}
+
+// Internal helper for max spell level (to avoid duplicating logic)
+function getMaxSpellLevelInternal(
+  casterType: 'full' | 'half' | 'third' | 'pact',
+  level: number
+): number {
+  switch (casterType) {
+    case 'full':
+      if (level >= 17) return 9
+      if (level >= 15) return 8
+      if (level >= 13) return 7
+      if (level >= 11) return 6
+      if (level >= 9) return 5
+      if (level >= 7) return 4
+      if (level >= 5) return 3
+      if (level >= 3) return 2
+      return 1
+
+    case 'half':
+      if (level < 2) return 0
+      if (level >= 17) return 5
+      if (level >= 13) return 4
+      if (level >= 9) return 3
+      if (level >= 5) return 2
+      return 1
+
+    case 'third':
+      if (level < 3) return 0
+      if (level >= 19) return 4
+      if (level >= 13) return 3
+      if (level >= 7) return 2
+      return 1
+
+    case 'pact':
+      if (level >= 9) return 5
+      if (level >= 7) return 4
+      if (level >= 5) return 3
+      if (level >= 3) return 2
+      return 1
+  }
+}
+
+/**
  * Get spellcasting ability for a class/subclass
  */
 export async function getSpellcastingAbility(

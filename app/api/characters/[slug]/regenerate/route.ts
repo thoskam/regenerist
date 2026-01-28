@@ -7,6 +7,9 @@ import { BedrockRuntimeClient, InvokeModelCommand } from '@aws-sdk/client-bedroc
 import { getSubclassDecision } from '@/lib/subclassDecisions'
 import { applyASIs } from '@/lib/asiCalculator'
 import { selectSkillProficiencies } from '@/lib/proficiencyEngine'
+import { getSpellSlotInfo, getSpellcastingAbilityForClass } from '@/lib/spellSlots'
+import { generateSmartSpellbook } from '@/lib/spellbookGenerator'
+import { getAvailableSpellNames, getCasterType } from '@/lib/dndApi'
 
 const bedrockClient = new BedrockRuntimeClient({
   region: process.env.AWS_REGION || 'us-east-1',
@@ -334,6 +337,32 @@ export async function POST(
       subclassChoice
     )
 
+    // Generate spellbook for spellcasters
+    let spellbook = null
+    const casterType = getCasterType(className, subclass)
+
+    if (casterType) {
+      const spellAbility = getSpellcastingAbilityForClass(className, subclass)
+      const spellMod = spellAbility ? getStatModifier(stats[spellAbility as keyof typeof stats]) : 0
+      const slotInfo = getSpellSlotInfo(className, subclass, level, spellMod)
+
+      if (slotInfo.maxSpellLevel > 0 || slotInfo.cantripsKnown > 0) {
+        const available = await getAvailableSpellNames(className, subclass, level)
+        const spellCount = slotInfo.spellsKnown ?? slotInfo.spellsPrepared ?? 0
+
+        spellbook = await generateSmartSpellbook(
+          race,
+          className,
+          subclass,
+          level,
+          available.cantrips,
+          available.spells,
+          slotInfo.cantripsKnown,
+          spellCount
+        )
+      }
+    }
+
     // Create new life associated with this character
     const newLife = await prisma.life.create({
       data: {
@@ -352,6 +381,7 @@ export async function POST(
         story,
         skillProficiencies,
         subclassChoice,
+        ...(spellbook && { spellbook: spellbook as { spellNames: string[]; archivistNote: string } }),
         isActive: true,
       },
     })

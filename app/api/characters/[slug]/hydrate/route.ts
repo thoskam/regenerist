@@ -7,8 +7,49 @@ import {
   getSpellsForClass,
   getSpellcastingAbility,
   getCasterType,
+  loadSpells,
 } from '@/lib/dndApi'
-import type { HydratedCharacterData } from '@/lib/types/5etools'
+import type { HydratedCharacterData, Spellbook, HydratedSpellbook, HydratedSpell } from '@/lib/types/5etools'
+import {
+  formatCastingTime,
+  formatSpellRange,
+  formatSpellComponents,
+  formatSpellDuration,
+  getSpellSchool,
+  entriesToText,
+} from '@/lib/entryParser'
+
+/**
+ * Hydrate a spellbook with full spell data
+ */
+async function hydrateSpellbook(spellbook: Spellbook): Promise<HydratedSpellbook> {
+  const allSpells = await loadSpells()
+
+  const hydratedSpells: HydratedSpell[] = spellbook.spellNames
+    .map((name) => {
+      const spell = allSpells.find(
+        (s) => s.name.toLowerCase() === name.toLowerCase()
+      )
+      if (!spell) return null
+
+      return {
+        name: spell.name,
+        level: spell.level,
+        school: getSpellSchool(spell.school),
+        castingTime: formatCastingTime(spell.time),
+        range: formatSpellRange(spell.range),
+        components: formatSpellComponents(spell.components),
+        duration: formatSpellDuration(spell.duration),
+        description: entriesToText(spell.entries),
+      }
+    })
+    .filter((spell): spell is HydratedSpell => spell !== null)
+
+  return {
+    spells: hydratedSpells,
+    archivistNote: spellbook.archivistNote,
+  }
+}
 
 function getMaxSpellLevel(
   casterType: 'full' | 'half' | 'third' | 'pact' | null,
@@ -102,6 +143,12 @@ export async function GET(
       spells = await getSpellsForClass(className, subclassName, level)
     }
 
+    // Hydrate spellbook if character has one
+    let selectedSpellbook: HydratedSpellbook | null = null
+    if (activeLife.spellbook) {
+      selectedSpellbook = await hydrateSpellbook(activeLife.spellbook as unknown as Spellbook)
+    }
+
     const result: HydratedCharacterData = {
       classInfo: classInfo || {
         name: className,
@@ -114,6 +161,7 @@ export async function GET(
       subclassInfo,
       raceInfo,
       spells,
+      selectedSpellbook,
       isSpellcaster,
       spellcastingAbility,
       maxSpellLevel: isSpellcaster ? maxSpellLevel : null,

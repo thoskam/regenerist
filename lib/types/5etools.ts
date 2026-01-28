@@ -317,11 +317,23 @@ export interface HydratedSpell {
   description: string
 }
 
+// Spellbook types for smart spell selection
+export interface Spellbook {
+  spellNames: string[]
+  archivistNote: string
+}
+
+export interface HydratedSpellbook {
+  spells: HydratedSpell[]
+  archivistNote: string
+}
+
 export interface HydratedCharacterData {
   classInfo: HydratedClassInfo
   subclassInfo: HydratedSubclassInfo | null
   raceInfo: HydratedRaceInfo | null
   spells: HydratedSpell[] | null
+  selectedSpellbook: HydratedSpellbook | null
   isSpellcaster: boolean
   spellcastingAbility: string | null
   maxSpellLevel: number | null
