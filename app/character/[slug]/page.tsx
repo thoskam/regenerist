@@ -39,7 +39,7 @@ export default function CharacterPage() {
   const [hydratedData, setHydratedData] = useState<HydratedCharacterData | null>(null)
   const [activeTab, setActiveTab] = useState<'story' | 'features' | 'spells'>('story')
   const [formTab, setFormTab] = useState<'summary' | 'traits'>('summary')
-  const [regenPhase, setRegenPhase] = useState<'idle' | 'fading-out' | 'flashing-in'>('idle')
+  const [regenPhase, setRegenPhase] = useState<'idle' | 'fading-out' | 'loading' | 'flashing-in'>('idle')
   const [showFlash, setShowFlash] = useState(false)
 
   const fetchCharacter = useCallback(async () => {
@@ -105,12 +105,19 @@ export default function CharacterPage() {
     // Start fade out, then fetch new data
     await new Promise(resolve => setTimeout(resolve, 800))
 
+    // Enter loading phase - boxes pulse while waiting for API
+    setRegenPhase('loading')
+
     try {
-      const res = await fetch(`/api/characters/${slug}/regenerate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ uniqueSubclasses }),
-      })
+      // Fetch new life data and ensure minimum loading time for animation
+      const [res] = await Promise.all([
+        fetch(`/api/characters/${slug}/regenerate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ uniqueSubclasses }),
+        }),
+        new Promise(resolve => setTimeout(resolve, 1500)) // Minimum 1.5s loading animation
+      ])
       const newLife = await res.json()
 
       // Trigger the flash effect
@@ -360,19 +367,28 @@ export default function CharacterPage() {
 
                 {/* Combat Stats */}
                 <div className="grid grid-cols-3 gap-4">
-                  <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 text-center">
+                  <div
+                    className="bg-slate-800 rounded-lg p-4 border border-slate-700 text-center"
+                    style={regenPhase === 'loading' ? { animation: 'grid-pulse 1.2s ease-in-out infinite' } : undefined}
+                  >
                     <span className="text-xs text-slate-400 font-semibold tracking-wider block">AC</span>
                     <span className="text-3xl font-bold text-white">
                       {stats ? calculateAC(stats, currentLife.class) : 10}
                     </span>
                   </div>
-                  <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 text-center">
+                  <div
+                    className="bg-slate-800 rounded-lg p-4 border border-slate-700 text-center"
+                    style={regenPhase === 'loading' ? { animation: 'grid-pulse 1.2s ease-in-out infinite 0.1s' } : undefined}
+                  >
                     <span className="text-xs text-slate-400 font-semibold tracking-wider block">INITIATIVE</span>
                     <span className="text-3xl font-bold text-white">
                       {stats ? formatModifier(calculateInitiative(stats)) : '+0'}
                     </span>
                   </div>
-                  <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 text-center">
+                  <div
+                    className="bg-slate-800 rounded-lg p-4 border border-slate-700 text-center"
+                    style={regenPhase === 'loading' ? { animation: 'grid-pulse 1.2s ease-in-out infinite 0.2s' } : undefined}
+                  >
                     <span className="text-xs text-slate-400 font-semibold tracking-wider block">SPEED</span>
                     <span className="text-3xl font-bold text-white">
                       {calculateSpeed(currentLife.race)} ft
@@ -381,7 +397,10 @@ export default function CharacterPage() {
                 </div>
 
                 {/* Proficiency Bonus */}
-                <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 text-center">
+                <div
+                  className="bg-slate-800 rounded-lg p-4 border border-slate-700 text-center"
+                  style={regenPhase === 'loading' ? { animation: 'grid-pulse 1.2s ease-in-out infinite 0.3s' } : undefined}
+                >
                   <span className="text-xs text-slate-400 font-semibold tracking-wider block">PROFICIENCY BONUS</span>
                   <span className="text-2xl font-bold text-gold-400">
                     {formatModifier(proficiencyBonus)}
@@ -397,13 +416,14 @@ export default function CharacterPage() {
 
                 {/* Stats */}
                 <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
-                  {stats && ['str', 'dex', 'con', 'int', 'wis', 'cha'].map((stat) => (
+                  {stats && ['str', 'dex', 'con', 'int', 'wis', 'cha'].map((stat, index) => (
                     <StatBlock
                       key={stat}
                       name={stat}
                       value={stats[stat as keyof typeof stats]}
                       baseValue={baseStats?.[stat as keyof typeof baseStats]}
                       animate={isRegenerating}
+                      pulseStyle={regenPhase === 'loading' ? { animation: `grid-pulse 1.2s ease-in-out infinite ${index * 0.1}s` } : undefined}
                     />
                   ))}
                 </div>

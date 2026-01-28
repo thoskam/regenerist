@@ -8,6 +8,7 @@ interface StatBlockProps {
   value: number
   baseValue?: number
   animate?: boolean
+  pulseStyle?: React.CSSProperties
 }
 
 const STAT_LABELS: Record<string, string> = {
@@ -19,13 +20,16 @@ const STAT_LABELS: Record<string, string> = {
   cha: 'CHA',
 }
 
-export default function StatBlock({ name, value, baseValue, animate = false }: StatBlockProps) {
+export default function StatBlock({ name, value, baseValue, animate = false, pulseStyle }: StatBlockProps) {
   const modifier = getStatModifier(value)
   const hasBonus = baseValue !== undefined && baseValue !== value
   const bonusAmount = hasBonus ? value - baseValue : 0
 
   return (
-    <div className={`flex flex-col items-center bg-slate-800 rounded-lg p-3 border border-slate-700 ${animate ? 'animate-stat-change' : ''}`}>
+    <div
+      className={`flex flex-col items-center bg-slate-800 rounded-lg p-3 border border-slate-700 ${animate ? 'animate-stat-change' : ''}`}
+      style={pulseStyle}
+    >
       <span className="text-xs text-slate-400 font-semibold tracking-wider">
         {STAT_LABELS[name] || name.toUpperCase()}
       </span>
