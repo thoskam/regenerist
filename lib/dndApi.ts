@@ -349,6 +349,20 @@ export function getCasterType(
   return null
 }
 
+// Basic class spell schools - used to filter spells by class theme
+// This is a simplified approach since 5eTools data doesn't include class spell lists
+const CLASS_SPELL_SCHOOLS: Record<string, string[]> = {
+  wizard: ['A', 'C', 'D', 'E', 'V', 'I', 'N', 'T'], // All schools
+  sorcerer: ['A', 'C', 'D', 'E', 'V', 'I', 'N', 'T'], // All schools
+  warlock: ['C', 'D', 'E', 'V', 'I', 'N'], // No abjuration/transmutation focus
+  cleric: ['A', 'C', 'D', 'E', 'V', 'N'], // Divine magic
+  druid: ['C', 'D', 'E', 'V', 'N', 'T'], // Nature magic
+  bard: ['D', 'E', 'I', 'T'], // Enchantment/Illusion focus
+  paladin: ['A', 'C', 'D', 'E', 'V'], // Divine smite magic
+  ranger: ['A', 'C', 'D', 'V', 'T'], // Nature/hunting magic
+  artificer: ['A', 'C', 'D', 'T'], // Item/construct magic
+}
+
 /**
  * Get spells available to a class/subclass at a given level
  */
@@ -366,19 +380,17 @@ export async function getSpellsForClass(
   const allSpells = await loadSpells()
   const normalizedClass = normalizeName(className)
 
-  // Filter spells that this class can use
+  // Get allowed schools for this class (or all schools if not defined)
+  const allowedSchools = CLASS_SPELL_SCHOOLS[normalizedClass] || ['A', 'C', 'D', 'E', 'V', 'I', 'N', 'T']
+
+  // Filter spells by level and school
   const classSpells = allSpells.filter((spell) => {
     if (spell.level > maxSpellLevel) return false
-
-    // Check if spell is on this class's list
-    if (spell.classes?.fromClassList) {
-      const hasClass = spell.classes.fromClassList.some(
-        (c) => normalizeName(c.name) === normalizedClass
-      )
-      if (hasClass) return true
-    }
-
-    return false
+    // Only include spells from PHB for now (to keep list manageable)
+    if (spell.source !== 'PHB') return false
+    // Filter by class-appropriate schools
+    if (!allowedSchools.includes(spell.school)) return false
+    return true
   })
 
   // Convert to hydrated format
