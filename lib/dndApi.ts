@@ -148,7 +148,7 @@ export async function getSubclassFeatures(
   return fileData.subclassFeature.filter(
     (f) =>
       normalizeName(f.className) === normalizeName(className) &&
-      matchSubclassName(subclassName, f.subclassShortName, f.subclassShortName) &&
+      normalizeName(f.subclassShortName) === normalizeName(subclass.shortName) &&
       f.level <= level
   )
 }
