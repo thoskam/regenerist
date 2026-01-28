@@ -12,9 +12,10 @@ interface FeatureDisplayProps {
   title: string
   features: Feature[]
   currentLevel: number
+  noContainer?: boolean
 }
 
-export default function FeatureDisplay({ title, features, currentLevel }: FeatureDisplayProps) {
+export default function FeatureDisplay({ title, features, currentLevel, noContainer = false }: FeatureDisplayProps) {
   const [expandedFeatures, setExpandedFeatures] = useState<Set<string>>(new Set())
 
   const toggleFeature = (featureName: string) => {
@@ -51,8 +52,8 @@ export default function FeatureDisplay({ title, features, currentLevel }: Featur
     return null
   }
 
-  return (
-    <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+  const content = (
+    <>
       <div className="flex items-center justify-between mb-4">
         <h3 className="text-xs text-slate-400 font-semibold tracking-wider">{title}</h3>
         <div className="flex gap-2">
@@ -131,6 +132,16 @@ export default function FeatureDisplay({ title, features, currentLevel }: Featur
           </div>
         ))}
       </div>
+    </>
+  )
+
+  if (noContainer) {
+    return content
+  }
+
+  return (
+    <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
+      {content}
     </div>
   )
 }

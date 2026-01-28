@@ -38,6 +38,7 @@ export default function CharacterPage() {
   const [error, setError] = useState<string | null>(null)
   const [hydratedData, setHydratedData] = useState<HydratedCharacterData | null>(null)
   const [activeTab, setActiveTab] = useState<'story' | 'features' | 'spells'>('story')
+  const [formTab, setFormTab] = useState<'summary' | 'traits'>('summary')
 
   const fetchCharacter = useCallback(async () => {
     try {
@@ -379,27 +380,60 @@ export default function CharacterPage() {
                   ))}
                 </div>
 
-                {/* Form Summary Table */}
-                <FormSummary
-                  race={currentLife.race}
-                  className={currentLife.class}
-                  subclass={currentLife.subclass}
-                  effect={currentLife.effect}
-                  story={currentLife.story}
-                />
+                {/* Form Summary & Race Traits Tabbed Box */}
+                <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+                  {/* Tab Navigation */}
+                  <div className="flex border-b border-slate-700">
+                    <button
+                      onClick={() => setFormTab('summary')}
+                      className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                        formTab === 'summary'
+                          ? 'text-gold-400 bg-slate-700/50 border-b-2 border-gold-400'
+                          : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/30'
+                      }`}
+                    >
+                      Form Summary
+                    </button>
+                    {hydratedData?.raceInfo && hydratedData.raceInfo.traits.length > 0 && (
+                      <button
+                        onClick={() => setFormTab('traits')}
+                        className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                          formTab === 'traits'
+                            ? 'text-gold-400 bg-slate-700/50 border-b-2 border-gold-400'
+                            : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/30'
+                        }`}
+                      >
+                        {hydratedData.raceInfo.name} Traits
+                      </button>
+                    )}
+                  </div>
 
-                {/* Race Traits */}
-                {hydratedData?.raceInfo && hydratedData.raceInfo.traits.length > 0 && (
-                  <FeatureDisplay
-                    title={`${hydratedData.raceInfo.name.toUpperCase()} TRAITS`}
-                    features={hydratedData.raceInfo.traits.map((trait) => ({
-                      name: trait.name,
-                      level: 1,
-                      description: trait.description,
-                    }))}
-                    currentLevel={level}
-                  />
-                )}
+                  {/* Tab Content */}
+                  <div className="p-5">
+                    {formTab === 'summary' && (
+                      <FormSummary
+                        race={currentLife.race}
+                        className={currentLife.class}
+                        subclass={currentLife.subclass}
+                        effect={currentLife.effect}
+                        story={currentLife.story}
+                      />
+                    )}
+
+                    {formTab === 'traits' && hydratedData?.raceInfo && hydratedData.raceInfo.traits.length > 0 && (
+                      <FeatureDisplay
+                        title={`${hydratedData.raceInfo.name.toUpperCase()} TRAITS`}
+                        features={hydratedData.raceInfo.traits.map((trait) => ({
+                          name: trait.name,
+                          level: 1,
+                          description: trait.description,
+                        }))}
+                        currentLevel={level}
+                        noContainer
+                      />
+                    )}
+                  </div>
+                </div>
               </>
             ) : (
               <div className="bg-slate-800 rounded-lg p-8 border border-slate-700 text-center">

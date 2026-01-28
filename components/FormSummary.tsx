@@ -50,7 +50,7 @@ export default function FormSummary({ race, className, subclass, effect, story }
   const tableData = extractTableData(story)
 
   return (
-    <div className="bg-slate-800 rounded-lg p-5 border border-slate-700">
+    <div>
       {formTitle && (
         <h3 className="text-lg font-bold text-gold-400 mb-4 flex items-center gap-2">
           <span>🎭</span> {formTitle}
