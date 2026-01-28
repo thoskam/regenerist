@@ -257,28 +257,31 @@ export default function CharacterPage() {
             </p>
           )}
 
-          {/* Unique Subclasses Toggle */}
-          <div className="mt-4 flex items-center justify-center gap-3">
-            <label className="flex items-center gap-2 cursor-pointer">
-              <div className="relative">
-                <input
-                  type="checkbox"
-                  checked={uniqueSubclasses}
-                  onChange={(e) => setUniqueSubclasses(e.target.checked)}
-                  className="sr-only peer"
-                />
-                <div className="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-gold-500 transition-colors"></div>
-                <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
-              </div>
-              <span className="text-sm text-slate-400">
-                Unique Subclasses
-              </span>
-            </label>
-            {uniqueSubclasses && (
-              <span className="text-xs text-slate-500">
-                ({allLives.length} used)
-              </span>
-            )}
+          {/* Regenerate Button and Unique Subclasses Toggle */}
+          <div className="mt-6 flex flex-col items-center gap-4">
+            <RegenerateButton onClick={handleRegenerate} isLoading={isRegenerating} />
+            <div className="flex items-center gap-3">
+              <label className="flex items-center gap-2 cursor-pointer">
+                <div className="relative">
+                  <input
+                    type="checkbox"
+                    checked={uniqueSubclasses}
+                    onChange={(e) => setUniqueSubclasses(e.target.checked)}
+                    className="sr-only peer"
+                  />
+                  <div className="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-gold-500 transition-colors"></div>
+                  <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+                </div>
+                <span className="text-sm text-slate-400">
+                  Unique Subclasses
+                </span>
+              </label>
+              {uniqueSubclasses && (
+                <span className="text-xs text-slate-500">
+                  ({allLives.length} used)
+                </span>
+              )}
+            </div>
           </div>
         </div>
 
@@ -406,10 +409,6 @@ export default function CharacterPage() {
               </div>
             )}
 
-            {/* Regenerate Button */}
-            <div className="flex justify-center">
-              <RegenerateButton onClick={handleRegenerate} isLoading={isRegenerating} />
-            </div>
           </div>
 
           {/* Right Sidebar - Story, Features, Spells */}
