@@ -44,6 +44,70 @@ body {
   animation: regenerate-pulse 2s ease-in-out;
 }
 
+/* Doctor Who style regeneration - text fade out (boxes stay visible) */
+@keyframes regenerate-text-out {
+  0% {
+    color: inherit;
+  }
+  50% {
+    color: #fbbf24;
+  }
+  100% {
+    color: transparent;
+  }
+}
+
+/* Doctor Who style regeneration - text flash in */
+@keyframes regenerate-text-in {
+  0% {
+    color: transparent;
+  }
+  30% {
+    color: #fbbf24;
+  }
+  100% {
+    color: inherit;
+  }
+}
+
+.animate-regenerate-out {
+  animation: regenerate-text-out 0.8s ease-in forwards;
+}
+
+.animate-regenerate-out * {
+  animation: regenerate-text-out 0.8s ease-in forwards;
+}
+
+.animate-regenerate-in {
+  animation: regenerate-text-in 1s ease-out forwards;
+}
+
+.animate-regenerate-in * {
+  animation: regenerate-text-in 1s ease-out forwards;
+}
+
+/* Screen flash overlay */
+@keyframes screen-flash {
+  0% {
+    opacity: 0;
+  }
+  10% {
+    opacity: 0.9;
+  }
+  100% {
+    opacity: 0;
+  }
+}
+
+.regeneration-flash {
+  position: fixed;
+  inset: 0;
+  background: radial-gradient(circle, rgba(251, 191, 36, 0.8) 0%, rgba(234, 179, 8, 0.4) 50%, transparent 70%);
+  pointer-events: none;
+  z-index: 100;
+  animation: screen-flash 0.8s ease-out forwards;
+}
+
 /* Stat change animation */
 @keyframes stat-pop {
   0% {

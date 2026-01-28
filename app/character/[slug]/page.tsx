@@ -39,6 +39,8 @@ export default function CharacterPage() {
   const [hydratedData, setHydratedData] = useState<HydratedCharacterData | null>(null)
   const [activeTab, setActiveTab] = useState<'story' | 'features' | 'spells'>('story')
   const [formTab, setFormTab] = useState<'summary' | 'traits'>('summary')
+  const [regenPhase, setRegenPhase] = useState<'idle' | 'fading-out' | 'flashing-in'>('idle')
+  const [showFlash, setShowFlash] = useState(false)
 
   const fetchCharacter = useCallback(async () => {
     try {
@@ -98,6 +100,11 @@ export default function CharacterPage() {
     if (!character) return
 
     setIsRegenerating(true)
+    setRegenPhase('fading-out')
+
+    // Start fade out, then fetch new data
+    await new Promise(resolve => setTimeout(resolve, 800))
+
     try {
       const res = await fetch(`/api/characters/${slug}/regenerate`, {
         method: 'POST',
@@ -105,12 +112,27 @@ export default function CharacterPage() {
         body: JSON.stringify({ uniqueSubclasses }),
       })
       const newLife = await res.json()
+
+      // Trigger the flash effect
+      setShowFlash(true)
+      setRegenPhase('flashing-in')
+
+      // Update data
       setCurrentLife(newLife)
       setLevel(newLife.level)
       setAllLives((prev) => [newLife, ...prev.map(l => ({ ...l, isActive: false }))])
+
+      // Clear flash after animation
+      setTimeout(() => setShowFlash(false), 800)
+
+      // Reset to idle after flash-in completes
+      setTimeout(() => {
+        setRegenPhase('idle')
+        setIsRegenerating(false)
+      }, 1200)
     } catch (err) {
       console.error('Failed to regenerate:', err)
-    } finally {
+      setRegenPhase('idle')
       setIsRegenerating(false)
     }
   }
@@ -289,7 +311,10 @@ export default function CharacterPage() {
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left Sidebar - Life History & Skills */}
-          <div className="lg:col-span-1 space-y-6">
+          <div className={`lg:col-span-1 space-y-6 ${
+            regenPhase === 'fading-out' ? 'animate-regenerate-out' :
+            regenPhase === 'flashing-in' ? 'animate-regenerate-in' : ''
+          }`}>
             <LifeHistory
               lives={allLives}
               currentLifeId={currentLife?.id || null}
@@ -310,7 +335,10 @@ export default function CharacterPage() {
           {/* Main Character Sheet */}
           <div className="lg:col-span-2 space-y-6">
             {currentLife ? (
-              <>
+              <div className={`space-y-6 ${
+                regenPhase === 'fading-out' ? 'animate-regenerate-out' :
+                regenPhase === 'flashing-in' ? 'animate-regenerate-in' : ''
+              }`}>
                 {/* Character Info */}
                 <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
                   <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
@@ -434,7 +462,7 @@ export default function CharacterPage() {
                     )}
                   </div>
                 </div>
-              </>
+              </div>
             ) : (
               <div className="bg-slate-800 rounded-lg p-8 border border-slate-700 text-center">
                 <p className="text-slate-400 text-lg mb-6">
@@ -446,7 +474,10 @@ export default function CharacterPage() {
           </div>
 
           {/* Right Sidebar - Story, Features, Spells */}
-          <div className="lg:col-span-1 space-y-4">
+          <div className={`lg:col-span-1 space-y-4 ${
+            regenPhase === 'fading-out' ? 'animate-regenerate-out' :
+            regenPhase === 'flashing-in' ? 'animate-regenerate-in' : ''
+          }`}>
             {currentLife && (
               <>
                 {/* Tab Navigation */}
@@ -524,6 +555,9 @@ export default function CharacterPage() {
           </div>
         </div>
       </div>
+
+      {/* Regeneration flash overlay */}
+      {showFlash && <div className="regeneration-flash" />}
     </div>
   )
 }
