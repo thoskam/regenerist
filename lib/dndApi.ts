@@ -99,6 +99,16 @@ export async function getClassData(className: string): Promise<ClassData | null>
 }
 
 /**
+ * Get saving throw proficiencies from class
+ */
+export async function getSavingThrowProficiencies(className: string): Promise<string[]> {
+  const classData = await getClassData(className)
+  if (!classData) return []
+  // Class proficiency field contains ability abbreviations like "str", "con"
+  return classData.proficiency || []
+}
+
+/**
  * Get all subclasses for a class
  */
 export async function getSubclasses(className: string): Promise<SubclassData[]> {

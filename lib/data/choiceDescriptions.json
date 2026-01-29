@@ -1,0 +1,812 @@
+{
+  "Barbarian: Path of the Totem Warrior": {
+    "featureName": "Totem Spirit",
+    "level": 3,
+    "choices": {
+      "Bear (Resistance)": "While raging, you have resistance to all damage except psychic damage. The spirit of the bear makes you tough enough to stand up to any punishment.",
+      "Eagle (Dash)": "While raging and not wearing heavy armor, other creatures have disadvantage on opportunity attack rolls against you, and you can use the Dash action as a bonus action.",
+      "Wolf (Advantage)": "While raging, your friends have advantage on melee attack rolls against any creature within 5 feet of you that is hostile to you.",
+      "Tiger (Skills)": "You gain proficiency in two skills from the following list: Athletics, Acrobatics, Stealth, and Survival.",
+      "Elk (Speed)": "While raging and not wearing heavy armor, your walking speed increases by 15 feet."
+    }
+  },
+  "Barbarian: Path of the Storm Herald": {
+    "featureName": "Storm Aura",
+    "level": 3,
+    "choices": {
+      "Desert (Fire)": "When you rage, each creature of your choice within 10 feet takes 2 fire damage. This damage increases as you level.",
+      "Sea (Lightning)": "When you rage, you can choose a creature within 10 feet to make a Dex save or take lightning damage.",
+      "Tundra (Frost)": "When you rage, each creature of your choice within 10 feet gains temporary hit points equal to half your barbarian level."
+    }
+  },
+  "Barbarian: Path of the Ancestral Guardian": {
+    "featureName": "Ancestral Protectors",
+    "level": 3,
+    "choices": {
+      "Ancestral Protectors": "While raging, the first creature you hit with an attack has disadvantage on any attack that doesn't target you, and when they hit someone other than you, that target has resistance to the damage."
+    }
+  },
+  "Barbarian: Path of the Beast": {
+    "featureName": "Form of the Beast",
+    "level": 3,
+    "choices": {
+      "Bite": "Your mouth transforms into a bestial muzzle. You deal 1d8 piercing damage on a hit and regain HP equal to your proficiency bonus if you're below half HP.",
+      "Claws": "Your hands transform into claws. Each claw deals 1d6 slashing damage. When you attack with a claw, you can make one additional claw attack as part of the same action.",
+      "Tail": "You grow a lashing tail. It deals 1d8 piercing damage with reach of 10 feet. When hit by an attack, you can use your reaction to add 1d8 to your AC."
+    }
+  },
+  "Barbarian: Path of Wild Magic": {
+    "featureName": "Magic Awareness",
+    "level": 3,
+    "choices": {
+      "Wild Surge": "When you enter rage, roll on the Wild Magic table. The effect lasts for the duration of your rage, creating unpredictable magical effects."
+    }
+  },
+
+  "Bard: College of Lore": {
+    "featureName": "Bonus Proficiencies",
+    "level": 3,
+    "choices": {
+      "Bonus Proficiencies: Arcana, History, Nature": "You gain proficiency in Arcana, History, and Nature, expanding your scholarly knowledge.",
+      "Bonus Proficiencies: Medicine, Persuasion, Intimidation": "You gain proficiency in Medicine, Persuasion, and Intimidation, focusing on social and healing skills.",
+      "Bonus Proficiencies: Investigation, Perception, Insight": "You gain proficiency in Investigation, Perception, and Insight, sharpening your detective abilities."
+    }
+  },
+  "Bard: College of Swords": {
+    "featureName": "Fighting Style",
+    "level": 3,
+    "choices": {
+      "Fighting Style: Dueling": "When wielding a melee weapon in one hand and no other weapons, you gain +2 bonus to damage rolls.",
+      "Fighting Style: Two-Weapon Fighting": "When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack."
+    }
+  },
+  "Bard: College of Valor": {
+    "featureName": "Combat Inspiration",
+    "level": 3,
+    "choices": {
+      "Combat Inspiration": "A creature with your Bardic Inspiration can add the die to a weapon damage roll or to their AC against one attack."
+    }
+  },
+
+  "Cleric: Arcana Domain": {
+    "featureName": "Arcane Initiate",
+    "level": 1,
+    "choices": {
+      "Wizard Cantrips: Fire Bolt & Mage Hand": "You learn fire bolt for ranged damage and mage hand for utility, both using Wisdom.",
+      "Wizard Cantrips: Ray of Frost & Prestidigitation": "You learn ray of frost for cold damage/slow and prestidigitation for minor magical effects.",
+      "Wizard Cantrips: Shocking Grasp & Minor Illusion": "You learn shocking grasp for melee spell attacks and minor illusion for deception."
+    }
+  },
+  "Cleric: Life Domain": {
+    "featureName": "Disciple of Life",
+    "level": 1,
+    "choices": {
+      "Disciple of Life": "Your healing spells are more effective. Whenever you use a spell of 1st level or higher to restore hit points, the creature regains additional HP equal to 2 + the spell's level."
+    }
+  },
+  "Cleric: Light Domain": {
+    "featureName": "Warding Flare",
+    "level": 1,
+    "choices": {
+      "Warding Flare": "When attacked by a creature within 30 feet that you can see, you can use your reaction to impose disadvantage on the attack roll, causing light to flare before the attacker."
+    }
+  },
+  "Cleric: Tempest Domain": {
+    "featureName": "Wrath of the Storm",
+    "level": 1,
+    "choices": {
+      "Wrath of the Storm": "When a creature within 5 feet hits you with an attack, you can use your reaction to cause it to make a Dex save or take 2d8 lightning or thunder damage."
+    }
+  },
+  "Cleric: War Domain": {
+    "featureName": "War Priest",
+    "level": 1,
+    "choices": {
+      "War Priest": "When you use the Attack action, you can make one weapon attack as a bonus action. You can use this a number of times equal to your Wisdom modifier."
+    }
+  },
+  "Cleric: Death Domain": {
+    "featureName": "Reaper",
+    "level": 1,
+    "choices": {
+      "Reaper": "You learn one necromancy cantrip. When you cast a necromancy cantrip that normally targets one creature, it can target two creatures within 5 feet of each other."
+    }
+  },
+  "Cleric: Forge Domain": {
+    "featureName": "Blessing of the Forge",
+    "level": 1,
+    "choices": {
+      "Blessing of the Forge": "At the end of a long rest, you can imbue one nonmagical weapon or armor with a +1 bonus until your next long rest."
+    }
+  },
+  "Cleric: Grave Domain": {
+    "featureName": "Circle of Mortality",
+    "level": 1,
+    "choices": {
+      "Circle of Mortality": "When you would normally roll dice to restore HP with a spell to a creature at 0 HP, you instead use the highest number possible for each die."
+    }
+  },
+  "Cleric: Knowledge Domain": {
+    "featureName": "Blessings of Knowledge",
+    "level": 1,
+    "choices": {
+      "Blessings of Knowledge: Arcana & History": "You gain proficiency and double your proficiency bonus in Arcana and History checks.",
+      "Blessings of Knowledge: Nature & Religion": "You gain proficiency and double your proficiency bonus in Nature and Religion checks."
+    }
+  },
+  "Cleric: Nature Domain": {
+    "featureName": "Acolyte of Nature",
+    "level": 1,
+    "choices": {
+      "Acolyte of Nature: Druidcraft": "You learn the druidcraft cantrip, allowing you to create minor natural effects.",
+      "Acolyte of Nature: Shillelagh": "You learn the shillelagh cantrip, making your staff a powerful Wisdom-based weapon.",
+      "Acolyte of Nature: Thorn Whip": "You learn the thorn whip cantrip, giving you a ranged melee attack that pulls enemies closer."
+    }
+  },
+  "Cleric: Order Domain": {
+    "featureName": "Voice of Authority",
+    "level": 1,
+    "choices": {
+      "Voice of Authority": "When you cast a spell on an ally using a spell slot, that ally can use their reaction to make one weapon attack against a target of your choice."
+    }
+  },
+  "Cleric: Peace Domain": {
+    "featureName": "Emboldening Bond",
+    "level": 1,
+    "choices": {
+      "Emboldening Bond": "You can forge an empowering bond between allies. Bonded creatures can add 1d4 to an attack, check, or save when within 30 feet of each other."
+    }
+  },
+  "Cleric: Trickery Domain": {
+    "featureName": "Blessing of the Trickster",
+    "level": 1,
+    "choices": {
+      "Blessing of the Trickster": "You can use your action to touch a willing creature and give it advantage on Stealth checks. This lasts for 1 hour or until you use this feature again."
+    }
+  },
+  "Cleric: Twilight Domain": {
+    "featureName": "Eyes of Night",
+    "level": 1,
+    "choices": {
+      "Eyes of Night": "You gain darkvision out to 300 feet. You can share this darkvision with willing creatures for 1 hour a number of times equal to your Wisdom modifier."
+    }
+  },
+
+  "Druid: Circle of the Land": {
+    "featureName": "Circle Spells",
+    "level": 3,
+    "choices": {
+      "Arctic": "Bonus spells: hold person, spike growth (3rd), sleet storm, slow (5th), freedom of movement, ice storm (7th), commune with nature, cone of cold (9th).",
+      "Coast": "Bonus spells: mirror image, misty step (3rd), water breathing, water walk (5th), control water, freedom of movement (7th), conjure elemental, scrying (9th).",
+      "Desert": "Bonus spells: blur, silence (3rd), create food and water, protection from energy (5th), blight, hallucinatory terrain (7th), insect plague, wall of stone (9th).",
+      "Forest": "Bonus spells: barkskin, spider climb (3rd), call lightning, plant growth (5th), divination, freedom of movement (7th), commune with nature, tree stride (9th).",
+      "Grassland": "Bonus spells: invisibility, pass without trace (3rd), daylight, haste (5th), divination, freedom of movement (7th), dream, insect plague (9th).",
+      "Mountain": "Bonus spells: spider climb, spike growth (3rd), lightning bolt, meld into stone (5th), stone shape, stoneskin (7th), passwall, wall of stone (9th).",
+      "Swamp": "Bonus spells: darkness, Melf's acid arrow (3rd), water walk, stinking cloud (5th), freedom of movement, locate creature (7th), insect plague, scrying (9th).",
+      "Underdark": "Bonus spells: spider climb, web (3rd), gaseous form, stinking cloud (5th), greater invisibility, stone shape (7th), cloudkill, insect plague (9th)."
+    }
+  },
+  "Druid: Circle of the Moon": {
+    "featureName": "Combat Wild Shape",
+    "level": 2,
+    "choices": {
+      "Combat Wild Shape": "You can use Wild Shape as a bonus action. While in beast form, you can expend a spell slot to regain 1d8 HP per level of the slot."
+    }
+  },
+  "Druid: Circle of the Shepherd": {
+    "featureName": "Spirit Totem",
+    "level": 2,
+    "choices": {
+      "Spirit Totem: Bear": "You and your allies in the aura gain temporary HP equal to 5 + your druid level, and have advantage on Strength checks and saves.",
+      "Spirit Totem: Hawk": "You and your allies in the aura have advantage on attack rolls against enemies in the aura.",
+      "Spirit Totem: Unicorn": "When you cast a healing spell, each creature of your choice in the aura also regains HP equal to your druid level."
+    }
+  },
+  "Druid: Circle of Spores": {
+    "featureName": "Halo of Spores",
+    "level": 2,
+    "choices": {
+      "Halo of Spores": "When a creature you can see moves within 10 feet of you or starts its turn there, you can use your reaction to deal 1d4 necrotic damage if it fails a Con save."
+    }
+  },
+  "Druid: Circle of Stars": {
+    "featureName": "Starry Form",
+    "level": 2,
+    "choices": {
+      "Star Map: Archer": "When you activate Starry Form, a constellation of an archer appears. You can make a ranged spell attack dealing radiant damage as a bonus action.",
+      "Star Map: Chalice": "When you activate Starry Form, a constellation of a chalice appears. When you cast a healing spell, you or another creature within 30 feet regains HP.",
+      "Star Map: Dragon": "When you activate Starry Form, a constellation of a dragon appears. You gain a minimum of 10 on concentration checks and can treat any d20 roll of 9 or lower as a 10."
+    }
+  },
+  "Druid: Circle of Wildfire": {
+    "featureName": "Summon Wildfire Spirit",
+    "level": 2,
+    "choices": {
+      "Wildfire Spirit": "You can expend a use of Wild Shape to summon a wildfire spirit. It obeys your commands and can teleport you and allies while dealing fire damage to enemies."
+    }
+  },
+
+  "Fighter: Arcane Archer": {
+    "featureName": "Arcane Shot",
+    "level": 3,
+    "choices": {
+      "Arcane Shot: Banishing": "Your arrow attempts to banish the target to a harmless location in the Feywild. The target must succeed on a Charisma save or be banished.",
+      "Arcane Shot: Grasping": "Brambles wrap around the target, dealing extra poison damage and reducing its speed by 10 feet.",
+      "Arcane Shot: Shadow": "Psychic energy wraps around the target, dealing extra psychic damage and potentially blinding it."
+    }
+  },
+  "Fighter: Battle Master": {
+    "featureName": "Combat Superiority",
+    "level": 3,
+    "choices": {
+      "Maneuvers: Trip, Disarm, Menacing": "You learn Trip Attack (knock prone), Disarming Attack (force drop weapon), and Menacing Attack (frighten target).",
+      "Maneuvers: Riposte, Precision, Goading": "You learn Riposte (attack on miss), Precision Attack (+d8 to hit), and Goading Attack (disadvantage against others).",
+      "Maneuvers: Ambush, Tactical, Bait": "You learn Ambush (+d8 initiative), Tactical Assessment (+d8 to checks), and Bait and Switch (swap places with ally)."
+    }
+  },
+  "Fighter: Champion": {
+    "featureName": "Fighting Style",
+    "level": 1,
+    "choices": {
+      "Fighting Style: Defense": "While wearing armor, you gain +1 bonus to AC.",
+      "Fighting Style: Dueling": "When wielding a melee weapon in one hand and no other weapons, you gain +2 bonus to damage rolls.",
+      "Fighting Style: Great Weapon Fighting": "When you roll a 1 or 2 on a damage die for a two-handed weapon attack, you can reroll the die.",
+      "Fighting Style: Two-Weapon Fighting": "When you engage in two-weapon fighting, you can add your ability modifier to the damage of the second attack.",
+      "Fighting Style: Archery": "You gain +2 bonus to attack rolls with ranged weapons."
+    }
+  },
+  "Fighter: Cavalier": {
+    "featureName": "Fighting Style",
+    "level": 1,
+    "choices": {
+      "Fighting Style: Defense": "While wearing armor, you gain +1 bonus to AC.",
+      "Fighting Style: Dueling": "When wielding a melee weapon in one hand and no other weapons, you gain +2 bonus to damage rolls."
+    }
+  },
+  "Fighter: Echo Knight": {
+    "featureName": "Manifest Echo",
+    "level": 3,
+    "choices": {
+      "Manifest Echo": "You can create an echo of yourself that floats in an unoccupied space you can see within 15 feet. You can attack from its position and swap places with it."
+    }
+  },
+  "Fighter: Eldritch Knight": {
+    "featureName": "Spellcasting",
+    "level": 3,
+    "choices": {
+      "Cantrips: Fire Bolt & Booming Blade": "You learn fire bolt for ranged damage and booming blade for melee with thunder damage on movement.",
+      "Cantrips: Ray of Frost & Green-Flame Blade": "You learn ray of frost for ranged slow and green-flame blade for cleaving melee attacks.",
+      "Cantrips: Shocking Grasp & Light": "You learn shocking grasp for advantage vs metal armor and light for utility."
+    }
+  },
+  "Fighter: Rune Knight": {
+    "featureName": "Rune Carver",
+    "level": 3,
+    "choices": {
+      "Cloud Rune": "Gain advantage on Sleight of Hand and Deception. When hit by an attack, redirect it to another creature within 30 feet.",
+      "Fire Rune": "Gain proficiency with smith's tools. On hit, deal extra fire damage and restrain the target.",
+      "Frost Rune": "Gain advantage on Animal Handling and Intimidation. Gain +2 bonus to Strength and Constitution checks and saves.",
+      "Stone Rune": "Gain advantage on Insight and darkvision 120ft. Charm creatures that end their turn within 30 feet.",
+      "Hill Rune": "Gain advantage on saves against poison and resistance to poison damage. Gain resistance to bludgeoning, piercing, and slashing.",
+      "Storm Rune": "Gain advantage on Arcana checks and can't be surprised. Grant advantage or disadvantage on attacks and saves you see."
+    }
+  },
+  "Fighter: Samurai": {
+    "featureName": "Fighting Spirit",
+    "level": 3,
+    "choices": {
+      "Fighting Spirit": "As a bonus action, you can give yourself advantage on weapon attack rolls until the end of the turn and gain 5 temporary HP (increases with level)."
+    }
+  },
+  "Fighter: Psi Warrior": {
+    "featureName": "Psionic Power",
+    "level": 3,
+    "choices": {
+      "Psionic Power": "You have psionic energy dice (d6) that you can use for Protective Field (reduce damage), Psionic Strike (deal extra force damage), or Telekinetic Movement."
+    }
+  },
+
+  "Monk: Way of the Four Elements": {
+    "featureName": "Disciple of the Elements",
+    "level": 3,
+    "choices": {
+      "Fangs of the Fire Snake": "When you use Attack action, you can spend 1 ki to make your unarmed strikes deal fire damage with 10 extra feet of reach.",
+      "Fist of Unbroken Air": "Spend 2 ki to create a blast of compressed air that deals bludgeoning damage and pushes targets away.",
+      "Shape the Flowing River": "Spend 1 ki to control water and ice within 30 feet, freezing water or moving it.",
+      "Water Whip": "Spend 2 ki to create a whip of water that deals bludgeoning damage and can pull or knock targets prone."
+    }
+  },
+  "Monk: Way of the Ascendant Dragon": {
+    "featureName": "Draconic Strike",
+    "level": 3,
+    "choices": {
+      "Draconic Strike: Acid": "When you take the Attack action, you can change your unarmed strikes to deal acid damage and breathe a cone of acid.",
+      "Draconic Strike: Cold": "When you take the Attack action, you can change your unarmed strikes to deal cold damage and breathe a cone of cold.",
+      "Draconic Strike: Fire": "When you take the Attack action, you can change your unarmed strikes to deal fire damage and breathe a cone of fire.",
+      "Draconic Strike: Lightning": "When you take the Attack action, you can change your unarmed strikes to deal lightning damage and breathe a line of lightning.",
+      "Draconic Strike: Poison": "When you take the Attack action, you can change your unarmed strikes to deal poison damage and breathe a cone of poison."
+    }
+  },
+  "Monk: Way of Mercy": {
+    "featureName": "Hands of Healing",
+    "level": 3,
+    "choices": {
+      "Hand of Healing": "When you use Flurry of Blows, you can replace one attack with healing touch, restoring HP equal to your Martial Arts die + Wisdom modifier."
+    }
+  },
+  "Monk: Way of the Open Hand": {
+    "featureName": "Open Hand Technique",
+    "level": 3,
+    "choices": {
+      "Open Hand Technique": "When you hit with Flurry of Blows, you can impose one effect: knock prone, push 15 feet, or prevent reactions until end of your next turn."
+    }
+  },
+  "Monk: Way of Shadow": {
+    "featureName": "Shadow Arts",
+    "level": 3,
+    "choices": {
+      "Shadow Arts": "You can spend 2 ki to cast darkness, darkvision, pass without trace, or silence without providing material components."
+    }
+  },
+  "Monk: Way of the Sun Soul": {
+    "featureName": "Radiant Sun Bolt",
+    "level": 3,
+    "choices": {
+      "Radiant Sun Bolt": "You can hurl searing bolts of magical radiance as a ranged spell attack with a range of 30 feet, dealing radiant damage equal to your Martial Arts die."
+    }
+  },
+  "Monk: Way of the Kensei": {
+    "featureName": "Path of the Kensei",
+    "level": 3,
+    "choices": {
+      "Kensei Weapons: Longsword & Longbow": "You choose the longsword and longbow as your kensei weapons, gaining special abilities with them.",
+      "Kensei Weapons: Battleaxe & Heavy Crossbow": "You choose the battleaxe and heavy crossbow as your kensei weapons, gaining special abilities with them.",
+      "Kensei Weapons: Rapier & Shortbow": "You choose the rapier and shortbow as your kensei weapons, gaining special abilities with them."
+    }
+  },
+
+  "Paladin: Oath of Devotion": {
+    "featureName": "Fighting Style",
+    "level": 2,
+    "choices": {
+      "Fighting Style: Defense": "While wearing armor, you gain +1 bonus to AC.",
+      "Fighting Style: Dueling": "When wielding a melee weapon in one hand and no other weapons, you gain +2 bonus to damage rolls.",
+      "Fighting Style: Great Weapon Fighting": "When you roll a 1 or 2 on a damage die for a two-handed weapon attack, you can reroll the die."
+    }
+  },
+  "Paladin: Oath of the Ancients": {
+    "featureName": "Fighting Style",
+    "level": 2,
+    "choices": {
+      "Fighting Style: Defense": "While wearing armor, you gain +1 bonus to AC.",
+      "Fighting Style: Dueling": "When wielding a melee weapon in one hand and no other weapons, you gain +2 bonus to damage rolls.",
+      "Fighting Style: Great Weapon Fighting": "When you roll a 1 or 2 on a damage die for a two-handed weapon attack, you can reroll the die."
+    }
+  },
+  "Paladin: Oath of Vengeance": {
+    "featureName": "Fighting Style",
+    "level": 2,
+    "choices": {
+      "Fighting Style: Defense": "While wearing armor, you gain +1 bonus to AC.",
+      "Fighting Style: Dueling": "When wielding a melee weapon in one hand and no other weapons, you gain +2 bonus to damage rolls.",
+      "Fighting Style: Great Weapon Fighting": "When you roll a 1 or 2 on a damage die for a two-handed weapon attack, you can reroll the die."
+    }
+  },
+  "Paladin: Oath of Conquest": {
+    "featureName": "Fighting Style",
+    "level": 2,
+    "choices": {
+      "Fighting Style: Defense": "While wearing armor, you gain +1 bonus to AC.",
+      "Fighting Style: Dueling": "When wielding a melee weapon in one hand and no other weapons, you gain +2 bonus to damage rolls.",
+      "Fighting Style: Great Weapon Fighting": "When you roll a 1 or 2 on a damage die for a two-handed weapon attack, you can reroll the die."
+    }
+  },
+  "Paladin: Oath of Redemption": {
+    "featureName": "Fighting Style",
+    "level": 2,
+    "choices": {
+      "Fighting Style: Defense": "While wearing armor, you gain +1 bonus to AC.",
+      "Fighting Style: Dueling": "When wielding a melee weapon in one hand and no other weapons, you gain +2 bonus to damage rolls."
+    }
+  },
+  "Paladin: Oath of the Crown": {
+    "featureName": "Fighting Style",
+    "level": 2,
+    "choices": {
+      "Fighting Style: Defense": "While wearing armor, you gain +1 bonus to AC.",
+      "Fighting Style: Dueling": "When wielding a melee weapon in one hand and no other weapons, you gain +2 bonus to damage rolls.",
+      "Fighting Style: Great Weapon Fighting": "When you roll a 1 or 2 on a damage die for a two-handed weapon attack, you can reroll the die."
+    }
+  },
+  "Paladin: Oath of Glory": {
+    "featureName": "Fighting Style",
+    "level": 2,
+    "choices": {
+      "Fighting Style: Defense": "While wearing armor, you gain +1 bonus to AC.",
+      "Fighting Style: Dueling": "When wielding a melee weapon in one hand and no other weapons, you gain +2 bonus to damage rolls.",
+      "Fighting Style: Great Weapon Fighting": "When you roll a 1 or 2 on a damage die for a two-handed weapon attack, you can reroll the die."
+    }
+  },
+  "Paladin: Oath of the Watchers": {
+    "featureName": "Fighting Style",
+    "level": 2,
+    "choices": {
+      "Fighting Style: Defense": "While wearing armor, you gain +1 bonus to AC.",
+      "Fighting Style: Dueling": "When wielding a melee weapon in one hand and no other weapons, you gain +2 bonus to damage rolls."
+    }
+  },
+  "Paladin: Oathbreaker": {
+    "featureName": "Fighting Style",
+    "level": 2,
+    "choices": {
+      "Fighting Style: Defense": "While wearing armor, you gain +1 bonus to AC.",
+      "Fighting Style: Great Weapon Fighting": "When you roll a 1 or 2 on a damage die for a two-handed weapon attack, you can reroll the die."
+    }
+  },
+
+  "Ranger: Hunter": {
+    "featureName": "Hunter's Prey",
+    "level": 3,
+    "choices": {
+      "Hunter's Prey: Colossus Slayer": "Once per turn, you deal an extra 1d8 damage when you hit a creature that is below its hit point maximum.",
+      "Hunter's Prey: Giant Killer": "When a Large or larger creature within 5 feet hits or misses you, you can use your reaction to attack that creature.",
+      "Hunter's Prey: Horde Breaker": "Once per turn, when you make a weapon attack, you can make another attack against a different creature within 5 feet of the original target."
+    }
+  },
+  "Ranger: Beast Master": {
+    "featureName": "Ranger's Companion",
+    "level": 3,
+    "choices": {
+      "Companion: Bear": "A black bear companion with high HP and powerful claw attacks. Excellent tank and damage dealer.",
+      "Companion: Boar": "A boar companion with a charge attack that can knock targets prone. Hardy and aggressive.",
+      "Companion: Giant Badger": "A giant badger with multiattack (bite and claws) and darkvision. Versatile fighter.",
+      "Companion: Wolf": "A wolf companion with pack tactics (advantage when ally is near). Fast and tactical.",
+      "Companion: Panther": "A panther companion with pounce (knock prone and bonus attack). Stealthy striker."
+    }
+  },
+  "Ranger: Gloom Stalker": {
+    "featureName": "Dread Ambusher",
+    "level": 3,
+    "choices": {
+      "Dread Ambusher": "On your first turn, your walking speed increases by 10 feet and you can make one additional weapon attack that deals an extra 1d8 damage."
+    }
+  },
+  "Ranger: Horizon Walker": {
+    "featureName": "Detect Portal",
+    "level": 3,
+    "choices": {
+      "Detect Portal": "As an action, you can detect the distance and direction to the closest planar portal within 1 mile."
+    }
+  },
+  "Ranger: Monster Slayer": {
+    "featureName": "Hunter's Sense",
+    "level": 3,
+    "choices": {
+      "Hunter's Sense": "As an action, you learn a creature's vulnerabilities, resistances, immunities, and damage immunities."
+    }
+  },
+  "Ranger: Fey Wanderer": {
+    "featureName": "Dreadful Strikes",
+    "level": 3,
+    "choices": {
+      "Dreadful Strikes": "When you hit a creature with a weapon, you can deal an extra 1d4 psychic damage once per turn."
+    }
+  },
+  "Ranger: Swarmkeeper": {
+    "featureName": "Gathered Swarm",
+    "level": 3,
+    "choices": {
+      "Gathered Swarm: Insects": "A swarm of insects follows you. When you hit, they deal extra piercing damage or move the target.",
+      "Gathered Swarm: Tiny Beasts": "Tiny beasts like birds or squirrels. When you hit, they deal extra piercing damage or move the target.",
+      "Gathered Swarm: Pixies": "Twinkling fey spirits. When you hit, they deal extra piercing damage or move the target."
+    }
+  },
+  "Ranger: Drakewarden": {
+    "featureName": "Drake Companion",
+    "level": 3,
+    "choices": {
+      "Drake Companion: Acid": "Your drake deals acid damage and later gains acid breath weapon.",
+      "Drake Companion: Cold": "Your drake deals cold damage and later gains cold breath weapon.",
+      "Drake Companion: Fire": "Your drake deals fire damage and later gains fire breath weapon.",
+      "Drake Companion: Lightning": "Your drake deals lightning damage and later gains lightning breath weapon.",
+      "Drake Companion: Poison": "Your drake deals poison damage and later gains poison breath weapon."
+    }
+  },
+
+  "Rogue: Arcane Trickster": {
+    "featureName": "Spellcasting",
+    "level": 3,
+    "choices": {
+      "Spells: Minor Illusion & Mage Hand": "You learn minor illusion for distractions and mage hand (invisible!) for sleight of hand at range.",
+      "Spells: Prestidigitation & Message": "You learn prestidigitation for minor tricks and message for silent communication."
+    }
+  },
+  "Rogue: Assassin": {
+    "featureName": "Assassinate",
+    "level": 3,
+    "choices": {
+      "Assassinate": "You have advantage on attacks against creatures that haven't taken a turn yet. Any hit against a surprised creature is a critical hit."
+    }
+  },
+  "Rogue: Thief": {
+    "featureName": "Fast Hands",
+    "level": 3,
+    "choices": {
+      "Fast Hands": "You can use Cunning Action to make Sleight of Hand checks, use thieves' tools, or Use an Object action as a bonus action."
+    }
+  },
+  "Rogue: Scout": {
+    "featureName": "Skirmisher",
+    "level": 3,
+    "choices": {
+      "Skirmisher": "You can move up to half your speed as a reaction when an enemy ends its turn within 5 feet of you. This movement doesn't provoke opportunity attacks."
+    }
+  },
+  "Rogue: Swashbuckler": {
+    "featureName": "Fancy Footwork",
+    "level": 3,
+    "choices": {
+      "Fancy Footwork": "When you make a melee attack against a creature, that creature can't make opportunity attacks against you for the rest of your turn."
+    }
+  },
+  "Rogue: Mastermind": {
+    "featureName": "Master of Intrigue",
+    "level": 3,
+    "choices": {
+      "Master of Intrigue": "You gain proficiency with disguise kit, forgery kit, and gaming set. You learn two languages and can mimic accents and speech patterns."
+    }
+  },
+  "Rogue: Inquisitive": {
+    "featureName": "Ear for Deceit",
+    "level": 3,
+    "choices": {
+      "Ear for Deceit": "When you make an Insight check to determine if a creature is lying, treat a d20 roll of 7 or lower as an 8."
+    }
+  },
+  "Rogue: Phantom": {
+    "featureName": "Whispers of the Dead",
+    "level": 3,
+    "choices": {
+      "Whispers of the Dead": "When you finish a short or long rest, you can gain one skill or tool proficiency of your choice, as a ghost shares its knowledge with you."
+    }
+  },
+  "Rogue: Soulknife": {
+    "featureName": "Psionic Power",
+    "level": 3,
+    "choices": {
+      "Psionic Power": "You have psionic energy dice (d6) for Psi-Bolstered Knack (add to failed checks) and Psychic Whispers (telepathic communication)."
+    }
+  },
+
+  "Sorcerer: Draconic Bloodline": {
+    "featureName": "Draconic Ancestry",
+    "level": 1,
+    "choices": {
+      "Black (Acid)": "You have draconic ancestry tied to black dragons. You gain resistance to acid damage and your spells that deal acid damage are enhanced.",
+      "Blue (Lightning)": "You have draconic ancestry tied to blue dragons. You gain resistance to lightning damage and your spells that deal lightning damage are enhanced.",
+      "Brass (Fire)": "You have draconic ancestry tied to brass dragons. You gain resistance to fire damage and your spells that deal fire damage are enhanced.",
+      "Bronze (Lightning)": "You have draconic ancestry tied to bronze dragons. You gain resistance to lightning damage and your spells that deal lightning damage are enhanced.",
+      "Copper (Acid)": "You have draconic ancestry tied to copper dragons. You gain resistance to acid damage and your spells that deal acid damage are enhanced.",
+      "Gold (Fire)": "You have draconic ancestry tied to gold dragons. You gain resistance to fire damage and your spells that deal fire damage are enhanced.",
+      "Green (Poison)": "You have draconic ancestry tied to green dragons. You gain resistance to poison damage and your spells that deal poison damage are enhanced.",
+      "Red (Fire)": "You have draconic ancestry tied to red dragons. You gain resistance to fire damage and your spells that deal fire damage are enhanced.",
+      "Silver (Cold)": "You have draconic ancestry tied to silver dragons. You gain resistance to cold damage and your spells that deal cold damage are enhanced.",
+      "White (Cold)": "You have draconic ancestry tied to white dragons. You gain resistance to cold damage and your spells that deal cold damage are enhanced."
+    }
+  },
+  "Sorcerer: Wild Magic": {
+    "featureName": "Wild Magic Surge",
+    "level": 1,
+    "choices": {
+      "Wild Magic Surge": "When you cast a sorcerer spell of 1st level or higher, the DM can have you roll a d20. On a 1, you roll on the Wild Magic Surge table for a random magical effect."
+    }
+  },
+  "Sorcerer: Divine Soul": {
+    "featureName": "Divine Magic",
+    "level": 1,
+    "choices": {
+      "Affinity: Good": "You gain access to the cleric spell list and learn cure wounds. Your link to good grants you extra guidance.",
+      "Affinity: Evil": "You gain access to the cleric spell list and learn inflict wounds. Your link to evil grants you dark power.",
+      "Affinity: Law": "You gain access to the cleric spell list and learn bless. Your link to law grants you order and discipline.",
+      "Affinity: Chaos": "You gain access to the cleric spell list and learn bane. Your link to chaos grants you unpredictable power.",
+      "Affinity: Neutrality": "You gain access to the cleric spell list and learn protection from evil and good. Your balanced link grants versatility."
+    }
+  },
+  "Sorcerer: Shadow Magic": {
+    "featureName": "Eyes of the Dark",
+    "level": 1,
+    "choices": {
+      "Eyes of the Dark": "You gain darkvision out to 120 feet. At 3rd level, you can cast darkness by spending 2 sorcery points. You can see through darkness you create."
+    }
+  },
+  "Sorcerer: Storm Sorcery": {
+    "featureName": "Tempestuous Magic",
+    "level": 1,
+    "choices": {
+      "Tempestuous Magic": "When you cast a spell of 1st level or higher, you can use a bonus action to fly up to 10 feet without provoking opportunity attacks."
+    }
+  },
+  "Sorcerer: Aberrant Mind": {
+    "featureName": "Psionic Spells",
+    "level": 1,
+    "choices": {
+      "Psionic Spells": "You learn additional psionic spells that don't count against your spells known. You can cast them with sorcery points without verbal or somatic components."
+    }
+  },
+  "Sorcerer: Clockwork Soul": {
+    "featureName": "Clockwork Magic",
+    "level": 1,
+    "choices": {
+      "Clockwork Magic": "You learn additional spells representing the cosmic order. You can swap these spells for abjuration or transmutation spells as you level."
+    }
+  },
+
+  "Warlock: Pact Boon": {
+    "featureName": "Pact Boon",
+    "level": 3,
+    "choices": {
+      "Pact of the Chain": "You learn the find familiar spell and can cast it as a ritual. Your familiar can be an imp, pseudodragon, quasit, or sprite.",
+      "Pact of the Blade": "You can create a pact weapon in your empty hand. You are proficient with it and it counts as magical.",
+      "Pact of the Tome": "Your patron gives you a Book of Shadows with three cantrips from any class's spell list.",
+      "Pact of the Talisman": "Your patron gives you an amulet. When the wearer fails an ability check, they can add a d4 to the roll."
+    }
+  },
+
+  "Wizard: Abjuration": {
+    "featureName": "Arcane Ward",
+    "level": 2,
+    "choices": {
+      "Arcane Ward": "When you cast an abjuration spell of 1st level or higher, you create a magical ward that has HP equal to twice your wizard level + Int mod."
+    }
+  },
+  "Wizard: Bladesinging": {
+    "featureName": "Bladesong",
+    "level": 2,
+    "choices": {
+      "Bladesong": "You can invoke a secret elven magic called Bladesong, gaining AC bonus equal to Int mod, +10 to walking speed, advantage on Acrobatics, and concentration bonus."
+    }
+  },
+  "Wizard: Conjuration": {
+    "featureName": "Minor Conjuration",
+    "level": 2,
+    "choices": {
+      "Minor Conjuration": "You can use your action to conjure an inanimate object in your hand or on the ground, up to 3 feet on a side and 10 pounds."
+    }
+  },
+  "Wizard: Divination": {
+    "featureName": "Portent",
+    "level": 2,
+    "choices": {
+      "Portent": "After a long rest, roll two d20s and record the numbers. You can replace any attack roll, saving throw, or ability check with one of these foretelling rolls."
+    }
+  },
+  "Wizard: Enchantment": {
+    "featureName": "Hypnotic Gaze",
+    "level": 2,
+    "choices": {
+      "Hypnotic Gaze": "As an action, you can charm a creature within 5 feet that can see you. It is incapacitated and its speed drops to 0 until you stop maintaining the effect."
+    }
+  },
+  "Wizard: Evocation": {
+    "featureName": "Sculpt Spells",
+    "level": 2,
+    "choices": {
+      "Sculpt Spells": "When you cast an evocation spell that affects other creatures, you can choose a number of them equal to 1 + the spell's level. They automatically succeed on their saves and take no damage."
+    }
+  },
+  "Wizard: Illusion": {
+    "featureName": "Improved Minor Illusion",
+    "level": 2,
+    "choices": {
+      "Improved Minor Illusion": "When you cast minor illusion, you can create both a sound and an image with a single casting of the spell."
+    }
+  },
+  "Wizard: Necromancy": {
+    "featureName": "Grim Harvest",
+    "level": 2,
+    "choices": {
+      "Grim Harvest": "When you kill a creature with a spell of 1st level or higher, you regain HP equal to twice the spell's level (or three times for necromancy spells)."
+    }
+  },
+  "Wizard: Transmutation": {
+    "featureName": "Minor Alchemy",
+    "level": 2,
+    "choices": {
+      "Minor Alchemy": "You can temporarily alter the physical properties of one nonmagical object, changing it from one substance to another (wood to stone, etc.)."
+    }
+  },
+  "Wizard: War Magic": {
+    "featureName": "Arcane Deflection",
+    "level": 2,
+    "choices": {
+      "Arcane Deflection": "When you are hit by an attack or fail a save, you can use your reaction to gain +2 AC or +4 to the save. You can't cast spells other than cantrips until the end of your next turn."
+    }
+  },
+  "Wizard: Chronurgy": {
+    "featureName": "Chronal Shift",
+    "level": 2,
+    "choices": {
+      "Chronal Shift": "When a creature you can see within 30 feet makes an attack roll, ability check, or save, you can force them to reroll and use the second result."
+    }
+  },
+  "Wizard: Graviturgy": {
+    "featureName": "Adjust Density",
+    "level": 2,
+    "choices": {
+      "Adjust Density": "As an action, you can magically alter the weight of an object or creature. Halve its weight to double speed, or double its weight to halve speed and impose disadvantage."
+    }
+  },
+  "Wizard: Order of Scribes": {
+    "featureName": "Wizardly Quill",
+    "level": 2,
+    "choices": {
+      "Wizardly Quill": "As a bonus action, you can create a Tiny quill that doesn't require ink. You can copy spells into your spellbook in 2 minutes per spell level instead of 2 hours."
+    }
+  },
+
+  "Blood Hunter: Order of the Ghostslayer": {
+    "featureName": "Rite of the Dawn",
+    "level": 3,
+    "choices": {
+      "Rite of the Dawn": "Your rite damage is radiant. While active, you can see invisible creatures within 30 feet and your weapon is considered magical vs undead."
+    }
+  },
+  "Blood Hunter: Order of the Lycan": {
+    "featureName": "Heightened Senses",
+    "level": 3,
+    "choices": {
+      "Heightened Senses": "You gain advantage on Perception checks that rely on hearing or smell. In hybrid form, you gain powerful natural weapons and predatory instincts."
+    }
+  },
+  "Blood Hunter: Order of the Mutant": {
+    "featureName": "Mutagencraft",
+    "level": 3,
+    "choices": {
+      "Mutagen: Celerity": "Your Dexterity score increases by 3 (max 20) but Wisdom decreases by 3.",
+      "Mutagen: Potency": "Your Strength score increases by 3 (max 20) but Dexterity decreases by 3.",
+      "Mutagen: Sagacity": "Your Intelligence score increases by 3 (max 20) but Strength decreases by 3."
+    }
+  },
+  "Blood Hunter: Order of the Profane Soul": {
+    "featureName": "Otherworldly Patron",
+    "level": 3,
+    "choices": {
+      "Patron: The Archfey": "Your patron is a powerful fey being. You gain bonus spells focused on charm and illusion.",
+      "Patron: The Fiend": "Your patron is a fiend from the lower planes. You gain bonus spells focused on fire and darkness.",
+      "Patron: The Celestial": "Your patron is a celestial being. You gain bonus spells focused on healing and radiant damage.",
+      "Patron: The Hexblade": "Your patron is a mysterious entity from the Shadowfell. You gain bonus spells focused on curses and shadow."
+    }
+  },
+
+  "Artificer: Alchemist": {
+    "featureName": "Experimental Elixir",
+    "level": 3,
+    "choices": {
+      "Experimental Elixir": "At the start of each long rest, you create a free experimental elixir that can provide healing, swiftness, resilience, boldness, flight, or transformation."
+    }
+  },
+  "Artificer: Armorer": {
+    "featureName": "Armor Model",
+    "level": 3,
+    "choices": {
+      "Armor Model: Guardian": "Your armor has Thunder Gauntlets that deal thunder damage and can mark enemies, giving them disadvantage on attacks against others.",
+      "Armor Model: Infiltrator": "Your armor has a Lightning Launcher ranged attack and grants advantage on Stealth checks. Your walking speed increases by 5 feet."
+    }
+  },
+  "Artificer: Artillerist": {
+    "featureName": "Eldritch Cannon",
+    "level": 3,
+    "choices": {
+      "Eldritch Cannon: Flamethrower": "Your cannon exhales fire in a 15-foot cone, dealing fire damage to all creatures in the area.",
+      "Eldritch Cannon: Force Ballista": "Your cannon makes a ranged spell attack that deals force damage and pushes targets 5 feet away.",
+      "Eldritch Cannon: Protector": "Your cannon creates a protective bubble that grants temporary HP to creatures of your choice within 10 feet."
+    }
+  },
+  "Artificer: Battle Smith": {
+    "featureName": "Steel Defender",
+    "level": 3,
+    "choices": {
+      "Steel Defender": "You create a steel defender, a loyal construct that obeys your commands. It can attack, defend you, and repair itself."
+    }
+  }
+}

@@ -9,7 +9,7 @@ import { applyASIs } from '@/lib/asiCalculator'
 import { selectSkillProficiencies } from '@/lib/proficiencyEngine'
 import { getSpellSlotInfo, getSpellcastingAbilityForClass } from '@/lib/spellSlots'
 import { generateSmartSpellbook } from '@/lib/spellbookGenerator'
-import { getAvailableSpellNames, getCasterType } from '@/lib/dndApi'
+import { getAvailableSpellNames, getCasterType, getSavingThrowProficiencies } from '@/lib/dndApi'
 
 const bedrockClient = new BedrockRuntimeClient({
   region: process.env.AWS_REGION || 'us-east-1',
@@ -143,10 +143,12 @@ Output Format (Required - use these exact markdown headers):
 
 ## Signature Catchphrase
 
-*"[4 words maximum - a punchy, memorable battle cry or motto]"*
+*"[1-3 words - a punchy, humorous exclamation in the style of Doctor Who regenerations]"*
 
 Constraints:
-- Signature catchphrase must be exactly 4 words or fewer
+- Catchphrase should be 1-3 words, ideally just ONE word like "Geronimo!", "Fantastic!", or "Allons-y!"
+- Make it witty, playful, or absurdly dramatic - never generic
+- Can reference the character's new form, abilities, or situation in a clever way
 - Be specific about D&D 5e mechanics. Reference actual class features, racial abilities, and subclass capabilities by name when relevant.`
 
     const subclassChoiceContext = subclassChoice
@@ -309,6 +311,9 @@ export async function POST(
     // Select skill proficiencies based on class
     const skillProficiencies = selectSkillProficiencies(className)
 
+    // Get saving throw proficiencies from class
+    const savingThrowProficiencies = await getSavingThrowProficiencies(className)
+
     // Get base stats from class priority and apply racial bonuses
     const classStats = mapStatsForClass(className)
     const racialBonuses = await getRacialBonuses(race)
@@ -380,6 +385,7 @@ export async function POST(
         effect,
         story,
         skillProficiencies,
+        savingThrowProficiencies,
         subclassChoice,
         ...(spellbook && { spellbook: spellbook as { spellNames: string[]; archivistNote: string } }),
         isActive: true,

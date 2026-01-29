@@ -149,6 +149,11 @@ export async function GET(
       selectedSpellbook = await hydrateSpellbook(activeLife.spellbook as unknown as Spellbook)
     }
 
+    // Get saving throw proficiencies - use stored values, or fall back to class defaults
+    const savingThrowProficiencies = activeLife.savingThrowProficiencies?.length > 0
+      ? activeLife.savingThrowProficiencies
+      : classInfo?.savingThrows || []
+
     const result: HydratedCharacterData = {
       classInfo: classInfo || {
         name: className,
@@ -165,6 +170,7 @@ export async function GET(
       isSpellcaster,
       spellcastingAbility,
       maxSpellLevel: isSpellcaster ? maxSpellLevel : null,
+      savingThrowProficiencies,
     }
 
     return NextResponse.json(result)

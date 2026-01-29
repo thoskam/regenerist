@@ -1,7 +1,6 @@
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { applyASIs } from '@/lib/asiCalculator'
-import { calculateMaxHp, getHitDie } from '@/lib/calculations'
+import { calculateMaxHp } from '@/lib/calculations'
 import { getStatModifier, Stats } from '@/lib/statMapper'
 
 // PUT update a specific life
@@ -30,30 +29,21 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { race, class: className, level, stats: newStats } = body
+    const { class: className, level, stats: newStats } = body
 
-    // If stats were manually provided, validate and apply ASIs
-    let finalStats = newStats
-    if (newStats && className && level) {
-      // Apply ASIs based on level and class
-      finalStats = applyASIs(newStats as Stats, className, level)
-    }
+    // For static characters, use stats as-is (user controls all stat allocation)
+    // No auto-ASI application - user handles this via point buy
+    let updateData = { ...body }
 
     // If level is being changed and we have class info, recalculate HP
-    let updateData = { ...body }
-    if (level !== undefined && className) {
-      const conMod = finalStats ? getStatModifier((finalStats as Stats).con) : 0
+    if (level !== undefined && className && newStats) {
+      const conMod = getStatModifier((newStats as Stats).con)
       const newMaxHp = calculateMaxHp(className, level, conMod)
       updateData.maxHp = newMaxHp
       // Ensure current HP doesn't exceed new max
       if (updateData.currentHp && updateData.currentHp > newMaxHp) {
         updateData.currentHp = newMaxHp
       }
-    }
-
-    // Apply final stats if we calculated them
-    if (finalStats && newStats) {
-      updateData.stats = finalStats
     }
 
     const life = await prisma.life.update({

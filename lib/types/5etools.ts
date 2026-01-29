@@ -337,6 +337,7 @@ export interface HydratedCharacterData {
   isSpellcaster: boolean
   spellcastingAbility: string | null
   maxSpellLevel: number | null
+  savingThrowProficiencies: string[]
 }
 
 // Valid class names for security validation

@@ -184,7 +184,7 @@ export default function StoryDisplay({ story, effect }: StoryDisplayProps) {
 
       <div className="pt-4 border-t border-slate-700">
         <h4 className="text-xs text-gold-400 font-semibold tracking-wider mb-2 flex items-center gap-2">
-          <span>🎲</span> QUIRK ROLLED
+          <span>🎲</span> QUIRKS
         </h4>
         <p className="text-sm text-slate-300 italic">{effect}</p>
       </div>

@@ -14,6 +14,7 @@ interface StaticCharacterEditorProps {
   currentLevel: number
   currentStats: Stats
   currentStory: string
+  currentEffect: string
   onSave: (data: EditorData) => Promise<void>
   onCancel: () => void
   isLoading?: boolean
@@ -26,6 +27,7 @@ export interface EditorData {
   level: number
   stats: Stats
   story: string
+  effect: string
 }
 
 export default function StaticCharacterEditor({
@@ -36,6 +38,7 @@ export default function StaticCharacterEditor({
   currentLevel,
   currentStats,
   currentStory,
+  currentEffect,
   onSave,
   onCancel,
   isLoading = false,
@@ -45,6 +48,7 @@ export default function StaticCharacterEditor({
   const [level, setLevel] = useState(currentLevel)
   const [stats, setStats] = useState<Stats>(currentStats)
   const [story, setStory] = useState(currentStory)
+  const [effect, setEffect] = useState(currentEffect)
   const [activeTab, setActiveTab] = useState<'basic' | 'stats' | 'story'>('basic')
 
   const handleSave = async () => {
@@ -56,6 +60,7 @@ export default function StaticCharacterEditor({
       level,
       stats,
       story,
+      effect,
     })
   }
 
@@ -151,20 +156,35 @@ export default function StaticCharacterEditor({
               <PointBuyCalculator
                 initialStats={stats}
                 onStatsChange={setStats}
+                level={level}
               />
             </div>
           )}
 
           {/* Story Tab */}
           {activeTab === 'story' && (
-            <div>
-              <label className="block text-sm font-semibold text-slate-400 mb-2">Backstory</label>
-              <textarea
-                value={story}
-                onChange={(e) => setStory(e.target.value)}
-                placeholder="Write your character's story here..."
-                className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-gold-500 min-h-[300px] font-mono text-sm"
-              />
+            <div className="space-y-6">
+              <div>
+                <label className="block text-sm font-semibold text-slate-400 mb-2">Quirk / Effect</label>
+                <input
+                  type="text"
+                  value={effect}
+                  onChange={(e) => setEffect(e.target.value)}
+                  placeholder="e.g., Haunted by visions, Lucky charm, etc."
+                  className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-gold-500"
+                />
+                <p className="text-xs text-slate-500 mt-1">A unique trait, quirk, or ongoing effect for your character</p>
+              </div>
+
+              <div>
+                <label className="block text-sm font-semibold text-slate-400 mb-2">Backstory</label>
+                <textarea
+                  value={story}
+                  onChange={(e) => setStory(e.target.value)}
+                  placeholder="Write your character's story here..."
+                  className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-gold-500 min-h-[250px] font-mono text-sm"
+                />
+              </div>
             </div>
           )}
         </div>

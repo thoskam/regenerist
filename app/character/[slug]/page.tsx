@@ -11,7 +11,9 @@ import StoryDisplay from '@/components/StoryDisplay'
 import LifeHistory from '@/components/LifeHistory'
 import FormSummary from '@/components/FormSummary'
 import ProficiencyList from '@/components/ProficiencyList'
+import SavesTable from '@/components/SavesTable'
 import FeatureDisplay from '@/components/FeatureDisplay'
+import ChoicesDisplay from '@/components/ChoicesDisplay'
 import SpellList from '@/components/SpellList'
 import StaticCharacterEditor, { EditorData } from '@/components/StaticCharacterEditor'
 import { Character, Life, Stats } from '@/lib/types'
@@ -40,7 +42,7 @@ export default function CharacterPage() {
   const [error, setError] = useState<string | null>(null)
   const [hydratedData, setHydratedData] = useState<HydratedCharacterData | null>(null)
   const [activeTab, setActiveTab] = useState<'story' | 'features' | 'spells'>('story')
-  const [formTab, setFormTab] = useState<'summary' | 'traits'>('summary')
+  const [formTab, setFormTab] = useState<'summary' | 'traits' | 'choices'>('summary')
   const [regenPhase, setRegenPhase] = useState<'idle' | 'fading-out' | 'loading' | 'flashing-in'>('idle')
   const [showFlash, setShowFlash] = useState(false)
   const [showEditor, setShowEditor] = useState(false)
@@ -61,6 +63,7 @@ export default function CharacterPage() {
           level: data.level,
           stats: data.stats,
           story: data.story,
+          effect: data.effect,
         }),
       })
 
@@ -68,7 +71,7 @@ export default function CharacterPage() {
         const updatedLife = await response.json()
         setCurrentLife(updatedLife)
         setLevel(data.level)
-        
+
         // Update character level if needed
         if (data.level !== character.level) {
           await fetch(`/api/characters/${slug}`, {
@@ -78,6 +81,9 @@ export default function CharacterPage() {
           })
           setCharacter({ ...character, level: data.level })
         }
+
+        // Refresh hydrated data to update features for new class/level
+        await fetchHydratedData()
 
         setShowEditor(false)
       } else {
@@ -210,9 +216,15 @@ export default function CharacterPage() {
     setLevel(newLevel)
     if (!currentLife || !character) return
 
-    // Recalculate stats with ASI for new level
-    const baseStats = (currentLife.baseStats || currentLife.stats) as Stats
-    const newStats = applyASIs(baseStats, currentLife.class, newLevel)
+    // For Regenerist characters, auto-apply ASIs
+    // For Static characters, keep stats unchanged (user controls via point buy)
+    let newStats: Stats
+    if (character.isRegenerist) {
+      const baseStats = (currentLife.baseStats || currentLife.stats) as Stats
+      newStats = applyASIs(baseStats, currentLife.class, newLevel)
+    } else {
+      newStats = currentLife.stats as Stats
+    }
 
     const conMod = getStatModifier(newStats.con)
     const newMaxHp = calculateMaxHp(currentLife.class, newLevel, conMod)
@@ -234,17 +246,24 @@ export default function CharacterPage() {
         body: JSON.stringify({ level: newLevel }),
       })
 
-      // Update life stats
+      // Update life - only include stats for Regenerist characters
+      const lifeUpdate: Record<string, unknown> = {
+        level: newLevel,
+        maxHp: newMaxHp,
+        currentHp: newCurrentHp
+      }
+      if (character.isRegenerist) {
+        lifeUpdate.stats = newStats
+      }
+
       await fetch(`/api/characters/${slug}/lives/${currentLife.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          level: newLevel,
-          stats: newStats,
-          maxHp: newMaxHp,
-          currentHp: newCurrentHp
-        }),
+        body: JSON.stringify(lifeUpdate),
       })
+
+      // Refresh hydrated data to update features
+      await fetchHydratedData()
     } catch (err) {
       console.error('Failed to update level:', err)
     }
@@ -399,6 +418,15 @@ export default function CharacterPage() {
                 proficiencyBonus={proficiencyBonus}
               />
             )}
+
+            {/* Saving Throws */}
+            {currentLife && stats && (
+              <SavesTable
+                stats={stats}
+                savingThrowProficiencies={hydratedData?.savingThrowProficiencies || []}
+                proficiencyBonus={proficiencyBonus}
+              />
+            )}
           </div>
 
           {/* Main Character Sheet */}
@@ -502,7 +530,7 @@ export default function CharacterPage() {
                           : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/30'
                       }`}
                     >
-                      Form Summary
+                      Summary
                     </button>
                     {hydratedData?.raceInfo && hydratedData.raceInfo.traits.length > 0 && (
                       <button
@@ -514,6 +542,18 @@ export default function CharacterPage() {
                         }`}
                       >
                         {hydratedData.raceInfo.name} Traits
+                      </button>
+                    )}
+                    {(currentLife.subclassChoice || (hydratedData?.subclassInfo && hydratedData.subclassInfo.features.length > 0)) && (
+                      <button
+                        onClick={() => setFormTab('choices')}
+                        className={`flex-1 px-4 py-3 text-sm font-medium transition-colors ${
+                          formTab === 'choices'
+                            ? 'text-gold-400 bg-slate-700/50 border-b-2 border-gold-400'
+                            : 'text-slate-400 hover:text-slate-300 hover:bg-slate-700/30'
+                        }`}
+                      >
+                        {currentLife.subclass}
                       </button>
                     )}
                   </div>
@@ -540,6 +580,17 @@ export default function CharacterPage() {
                         }))}
                         currentLevel={level}
                         noContainer
+                      />
+                    )}
+
+                    {formTab === 'choices' && (
+                      <ChoicesDisplay
+                        className={currentLife.class}
+                        subclass={currentLife.subclass}
+                        subclassChoice={currentLife.subclassChoice}
+                        level={level}
+                        subclassFeatures={hydratedData?.subclassInfo?.features || []}
+                        subclassName={hydratedData?.subclassInfo?.name}
                       />
                     )}
                   </div>
@@ -605,20 +656,11 @@ export default function CharacterPage() {
 
                 {activeTab === 'features' && hydratedData && (
                   <div className="space-y-4">
-                    {/* Class Features */}
+                    {/* Class Features (subclass features are now in the Choices tab) */}
                     {hydratedData.classInfo && (
                       <FeatureDisplay
                         title={`${hydratedData.classInfo.name.toUpperCase()} FEATURES`}
                         features={hydratedData.classInfo.features}
-                        currentLevel={level}
-                      />
-                    )}
-
-                    {/* Subclass Features */}
-                    {hydratedData.subclassInfo && hydratedData.subclassInfo.features.length > 0 && (
-                      <FeatureDisplay
-                        title={`${hydratedData.subclassInfo.name.toUpperCase()} FEATURES`}
-                        features={hydratedData.subclassInfo.features}
                         currentLevel={level}
                       />
                     )}
@@ -657,6 +699,7 @@ export default function CharacterPage() {
           currentLevel={currentLife.level}
           currentStats={currentLife.stats as Stats}
           currentStory={currentLife.story}
+          currentEffect={currentLife.effect}
           onSave={handleEditCharacter}
           onCancel={() => setShowEditor(false)}
           isLoading={isSavingEdit}
