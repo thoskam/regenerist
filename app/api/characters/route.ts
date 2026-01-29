@@ -40,7 +40,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
-    const { name, level = 1 } = body
+    const { name, level = 1, isRegenerist = true } = body
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json(
@@ -73,8 +73,40 @@ export async function POST(request: Request) {
         name: name.trim(),
         slug,
         level: Math.max(1, Math.min(20, level)),
+        isRegenerist: typeof isRegenerist === 'boolean' ? isRegenerist : true,
       },
     })
+
+    // For static characters, create an initial life record
+    if (!isRegenerist) {
+      // Extract initial life data from body if provided
+      const { race = 'Human (Standard)', className = 'Fighter', subclass = 'Champion', stats, story = '' } = body
+
+      await prisma.life.create({
+        data: {
+          characterId: character.id,
+          lifeNumber: 1,
+          name: name.trim(),
+          race,
+          class: className,
+          subclass,
+          level: Math.max(1, Math.min(20, level)),
+          stats: stats || {
+            str: 15,
+            dex: 14,
+            con: 13,
+            int: 12,
+            wis: 10,
+            cha: 8,
+          },
+          currentHp: 10,
+          maxHp: 10,
+          effect: '',
+          story,
+          isActive: true,
+        },
+      })
+    }
 
     return NextResponse.json(character, { status: 201 })
   } catch (error) {

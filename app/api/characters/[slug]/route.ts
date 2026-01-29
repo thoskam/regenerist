@@ -40,7 +40,7 @@ export async function PUT(
 ) {
   try {
     const body = await request.json()
-    const { name, level } = body
+    const { name, level, isRegenerist } = body
 
     const existingCharacter = await prisma.character.findUnique({
       where: { slug: params.slug },
@@ -53,7 +53,7 @@ export async function PUT(
       )
     }
 
-    const updateData: { name?: string; slug?: string; level?: number } = {}
+    const updateData: { name?: string; slug?: string; level?: number; isRegenerist?: boolean } = {}
 
     if (name && typeof name === 'string' && name.trim().length > 0) {
       updateData.name = name.trim()
@@ -81,6 +81,10 @@ export async function PUT(
 
     if (typeof level === 'number') {
       updateData.level = Math.max(1, Math.min(20, level))
+    }
+
+    if (typeof isRegenerist === 'boolean') {
+      updateData.isRegenerist = isRegenerist
     }
 
     const character = await prisma.character.update({

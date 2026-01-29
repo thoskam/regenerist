@@ -4,7 +4,12 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 
 ## Project Overview
 
-The Regenerist is a D&D 5e character manager where characters "regenerate" into new forms with randomized races, classes, and abilities. Each regeneration creates a new "life" with AI-generated narrative stories via AWS Bedrock (Claude 3.5 Sonnet).
+The Regenerist is a universal D&D 5e character manager supporting two character types:
+
+1. **Regenerist Characters** - Characters that "regenerate" into new forms with randomized races, classes, and abilities. Each regeneration creates a new "life" with AI-generated narrative stories via AWS Bedrock (Claude 3.5 Sonnet).
+2. **Static Characters** - Manually-created characters that maintain a single life with point-buy ability scores, manual stat editing, and user-written backstories. No automatic regeneration.
+
+Both types support the full D&D 5e character sheet, skill proficiencies, class features, spellcasting (with manual spell selection for static characters), and the quirks system.
 
 ## Commands
 
@@ -39,9 +44,12 @@ docker-compose up db # Run just the database
 ### Database Schema
 
 Three tables:
-- **Character** - The persistent soul/identity (has name, slug, level)
-- **Life** - Individual incarnations with race, class, stats, story, spellbook (many per Character)
-- **Quirk** - Post-regeneration effects that can be assigned to lives
+- **Character** - The persistent soul/identity (has name, slug, level, **isRegenerist flag**)
+  - `isRegenerist: boolean` - true for auto-regenerating characters, false for static manual characters
+- **Life** - Individual incarnations with race, class, stats, story, spellbook (many per Character, but 1 for static)
+  - For Regenerist: new life created on each regeneration
+  - For Static: single life record, manually edited via character editor
+- **Quirk** - Post-regeneration effects that can be assigned to lives (available for both types)
 
 ### Core Logic Flow
 
@@ -75,11 +83,26 @@ BEDROCK_MODEL_ID=us.anthropic.claude-3-5-sonnet-20241022-v2:0
 
 ## API Routes
 
-- `GET/POST /api/characters` - List/create characters
-- `GET/PUT/DELETE /api/characters/[slug]` - Character CRUD
-- `POST /api/characters/[slug]/regenerate` - Generate new life (includes spellbook for casters)
-- `GET /api/characters/[slug]/hydrate` - Get hydrated character data (class features, race traits, spells)
-- `GET/PUT /api/characters/[slug]/lives/[lifeId]` - Life management (including spellbook updates)
+### Character Management
+- `GET /api/characters` - List all characters with current life and type badge
+- `POST /api/characters` - Create character (accepts `isRegenerist` flag; auto-creates initial Life for static)
+- `GET /api/characters/[slug]` - Get character with all lives
+- `PUT /api/characters/[slug]` - Update character (name, level, **isRegenerist toggle**)
+- `DELETE /api/characters/[slug]` - Delete character (cascades to lives and quirks)
+
+### Regeneration (Regenerist Only)
+- `POST /api/characters/[slug]/regenerate` - Generate new life with random race/class/AI story/smart spellbook
+
+### Character Data
+- `GET /api/characters/[slug]/hydrate` - Get hydrated character data (class features, race traits, spells, abilities)
+
+### Life Management (Both Types)
+- `GET /api/characters/[slug]/lives` - List all lives for character
+- `GET/PUT /api/characters/[slug]/lives/[lifeId]` - Life CRUD
+  - **PUT enhanced**: Accepts race/class/level/stats/story; recalculates HP, applies ASIs, updates features
+- `DELETE /api/characters/[slug]/lives` - Clear all past lives (Regenerist only)
+
+### Quirks (Both Types)
 - `GET/POST/PUT/DELETE /api/quirks[/id]` - Quirk CRUD
 
 ## Regeneration Animation System
@@ -111,6 +134,79 @@ The regeneration UI has a Doctor Who-inspired animation sequence with multiple p
 - Grid box pulse animations use **inline styles** (not CSS classes) because Tailwind classes can conflict
 - Minimum 1.5s loading time ensures pulse animation is visible even with fast API responses
 - The `animate-regenerate-out/in` classes use `animation-fill-mode: forwards`
+
+## Static Character System
+
+Manually-crafted characters with point-buy ability scores, manual editing, and custom backstories.
+
+### Character Creation Flow
+
+When creating a character, users toggle "Regenerist Mode":
+- **ON (default)**: Character uses auto-regeneration flow (existing behavior)
+- **OFF**: Character is static with initial Life record created with default stats
+  - Initial Life: Fighter (Champion), Human (Standard), stats (15,14,13,12,10,8), Level 1
+  - User can immediately click "Edit Character" to customize
+
+### Character Editing (Static Only)
+
+Clicking "✎ Edit Character" opens modal with 3 tabs:
+
+1. **Basic Tab**
+   - Race selector (dropdown from `lib/data/races.json`)
+   - Level selector (1-20)
+   - Class/Subclass selector (dropdown from `lib/data/classes.json`)
+
+2. **Stats Tab**
+   - Point-buy calculator (27 points, D&D 5e rules)
+   - All 6 abilities displayed with +/- buttons
+   - Real-time point tracking and validation
+   - Costs: 8→9 = 1pt, 9→13 = 1pt each, 14→15 = 2pts each
+   - Min 8, max 15 before racial bonuses
+
+3. **Story Tab**
+   - Textarea for manual backstory (optional)
+   - Stored in `Life.story` field
+
+### Key Components
+
+- `components/PointBuyCalculator.tsx` - 27-point system with validation
+- `components/StaticCharacterEditor.tsx` - Tabbed edit modal
+- `components/CharacterTypeBadge.tsx` - [REG] / [STD] badges on cards
+
+### API Changes for Static Characters
+
+- `POST /api/characters` - Accepts `isRegenerist` flag; creates initial Life for static characters
+- `PUT /api/characters/[slug]` - Can update `isRegenerist` flag (toggle character type)
+- `PUT /api/characters/[slug]/lives/[lifeId]` - Enhanced to handle:
+  - Race/class/level changes
+  - Stat recalculation with ASI application
+  - HP recalculation based on new level/CON
+  - Story updates
+
+### UI Conditionals
+
+- **Regenerate Button** - Only shown if `character.isRegenerist === true`
+- **Edit Button** - Only shown if `character.isRegenerist === false` and character has active life
+- **Life History Tab** - Hidden for static characters (they only have 1 life)
+- **Character Badges** - [REG] (amber) or [STD] (gray) shown on all character cards and character pages
+
+### Static Character Workflow
+
+1. Create character with Regenerist toggle OFF
+2. Character receives default Fighter/Human/Level 1 with point-buy stats
+3. Click "Edit Character" button
+4. Customize race, class, level, ability scores, backstory
+5. Save changes → Life record updated with recalculated HP, features, spells
+6. Features and spellbooks auto-hydrate based on new class/level
+7. Users can edit spells manually (no AI generation)
+
+### Spellcasting for Static Characters
+
+- Spells tab available if class is a spellcaster
+- No AI spell selection (unlike Regenerist)
+- User manually selects spells from available list based on class/level
+- Spell Save DC and Attack Bonus calculated automatically
+- Archivist's Note field hidden (only for AI-generated spells)
 
 ## Smart Spellbook System
 

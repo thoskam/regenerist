@@ -13,6 +13,7 @@ import FormSummary from '@/components/FormSummary'
 import ProficiencyList from '@/components/ProficiencyList'
 import FeatureDisplay from '@/components/FeatureDisplay'
 import SpellList from '@/components/SpellList'
+import StaticCharacterEditor, { EditorData } from '@/components/StaticCharacterEditor'
 import { Character, Life, Stats } from '@/lib/types'
 import { HydratedCharacterData } from '@/lib/types/5etools'
 import { calculateProficiencyBonus, calculateAC, calculateInitiative, calculateSpeed, formatModifier, calculateMaxHp } from '@/lib/calculations'
@@ -21,6 +22,7 @@ import { applyASIs } from '@/lib/asiCalculator'
 
 interface CharacterWithLives extends Character {
   lives: Life[]
+  isRegenerist: boolean
 }
 
 export default function CharacterPage() {
@@ -41,6 +43,52 @@ export default function CharacterPage() {
   const [formTab, setFormTab] = useState<'summary' | 'traits'>('summary')
   const [regenPhase, setRegenPhase] = useState<'idle' | 'fading-out' | 'loading' | 'flashing-in'>('idle')
   const [showFlash, setShowFlash] = useState(false)
+  const [showEditor, setShowEditor] = useState(false)
+  const [isSavingEdit, setIsSavingEdit] = useState(false)
+
+  const handleEditCharacter = async (data: EditorData) => {
+    if (!currentLife || !character) return
+
+    setIsSavingEdit(true)
+    try {
+      const response = await fetch(`/api/characters/${slug}/lives/${currentLife.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          race: data.race,
+          class: data.class,
+          subclass: data.subclass,
+          level: data.level,
+          stats: data.stats,
+          story: data.story,
+        }),
+      })
+
+      if (response.ok) {
+        const updatedLife = await response.json()
+        setCurrentLife(updatedLife)
+        setLevel(data.level)
+        
+        // Update character level if needed
+        if (data.level !== character.level) {
+          await fetch(`/api/characters/${slug}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ level: data.level }),
+          })
+          setCharacter({ ...character, level: data.level })
+        }
+
+        setShowEditor(false)
+      } else {
+        console.error('Failed to save character')
+      }
+    } catch (err) {
+      console.error('Failed to save character:', err)
+    } finally {
+      setIsSavingEdit(false)
+    }
+  }
 
   const fetchCharacter = useCallback(async () => {
     try {
@@ -287,31 +335,43 @@ export default function CharacterPage() {
             </p>
           )}
 
-          {/* Regenerate Button and Unique Subclasses Toggle */}
+          {/* Regenerate Button and Controls */}
           <div className="mt-6 flex flex-col items-center gap-4">
-            <RegenerateButton onClick={handleRegenerate} isLoading={isRegenerating} />
-            <div className="flex items-center gap-3">
-              <label className="flex items-center gap-2 cursor-pointer">
-                <div className="relative">
-                  <input
-                    type="checkbox"
-                    checked={uniqueSubclasses}
-                    onChange={(e) => setUniqueSubclasses(e.target.checked)}
-                    className="sr-only peer"
-                  />
-                  <div className="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-gold-500 transition-colors"></div>
-                  <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+            {character && character.isRegenerist && (
+              <>
+                <RegenerateButton onClick={handleRegenerate} isLoading={isRegenerating} />
+                <div className="flex items-center gap-3">
+                  <label className="flex items-center gap-2 cursor-pointer">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={uniqueSubclasses}
+                        onChange={(e) => setUniqueSubclasses(e.target.checked)}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-gold-500 transition-colors"></div>
+                      <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+                    </div>
+                    <span className="text-sm text-slate-400">
+                      Unique Subclasses
+                    </span>
+                  </label>
+                  {uniqueSubclasses && (
+                    <span className="text-xs text-slate-500">
+                      ({allLives.length} used)
+                    </span>
+                  )}
                 </div>
-                <span className="text-sm text-slate-400">
-                  Unique Subclasses
-                </span>
-              </label>
-              {uniqueSubclasses && (
-                <span className="text-xs text-slate-500">
-                  ({allLives.length} used)
-                </span>
-              )}
-            </div>
+              </>
+            )}
+            {character && !character.isRegenerist && currentLife && (
+              <button
+                onClick={() => setShowEditor(true)}
+                className="px-6 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 font-semibold transition-colors"
+              >
+                ✎ Edit Character
+              </button>
+            )}
           </div>
         </div>
 
@@ -322,12 +382,14 @@ export default function CharacterPage() {
             regenPhase === 'fading-out' ? 'animate-regenerate-out' :
             regenPhase === 'flashing-in' ? 'animate-regenerate-in' : ''
           }`}>
-            <LifeHistory
-              lives={allLives}
-              currentLifeId={currentLife?.id || null}
-              onSelectLife={handleSelectLife}
-              onClearHistory={handleClearHistory}
-            />
+            {character && character.isRegenerist && (
+              <LifeHistory
+                lives={allLives}
+                currentLifeId={currentLife?.id || null}
+                onSelectLife={handleSelectLife}
+                onClearHistory={handleClearHistory}
+              />
+            )}
 
             {/* Skills/Proficiencies */}
             {currentLife && stats && (
@@ -584,6 +646,22 @@ export default function CharacterPage() {
 
       {/* Regeneration flash overlay */}
       {showFlash && <div className="regeneration-flash" />}
+
+      {/* Static Character Editor Modal */}
+      {showEditor && character && !character.isRegenerist && currentLife && (
+        <StaticCharacterEditor
+          characterName={character.name}
+          currentRace={currentLife.race}
+          currentClass={currentLife.class}
+          currentSubclass={currentLife.subclass}
+          currentLevel={currentLife.level}
+          currentStats={currentLife.stats as Stats}
+          currentStory={currentLife.story}
+          onSave={handleEditCharacter}
+          onCancel={() => setShowEditor(false)}
+          isLoading={isSavingEdit}
+        />
+      )}
     </div>
   )
 }

@@ -15,7 +15,7 @@ export default function AdminPage() {
   // Character form state
   const [showCharacterModal, setShowCharacterModal] = useState(false)
   const [editingCharacter, setEditingCharacter] = useState<Character | null>(null)
-  const [characterForm, setCharacterForm] = useState({ name: '', level: 1 })
+  const [characterForm, setCharacterForm] = useState({ name: '', level: 1, isRegenerist: true })
 
   // Quirk form state
   const [showQuirkModal, setShowQuirkModal] = useState(false)
@@ -92,10 +92,10 @@ export default function AdminPage() {
   const openCharacterModal = (character?: Character) => {
     if (character) {
       setEditingCharacter(character)
-      setCharacterForm({ name: character.name, level: character.level })
+      setCharacterForm({ name: character.name, level: character.level, isRegenerist: (character as any).isRegenerist ?? true })
     } else {
       setEditingCharacter(null)
-      setCharacterForm({ name: '', level: 1 })
+      setCharacterForm({ name: '', level: 1, isRegenerist: true })
     }
     setShowCharacterModal(true)
   }
@@ -103,7 +103,7 @@ export default function AdminPage() {
   const closeCharacterModal = () => {
     setShowCharacterModal(false)
     setEditingCharacter(null)
-    setCharacterForm({ name: '', level: 1 })
+    setCharacterForm({ name: '', level: 1, isRegenerist: true })
   }
 
   // Quirk CRUD
@@ -388,6 +388,21 @@ export default function AdminPage() {
                     onChange={(e) => setCharacterForm(prev => ({ ...prev, level: parseInt(e.target.value) || 1 }))}
                     className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-gold-500"
                   />
+                </div>
+                <div className="mb-6">
+                  <label className="flex items-center gap-3 cursor-pointer">
+                    <div className="relative">
+                      <input
+                        type="checkbox"
+                        checked={characterForm.isRegenerist}
+                        onChange={(e) => setCharacterForm(prev => ({ ...prev, isRegenerist: e.target.checked }))}
+                        className="sr-only peer"
+                      />
+                      <div className="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-gold-500 transition-colors"></div>
+                      <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+                    </div>
+                    <span className="text-sm text-slate-400">Enable Regenerist Logic</span>
+                  </label>
                 </div>
                 <div className="flex gap-3 justify-end">
                   <button

@@ -8,13 +8,14 @@ datasource db {
 }
 
 model Character {
-  id        Int      @id @default(autoincrement())
-  name      String
-  slug      String   @unique
-  level     Int      @default(1)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
-  lives     Life[]
+  id           Int      @id @default(autoincrement())
+  name         String
+  slug         String   @unique
+  level        Int      @default(1)
+  isRegenerist Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+  lives        Life[]
 }
 
 model Life {

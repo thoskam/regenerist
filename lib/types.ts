@@ -12,6 +12,7 @@ export interface Character {
   name: string
   slug: string
   level: number
+  isRegenerist: boolean
   createdAt: Date
   updatedAt: Date
   lives?: Life[]
@@ -33,6 +34,7 @@ export interface Life {
   story: string
   skillProficiencies: string[]
   subclassChoice: string | null
+  spellbook?: Record<string, unknown> | null
   createdAt: Date
   isActive: boolean
   characterId: number
