@@ -134,19 +134,19 @@ export default function CharacterHub() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
             <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-              <h3 className="text-gold-400 font-semibold mb-2">Regenerate</h3>
+              <h3 className="text-gold-400 font-semibold mb-2">Master Your Hero</h3>
               <p className="text-slate-400 text-sm">
-                Characters evolve through regenerations, gaining new races, classes, and abilities each time.
+                A fully interactive character sheet built for 5e. Track your stats, health, and progression with a streamlined, high-performance interface.
               </p>
             </div>
             <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-              <h3 className="text-gold-400 font-semibold mb-2">AI Stories</h3>
+              <h3 className="text-gold-400 font-semibold mb-2">Tactical Intelligence</h3>
               <p className="text-slate-400 text-sm">
-                Each life comes with a unique AI-generated backstory that weaves your character&apos;s journey.
+                Powered by "The Archivist" AI. Get instant rules clarifications, thematic spell suggestions, and cinematic descriptions for your epic moments.
               </p>
             </div>
             <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
-              <h3 className="text-gold-400 font-semibold mb-2">Full 5e Support</h3>
+              <h3 className="text-gold-400 font-semibold mb-2">Complete 5e Library</h3>
               <p className="text-slate-400 text-sm">
                 Complete D&D 5e mechanics including spells, features, and proper stat calculations.
               </p>
