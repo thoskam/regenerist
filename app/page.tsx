@@ -115,10 +115,10 @@ export default function CharacterHub() {
         <div className="max-w-4xl mx-auto px-4 py-16">
           <div className="text-center mb-12">
             <h1 className="text-6xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent mb-6">
-              THE REGENERIST
+              LAND OF DRAGONS
             </h1>
             <p className="text-slate-400 text-xl mb-8">
-              D&D 5e Character Management for the Ever-Changing Soul
+              D&D 5e Character Management For A Group Of Friends
             </p>
             <p className="text-slate-500 max-w-2xl mx-auto mb-12">
               Create characters that regenerate into new forms with randomized races, classes, and abilities.
@@ -163,10 +163,10 @@ export default function CharacterHub() {
         {/* Header */}
         <div className="text-center mb-12">
           <h1 className="text-5xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent mb-4">
-            THE REGENERIST
+            THE LAND OF DRAGONS
           </h1>
           <p className="text-slate-400 text-lg">
-            D&D 5e Character Management for the Ever-Changing Soul
+            D&D 5e Character Management 
           </p>
         </div>
 

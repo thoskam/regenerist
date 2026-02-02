@@ -13,7 +13,7 @@ export default function Header() {
     <header className="bg-slate-800 border-b border-slate-700">
       <div className="max-w-7xl mx-auto px-4 py-3 flex items-center justify-between">
         <Link href="/" className="flex items-center gap-2">
-          <span className="text-xl font-bold text-gold-400">The Regenerist</span>
+          <span className="text-xl font-bold text-gold-400">The Land of Dragons</span>
         </Link>
 
         <nav className="flex items-center gap-4">
