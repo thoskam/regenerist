@@ -117,12 +117,23 @@ export async function POST(request: Request) {
       },
     })
 
-    // For static characters, create an initial life record
+    // For static characters, create an initial life record and active state
     if (!isRegenerist) {
-      // Extract initial life data from body if provided
-      const { race = 'Human (Standard)', className = 'Fighter', subclass = 'Champion', stats, story = '' } = body
+      const { race = 'Human (Standard)', className = 'Fighter', subclass = 'Champion', stats: bodyStats, story = '' } = body
+      const stats = bodyStats || {
+        str: 15,
+        dex: 14,
+        con: 13,
+        int: 12,
+        wis: 10,
+        cha: 8,
+      }
+      const lifeLevel = Math.max(1, Math.min(20, level))
+      const { calculateMaxHp } = await import('@/lib/calculations')
+      const { getStatModifier } = await import('@/lib/statMapper')
+      const maxHp = calculateMaxHp(className, lifeLevel, getStatModifier(stats.con))
 
-      await prisma.life.create({
+      const newLife = await prisma.life.create({
         data: {
           characterId: character.id,
           lifeNumber: 1,
@@ -130,21 +141,27 @@ export async function POST(request: Request) {
           race,
           class: className,
           subclass,
-          level: Math.max(1, Math.min(20, level)),
-          stats: stats || {
-            str: 15,
-            dex: 14,
-            con: 13,
-            int: 12,
-            wis: 10,
-            cha: 8,
-          },
-          currentHp: 10,
-          maxHp: 10,
+          level: lifeLevel,
+          stats,
+          baseStats: stats,
+          currentHp: maxHp,
+          maxHp,
           effect: '',
           story,
+          skillProficiencies: [],
+          savingThrowProficiencies: [],
           isActive: true,
         },
+      })
+
+      const { initializeActiveState } = await import('@/lib/activeState')
+      await initializeActiveState({
+        lifeId: newLife.id,
+        className,
+        subclass,
+        level: lifeLevel,
+        maxHp,
+        stats: stats as { str: number; dex: number; con: number; int: number; wis: number; cha: number },
       })
     }
 

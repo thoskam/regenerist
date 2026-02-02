@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { calculateMaxHp } from '@/lib/calculations'
 import { getStatModifier, Stats } from '@/lib/statMapper'
+import { initializeActiveState } from '@/lib/activeState'
 
 // PUT update a specific life
 export async function PUT(
@@ -53,6 +54,19 @@ export async function PUT(
       },
       data: updateData,
     })
+
+    // Re-initialize active state when class/level/stats change so resources match
+    if (life.isActive && life.class && life.level != null && life.stats && life.maxHp != null) {
+      const stats = life.stats as unknown as Stats
+      await initializeActiveState({
+        lifeId: life.id,
+        className: life.class,
+        subclass: life.subclass,
+        level: life.level,
+        maxHp: life.maxHp,
+        stats,
+      })
+    }
 
     return NextResponse.json(life)
   } catch (error) {

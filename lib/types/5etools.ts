@@ -328,6 +328,28 @@ export interface HydratedSpellbook {
   archivistNote: string
 }
 
+/** Active state runtime resource (from Prisma ActiveState) */
+export interface HydratedActiveState {
+  id: string
+  lifeId: number
+  currentHp: number
+  tempHp: number
+  spellSlots: Record<string, { used: number; max: number }>
+  pactSlotsUsed: number
+  pactSlotsMax: number
+  pactSlotLevel: number
+  hitDice: Record<string, { used: number; max: number }>
+  limitedFeatures: Record<string, { name: string; max: number; used: number; recharge: string }>
+  deathSaveSuccesses: number
+  deathSaveFailures: number
+  conditions: string[]
+  exhaustionLevel: number
+  concentratingOn: string | null
+  shortRestsTaken: number
+  longRestsTaken: number
+  updatedAt: string
+}
+
 export interface HydratedCharacterData {
   classInfo: HydratedClassInfo
   subclassInfo: HydratedSubclassInfo | null
@@ -338,6 +360,7 @@ export interface HydratedCharacterData {
   spellcastingAbility: string | null
   maxSpellLevel: number | null
   savingThrowProficiencies: string[]
+  activeState: HydratedActiveState | null
 }
 
 // Valid class names for security validation

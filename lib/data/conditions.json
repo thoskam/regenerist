@@ -1,0 +1,135 @@
+{
+  "conditions": [
+    {
+      "id": "blinded",
+      "name": "Blinded",
+      "icon": "👁️",
+      "effects": [
+        "Can't see and automatically fails any ability check that requires sight",
+        "Attack rolls against the creature have advantage",
+        "The creature's attack rolls have disadvantage"
+      ]
+    },
+    {
+      "id": "charmed",
+      "name": "Charmed",
+      "icon": "💕",
+      "effects": [
+        "Can't attack the charmer or target them with harmful abilities or magical effects",
+        "The charmer has advantage on social interaction checks with the creature"
+      ]
+    },
+    {
+      "id": "deafened",
+      "name": "Deafened",
+      "icon": "🔇",
+      "effects": ["Can't hear and automatically fails any ability check that requires hearing"]
+    },
+    {
+      "id": "frightened",
+      "name": "Frightened",
+      "icon": "😨",
+      "effects": [
+        "Has disadvantage on ability checks and attack rolls while the source of fear is in line of sight",
+        "Can't willingly move closer to the source of fear"
+      ]
+    },
+    {
+      "id": "grappled",
+      "name": "Grappled",
+      "icon": "🤼",
+      "effects": [
+        "Speed becomes 0 and can't benefit from any bonus to speed",
+        "Ends if the grappler is incapacitated or moved out of reach"
+      ]
+    },
+    {
+      "id": "incapacitated",
+      "name": "Incapacitated",
+      "icon": "💫",
+      "effects": ["Can't take actions or reactions"]
+    },
+    {
+      "id": "invisible",
+      "name": "Invisible",
+      "icon": "👻",
+      "effects": [
+        "Impossible to see without magic or special sense",
+        "Attack rolls against the creature have disadvantage",
+        "The creature's attack rolls have advantage"
+      ]
+    },
+    {
+      "id": "paralyzed",
+      "name": "Paralyzed",
+      "icon": "⚡",
+      "effects": [
+        "Is incapacitated and can't move or speak",
+        "Automatically fails Strength and Dexterity saving throws",
+        "Attack rolls against the creature have advantage",
+        "Any attack that hits is a critical hit if the attacker is within 5 feet"
+      ]
+    },
+    {
+      "id": "petrified",
+      "name": "Petrified",
+      "icon": "🗿",
+      "effects": [
+        "Transformed into a solid inanimate substance",
+        "Is incapacitated, can't move or speak, unaware of surroundings",
+        "Attack rolls against the creature have advantage",
+        "Automatically fails Strength and Dexterity saving throws",
+        "Resistance to all damage, immune to poison and disease"
+      ]
+    },
+    {
+      "id": "poisoned",
+      "name": "Poisoned",
+      "icon": "🤢",
+      "effects": ["Has disadvantage on attack rolls and ability checks"]
+    },
+    {
+      "id": "prone",
+      "name": "Prone",
+      "icon": "🛌",
+      "effects": [
+        "Can only crawl (every foot costs 1 extra foot)",
+        "Has disadvantage on attack rolls",
+        "Attack rolls have advantage if attacker within 5 feet, otherwise disadvantage"
+      ]
+    },
+    {
+      "id": "restrained",
+      "name": "Restrained",
+      "icon": "⛓️",
+      "effects": [
+        "Speed becomes 0",
+        "Attack rolls against the creature have advantage",
+        "The creature's attack rolls have disadvantage",
+        "Has disadvantage on Dexterity saving throws"
+      ]
+    },
+    {
+      "id": "stunned",
+      "name": "Stunned",
+      "icon": "💥",
+      "effects": [
+        "Is incapacitated, can't move, can only speak falteringly",
+        "Automatically fails Strength and Dexterity saving throws",
+        "Attack rolls against the creature have advantage"
+      ]
+    },
+    {
+      "id": "unconscious",
+      "name": "Unconscious",
+      "icon": "😴",
+      "effects": [
+        "Is incapacitated, can't move or speak, unaware of surroundings",
+        "Drops whatever it's holding and falls prone",
+        "Automatically fails Strength and Dexterity saving throws",
+        "Attack rolls against the creature have advantage",
+        "Any attack that hits is a critical hit if the attacker is within 5 feet"
+      ]
+    }
+  ]
+}

@@ -214,3 +214,70 @@ export function getSpellcastingAbilityForClass(
 
   return abilities[className.toLowerCase()] || null
 }
+
+// --- Active State: spell slots and pact magic ---
+
+/** Full caster spell slots by level: [level-1] => [slots 1st, 2nd, ..., 9th] */
+const FULL_CASTER_SLOTS: number[][] = [
+  [2], [3], [4, 2], [4, 3], [4, 3, 2], [4, 3, 3], [4, 3, 3, 1], [4, 3, 3, 2], [4, 3, 3, 3, 1], [4, 3, 3, 3, 2],
+  [4, 3, 3, 3, 2, 1], [4, 3, 3, 3, 2, 1], [4, 3, 3, 3, 2, 1, 1], [4, 3, 3, 3, 2, 1, 1], [4, 3, 3, 3, 2, 1, 1, 1],
+  [4, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 2, 1, 1, 1, 1], [4, 3, 3, 3, 3, 1, 1, 1, 1], [4, 3, 3, 3, 3, 2, 1, 1, 1], [4, 3, 3, 3, 3, 2, 2, 1, 1],
+]
+
+/** Half caster: spell level 2 = 2 first, 5 = +2 second, etc. Index = (level - 1). */
+const HALF_CASTER_SLOTS: number[][] = [
+  [], [2], [2], [3, 2], [3, 2], [4, 2, 2], [4, 2, 2], [4, 3, 2, 1], [4, 3, 2, 1], [4, 3, 3, 2, 1],
+  [4, 3, 3, 2, 1], [4, 3, 3, 2, 1], [4, 3, 3, 2, 1, 1], [4, 3, 3, 2, 1, 1], [4, 3, 3, 2, 1, 1, 1],
+  [4, 3, 3, 2, 1, 1, 1, 1], [4, 3, 3, 2, 1, 1, 1, 1], [4, 3, 3, 3, 1, 1, 1, 1, 1], [4, 3, 3, 3, 2, 1, 1, 1, 1], [4, 3, 3, 3, 2, 2, 1, 1, 1],
+]
+
+/** Third caster: level 3 = 2 first, 7 = +2 second, etc. */
+const THIRD_CASTER_SLOTS: number[][] = [
+  [], [], [2], [2], [2], [3, 2], [3, 2], [4, 2, 2], [4, 2, 2], [4, 3, 2, 1],
+  [4, 3, 2, 1], [4, 3, 2, 1], [4, 3, 3, 2, 1], [4, 3, 3, 2, 1], [4, 3, 3, 2, 1], [4, 3, 3, 2, 1], [4, 3, 3, 2, 1, 1],
+  [4, 3, 3, 2, 1, 1], [4, 3, 3, 3, 1, 1, 1], [4, 3, 3, 3, 2, 1, 1, 1],
+]
+
+export type SpellSlotsState = Record<string, { used: number; max: number }>
+
+/**
+ * Build spell slots object for ActiveState: { "1": { used: 0, max: 4 }, "2": { used: 0, max: 3 }, ... }
+ */
+export function calculateSpellSlots(
+  className: string,
+  subclass: string,
+  level: number
+): SpellSlotsState {
+  const casterType = getCasterType(className, subclass)
+  if (!casterType || casterType === 'pact') return {}
+
+  const row =
+    casterType === 'full'
+      ? FULL_CASTER_SLOTS[level - 1]
+      : casterType === 'half'
+        ? HALF_CASTER_SLOTS[level - 1]
+        : THIRD_CASTER_SLOTS[level - 1]
+
+  if (!row || row.length === 0) return {}
+
+  const slots: SpellSlotsState = {}
+  row.forEach((max, i) => {
+    if (max > 0) slots[String(i + 1)] = { used: 0, max }
+  })
+  return slots
+}
+
+export interface PactMagicState {
+  slots: number
+  level: number
+}
+
+/**
+ * Warlock Pact Magic: slots and slot level by warlock level.
+ */
+export function calculatePactMagic(className: string, level: number): PactMagicState {
+  if (className.toLowerCase() !== 'warlock') return { slots: 0, level: 0 }
+  const slots = level >= 17 ? 4 : level >= 11 ? 3 : level >= 2 ? 2 : 1
+  const slotLevel = level >= 9 ? 5 : level >= 7 ? 4 : level >= 5 ? 3 : level >= 3 ? 2 : 1
+  return { slots, level: slotLevel }
+}

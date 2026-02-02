@@ -57,6 +57,9 @@ export async function GET(
       include: {
         lives: {
           orderBy: { lifeNumber: 'desc' },
+          include: {
+            activeState: true,
+          },
         },
         user: {
           select: { id: true, name: true, image: true },

@@ -103,13 +103,16 @@ export async function GET(
   const { slug } = await params
 
   try {
-    // Get character with active life
+    // Get character with active life and active state
     const character = await prisma.character.findUnique({
       where: { slug },
       include: {
         lives: {
           where: { isActive: true },
           take: 1,
+          include: {
+            activeState: true,
+          },
         },
       },
     })
@@ -154,6 +157,30 @@ export async function GET(
       ? activeLife.savingThrowProficiencies
       : classInfo?.savingThrows || []
 
+    const activeState = activeLife.activeState
+      ? {
+          id: activeLife.activeState.id,
+          lifeId: activeLife.activeState.lifeId,
+          currentHp: activeLife.activeState.currentHp,
+          tempHp: activeLife.activeState.tempHp,
+          spellSlots: (activeLife.activeState.spellSlots as Record<string, { used: number; max: number }>) || {},
+          pactSlotsUsed: activeLife.activeState.pactSlotsUsed,
+          pactSlotsMax: activeLife.activeState.pactSlotsMax,
+          pactSlotLevel: activeLife.activeState.pactSlotLevel,
+          hitDice: (activeLife.activeState.hitDice as Record<string, { used: number; max: number }>) || {},
+          limitedFeatures:
+            (activeLife.activeState.limitedFeatures as Record<string, { name: string; max: number; used: number; recharge: string }>) || {},
+          deathSaveSuccesses: activeLife.activeState.deathSaveSuccesses,
+          deathSaveFailures: activeLife.activeState.deathSaveFailures,
+          conditions: (activeLife.activeState.conditions as string[]) || [],
+          exhaustionLevel: activeLife.activeState.exhaustionLevel,
+          concentratingOn: activeLife.activeState.concentratingOn,
+          shortRestsTaken: activeLife.activeState.shortRestsTaken,
+          longRestsTaken: activeLife.activeState.longRestsTaken,
+          updatedAt: activeLife.activeState.updatedAt.toISOString(),
+        }
+      : null
+
     const result: HydratedCharacterData = {
       classInfo: classInfo || {
         name: className,
@@ -171,6 +198,7 @@ export async function GET(
       spellcastingAbility,
       maxSpellLevel: isSpellcaster ? maxSpellLevel : null,
       savingThrowProficiencies,
+      activeState,
     }
 
     return NextResponse.json(result)

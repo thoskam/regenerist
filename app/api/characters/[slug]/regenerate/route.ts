@@ -8,6 +8,7 @@ import { getSubclassDecision } from '@/lib/subclassDecisions'
 import { applyASIs } from '@/lib/asiCalculator'
 import { selectSkillProficiencies } from '@/lib/proficiencyEngine'
 import { getSpellSlotInfo, getSpellcastingAbilityForClass } from '@/lib/spellSlots'
+import { initializeActiveState } from '@/lib/activeState'
 import { generateSmartSpellbook } from '@/lib/spellbookGenerator'
 import { getAvailableSpellNames, getCasterType, getSavingThrowProficiencies } from '@/lib/dndApi'
 
@@ -390,6 +391,16 @@ export async function POST(
         ...(spellbook && { spellbook: spellbook as { spellNames: string[]; archivistNote: string } }),
         isActive: true,
       },
+    })
+
+    // Initialize active state for the new life
+    await initializeActiveState({
+      lifeId: newLife.id,
+      className,
+      subclass,
+      level,
+      maxHp,
+      stats: stats as { str: number; dex: number; con: number; int: number; wis: number; cha: number },
     })
 
     return NextResponse.json(newLife)

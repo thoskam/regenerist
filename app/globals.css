@@ -205,3 +205,54 @@ body {
   animation: grid-pulse 1.2s ease-in-out infinite;
   animation-delay: 0.5s;
 }
+
+/* Module collapse animation */
+.module-content {
+  transition: max-height 0.3s ease-out, opacity 0.2s ease-out;
+  overflow: hidden;
+}
+
+.module-content.collapsed {
+  max-height: 0;
+  opacity: 0;
+}
+
+/* Drag and drop animations */
+.sortable-item {
+  transition: transform 200ms ease, box-shadow 200ms ease;
+}
+
+.sortable-item.dragging {
+  z-index: 1000;
+  box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+  transform: scale(1.02);
+}
+
+.sortable-item.drag-overlay {
+  opacity: 0.9;
+  transform: rotate(2deg);
+}
+
+/* Column drop indicator */
+.droppable-column {
+  transition: background-color 200ms ease;
+}
+
+.droppable-column.drag-over {
+  background-color: rgba(251, 191, 36, 0.1);
+  border-radius: 0.5rem;
+}
+
+/* Edit mode pulse animation */
+@keyframes edit-pulse {
+  0%, 100% {
+    border-color: rgba(251, 191, 36, 0.3);
+  }
+  50% {
+    border-color: rgba(251, 191, 36, 0.6);
+  }
+}
+
+.edit-mode .draggable-module {
+  animation: edit-pulse 2s ease-in-out infinite;
+}

@@ -119,6 +119,7 @@ model Character {
 
   lives        Life[]
   campaigns    CharacterCampaign[]
+  layout       CharacterLayout?
 }
 
 model Life {
@@ -146,8 +147,68 @@ model Life {
   characterId Int
   character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 
+  // Active State - Runtime combat/resource tracking
+  activeState ActiveState?
+
   // lifeNumber is unique per character, not globally
   @@unique([characterId, lifeNumber])
+}
+
+model ActiveState {
+  id              String   @id @default(cuid())
+  lifeId          Int      @unique
+  life            Life     @relation(fields: [lifeId], references: [id], onDelete: Cascade)
+
+  // HP Tracking
+  currentHp       Int      @default(0)
+  tempHp          Int      @default(0)
+
+  // Spell Slots - JSON object: { "1": { used: 0, max: 4 }, "2": { used: 1, max: 3 }, ... }
+  spellSlots      Json     @default("{}")
+
+  // Warlock Pact Magic (separate from regular slots)
+  pactSlotsUsed   Int      @default(0)
+  pactSlotsMax    Int      @default(0)
+  pactSlotLevel   Int      @default(0)
+
+  // Hit Dice - JSON object: { "d8": { used: 0, max: 5 }, "d10": { used: 2, max: 3 } }
+  hitDice         Json     @default("{}")
+
+  // Limited Use Features - JSON object: { "rage": { used: 0, max: 3 }, ... }
+  limitedFeatures Json     @default("{}")
+
+  // Death Saves
+  deathSaveSuccesses Int   @default(0)
+  deathSaveFailures  Int   @default(0)
+
+  // Conditions - JSON array: ["poisoned", "prone"]
+  conditions      Json     @default("[]")
+
+  // Exhaustion (0-6)
+  exhaustionLevel Int      @default(0)
+
+  // Concentration
+  concentratingOn String?
+
+  // Tracking
+  shortRestsTaken Int      @default(0)
+  longRestsTaken  Int      @default(0)
+  updatedAt       DateTime @updatedAt
+}
+
+model CharacterLayout {
+  id           String    @id @default(cuid())
+  characterId  Int       @unique
+  character    Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+
+  // Layout configuration as JSON
+  layout       Json      @default("{}")
+
+  // Separate mobile layout (optional - if null, uses responsive version of main layout)
+  mobileLayout Json?
+
+  createdAt    DateTime  @default(now())
+  updatedAt    DateTime  @updatedAt
 }
 
 model Quirk {
