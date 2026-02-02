@@ -118,11 +118,10 @@ export default function CharacterHub() {
               LAND OF DRAGONS
             </h1>
             <p className="text-slate-400 text-xl mb-8">
-              D&D 5e Character Management For A Group Of Friends
+              D&D 5e Character Management
             </p>
             <p className="text-slate-500 max-w-2xl mx-auto mb-12">
-              Create characters that regenerate into new forms with randomized races, classes, and abilities.
-              Each regeneration creates a new life with AI-generated narrative stories.
+              Create characters with 5e races, classes, and abilities. 
             </p>
             <button
               onClick={() => signIn()}
