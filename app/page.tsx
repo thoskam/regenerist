@@ -2,30 +2,48 @@
 
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
+import { useSession, signIn } from 'next-auth/react'
 import { Character, Life } from '@/lib/types'
 import CharacterTypeBadge from '@/components/CharacterTypeBadge'
+import UserAvatar from '@/components/UserAvatar'
+
+interface Owner {
+  id: string
+  name: string | null
+  image: string | null
+}
 
 interface CharacterWithCurrentLife extends Character {
   currentLife: Life | null
   totalLives: number
   isRegenerist: boolean
+  visibility?: string
+  owner?: Owner | null
 }
 
 export default function CharacterHub() {
+  const { data: session, status } = useSession()
   const [characters, setCharacters] = useState<CharacterWithCurrentLife[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [filter, setFilter] = useState<'mine' | 'public'>('mine')
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newCharacterName, setNewCharacterName] = useState('')
   const [isCreating, setIsCreating] = useState(false)
   const [isRegeneristMode, setIsRegeneristMode] = useState(true)
+  const [createError, setCreateError] = useState<string | null>(null)
 
   useEffect(() => {
-    fetchCharacters()
-  }, [])
+    if (session) {
+      fetchCharacters(filter)
+    } else {
+      setIsLoading(false)
+    }
+  }, [session, filter])
 
-  const fetchCharacters = async () => {
+  const fetchCharacters = async (filterType: 'mine' | 'public') => {
+    setIsLoading(true)
     try {
-      const res = await fetch('/api/characters')
+      const res = await fetch(`/api/characters?filter=${filterType}`)
       const data = await res.json()
       setCharacters(data)
     } catch (error) {
@@ -40,34 +58,101 @@ export default function CharacterHub() {
     if (!newCharacterName.trim()) return
 
     setIsCreating(true)
+    setCreateError(null)
     try {
       const res = await fetch('/api/characters', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+        body: JSON.stringify({
           name: newCharacterName.trim(),
           isRegenerist: isRegeneristMode,
         }),
       })
       if (res.ok) {
         const newCharacter = await res.json()
-        setCharacters(prev => [...prev, { ...newCharacter, currentLife: null, totalLives: 0, isRegenerist: isRegeneristMode }])
+        if (filter === 'mine') {
+          setCharacters(prev => [{ ...newCharacter, currentLife: null, totalLives: 0, isRegenerist: isRegeneristMode }, ...prev])
+        }
         setNewCharacterName('')
         setIsRegeneristMode(true)
+        setCreateError(null)
         setShowCreateModal(false)
+      } else {
+        const data = await res.json()
+        setCreateError(data.error || 'Failed to create character')
       }
     } catch (error) {
       console.error('Failed to create character:', error)
+      setCreateError('Failed to create character')
     } finally {
       setIsCreating(false)
     }
   }
 
+  const getVisibilityIcon = (visibility?: string) => {
+    switch (visibility) {
+      case 'public':
+        return '🌐'
+      case 'campaign':
+        return '👥'
+      default:
+        return '🔒'
+    }
+  }
 
-  if (isLoading) {
+  if (status === 'loading') {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-900">
         <div className="text-gold-400 text-xl">Loading...</div>
+      </div>
+    )
+  }
+
+  // Not authenticated - show landing page
+  if (!session) {
+    return (
+      <div className="min-h-screen bg-slate-900 text-white">
+        <div className="max-w-4xl mx-auto px-4 py-16">
+          <div className="text-center mb-12">
+            <h1 className="text-6xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent mb-6">
+              THE REGENERIST
+            </h1>
+            <p className="text-slate-400 text-xl mb-8">
+              D&D 5e Character Management for the Ever-Changing Soul
+            </p>
+            <p className="text-slate-500 max-w-2xl mx-auto mb-12">
+              Create characters that regenerate into new forms with randomized races, classes, and abilities.
+              Each regeneration creates a new life with AI-generated narrative stories.
+            </p>
+            <button
+              onClick={() => signIn()}
+              className="px-8 py-4 bg-gold-500 hover:bg-gold-400 rounded-lg text-slate-900 font-bold text-lg transition-colors"
+            >
+              Sign In to Get Started
+            </button>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-16">
+            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <h3 className="text-gold-400 font-semibold mb-2">Regenerate</h3>
+              <p className="text-slate-400 text-sm">
+                Characters evolve through regenerations, gaining new races, classes, and abilities each time.
+              </p>
+            </div>
+            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <h3 className="text-gold-400 font-semibold mb-2">AI Stories</h3>
+              <p className="text-slate-400 text-sm">
+                Each life comes with a unique AI-generated backstory that weaves your character&apos;s journey.
+              </p>
+            </div>
+            <div className="bg-slate-800 rounded-lg p-6 border border-slate-700">
+              <h3 className="text-gold-400 font-semibold mb-2">Full 5e Support</h3>
+              <p className="text-slate-400 text-sm">
+                Complete D&D 5e mechanics including spells, features, and proper stat calculations.
+              </p>
+            </div>
+          </div>
+        </div>
       </div>
     )
   }
@@ -85,9 +170,30 @@ export default function CharacterHub() {
           </p>
         </div>
 
-        {/* Action Bar */}
+        {/* Filter Tabs + Action Bar */}
         <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-semibold text-white">Your Characters</h2>
+          <div className="flex items-center gap-2">
+            <button
+              onClick={() => setFilter('mine')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                filter === 'mine'
+                  ? 'bg-gold-500 text-slate-900'
+                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+            >
+              My Characters
+            </button>
+            <button
+              onClick={() => setFilter('public')}
+              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
+                filter === 'public'
+                  ? 'bg-gold-500 text-slate-900'
+                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
+              }`}
+            >
+              Public
+            </button>
+          </div>
           <div className="flex gap-4">
             <Link
               href="/admin"
@@ -96,7 +202,7 @@ export default function CharacterHub() {
               Admin
             </Link>
             <button
-              onClick={() => setShowCreateModal(true)}
+              onClick={() => { setShowCreateModal(true); setCreateError(null) }}
               className="px-4 py-2 bg-gold-500 hover:bg-gold-400 rounded-lg text-slate-900 font-semibold transition-colors"
             >
               + New Character
@@ -105,17 +211,29 @@ export default function CharacterHub() {
         </div>
 
         {/* Character Grid */}
-        {characters.length === 0 ? (
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="text-gold-400">Loading characters...</div>
+          </div>
+        ) : characters.length === 0 ? (
           <div className="bg-slate-800 rounded-lg p-12 border border-slate-700 text-center">
-            <p className="text-slate-400 text-lg mb-6">
-              No characters yet. Create your first regenerating soul!
-            </p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-6 py-3 bg-gold-500 hover:bg-gold-400 rounded-lg text-slate-900 font-semibold transition-colors"
-            >
-              Create Character
-            </button>
+            {filter === 'mine' ? (
+              <>
+                <p className="text-slate-400 text-lg mb-6">
+                  No characters yet. Create your first regenerating soul!
+                </p>
+                <button
+                  onClick={() => { setShowCreateModal(true); setCreateError(null) }}
+                  className="px-6 py-3 bg-gold-500 hover:bg-gold-400 rounded-lg text-slate-900 font-semibold transition-colors"
+                >
+                  Create Character
+                </button>
+              </>
+            ) : (
+              <p className="text-slate-400 text-lg">
+                No public characters available.
+              </p>
+            )}
           </div>
         ) : (
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -130,13 +248,18 @@ export default function CharacterHub() {
                 >
                   <div className="p-6">
                     {/* Character Header */}
-                  <div className="flex justify-between items-start mb-4">
+                    <div className="flex justify-between items-start mb-4">
                       <div>
                         <div className="flex items-center gap-2 mb-1">
                           <h3 className="text-xl font-bold text-white group-hover:text-gold-400 transition-colors">
                             {character.name}
                           </h3>
                           <CharacterTypeBadge isRegenerist={character.isRegenerist} />
+                          {filter === 'mine' && (
+                            <span className="text-xs" title={character.visibility || 'private'}>
+                              {getVisibilityIcon(character.visibility)}
+                            </span>
+                          )}
                         </div>
                         <p className="text-sm text-slate-500">Level {character.level}</p>
                       </div>
@@ -144,6 +267,14 @@ export default function CharacterHub() {
                         {totalLives} {totalLives === 1 ? 'life' : 'lives'}
                       </div>
                     </div>
+
+                    {/* Owner (for public characters) */}
+                    {filter === 'public' && character.owner && (
+                      <div className="flex items-center gap-2 mb-3 text-xs text-slate-500">
+                        <UserAvatar src={character.owner.image} name={character.owner.name} size="sm" />
+                        <span>{character.owner.name || 'Anonymous'}</span>
+                      </div>
+                    )}
 
                     {/* Current Life Preview */}
                     {currentLife ? (
@@ -163,9 +294,11 @@ export default function CharacterHub() {
                         <p className="text-slate-500 text-sm">
                           No incarnation yet
                         </p>
-                        <p className="text-gold-400 text-xs mt-1">
-                          Click to regenerate!
-                        </p>
+                        {filter === 'mine' && (
+                          <p className="text-gold-400 text-xs mt-1">
+                            Click to regenerate!
+                          </p>
+                        )}
                       </div>
                     )}
                   </div>
@@ -180,6 +313,11 @@ export default function CharacterHub() {
           <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
             <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md border border-slate-700">
               <h3 className="text-xl font-bold text-white mb-4">Create New Character</h3>
+              {createError && (
+                <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-200 text-sm">
+                  {createError}
+                </div>
+              )}
               <form onSubmit={handleCreateCharacter}>
                 <div className="mb-4">
                   <label className="block text-sm text-slate-400 mb-2">
@@ -194,7 +332,7 @@ export default function CharacterHub() {
                     autoFocus
                   />
                 </div>
-                
+
                 <div className="mb-6">
                   <label className="flex items-center gap-3 cursor-pointer">
                     <div className="relative">
@@ -220,6 +358,7 @@ export default function CharacterHub() {
                     onClick={() => {
                       setShowCreateModal(false)
                       setIsRegeneristMode(true)
+                      setCreateError(null)
                     }}
                     className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors"
                   >

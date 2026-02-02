@@ -7,41 +7,144 @@ datasource db {
   url      = env("DATABASE_URL")
 }
 
+// NextAuth Models
+model User {
+  id              String    @id @default(cuid())
+  email           String?   @unique
+  emailVerified   DateTime?
+  name            String?
+  image           String?
+  discordId       String?   @unique
+  discordUsername String?
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  // Relations
+  accounts            Account[]
+  sessions            Session[]
+  characters          Character[]
+  campaignsOwned      Campaign[]       @relation("CampaignDM")
+  campaignMemberships CampaignMember[]
+}
+
+model Account {
+  id                String  @id @default(cuid())
+  userId            String
+  type              String
+  provider          String
+  providerAccountId String
+  refresh_token     String? @db.Text
+  access_token      String? @db.Text
+  expires_at        Int?
+  token_type        String?
+  scope             String?
+  id_token          String? @db.Text
+  session_state     String?
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+}
+
+model Session {
+  id           String   @id @default(cuid())
+  sessionToken String   @unique
+  userId       String
+  expires      DateTime
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model VerificationToken {
+  identifier String
+  token      String   @unique
+  expires    DateTime
+
+  @@unique([identifier, token])
+}
+
+// Campaign Models
+model Campaign {
+  id         String   @id @default(cuid())
+  name       String
+  inviteCode String   @unique @default(cuid())
+  dmUserId   String
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  // Relations
+  dm         User              @relation("CampaignDM", fields: [dmUserId], references: [id])
+  members    CampaignMember[]
+  characters CharacterCampaign[]
+}
+
+model CampaignMember {
+  id         String   @id @default(cuid())
+  userId     String
+  campaignId String
+  role       String   @default("player") // 'dm' or 'player'
+  joinedAt   DateTime @default(now())
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  campaign Campaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, campaignId])
+}
+
+model CharacterCampaign {
+  id          String   @id @default(cuid())
+  characterId Int
+  campaignId  String
+  addedAt     DateTime @default(now())
+
+  character Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  campaign  Campaign  @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+
+  @@unique([characterId, campaignId])
+}
+
+// App Models
 model Character {
   id           Int      @id @default(autoincrement())
   name         String
   slug         String   @unique
   level        Int      @default(1)
   isRegenerist Boolean  @default(true)
+  visibility   String   @default("private") // 'private', 'campaign', 'public'
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
+
+  // User ownership (optional for existing characters)
+  userId       String?
+  user         User?    @relation(fields: [userId], references: [id])
+
   lives        Life[]
+  campaigns    CharacterCampaign[]
 }
 
 model Life {
-  id                  Int       @id @default(autoincrement())
-  lifeNumber          Int
-  name                String
-  race                String
-  class               String
-  subclass            String
-  level               Int       @default(1)
-  stats               Json      // {str, dex, con, int, wis, cha} - final stats with ASI applied
-  baseStats           Json?     // {str, dex, con, int, wis, cha} - stats before ASI (standard array + racial)
-  currentHp           Int
-  maxHp               Int
-  effect              String
-  story               String    @db.Text
-  skillProficiencies  String[]  @default([])
+  id                       Int      @id @default(autoincrement())
+  lifeNumber               Int
+  name                     String
+  race                     String
+  class                    String
+  subclass                 String
+  level                    Int      @default(1)
+  stats                    Json     // {str, dex, con, int, wis, cha} - final stats with ASI applied
+  baseStats                Json?    // {str, dex, con, int, wis, cha} - stats before ASI (standard array + racial)
+  currentHp                Int
+  maxHp                    Int
+  effect                   String
+  story                    String   @db.Text
+  skillProficiencies       String[] @default([])
   savingThrowProficiencies String[] @default([])
-  subclassChoice      String?
-  spellbook           Json?     // {spellNames: string[], archivistNote: string}
-  createdAt           DateTime  @default(now())
-  isActive            Boolean   @default(false)
+  subclassChoice           String?
+  spellbook                Json?    // {spellNames: string[], archivistNote: string}
+  createdAt                DateTime @default(now())
+  isActive                 Boolean  @default(false)
 
   // Relationship to Character
-  characterId         Int
-  character           Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
+  characterId Int
+  character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 
   // lifeNumber is unique per character, not globally
   @@unique([characterId, lifeNumber])

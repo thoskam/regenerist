@@ -16,15 +16,26 @@ import FeatureDisplay from '@/components/FeatureDisplay'
 import ChoicesDisplay from '@/components/ChoicesDisplay'
 import SpellList from '@/components/SpellList'
 import StaticCharacterEditor, { EditorData } from '@/components/StaticCharacterEditor'
+import VisibilitySelector from '@/components/VisibilitySelector'
+import UserAvatar from '@/components/UserAvatar'
 import { Character, Life, Stats } from '@/lib/types'
 import { HydratedCharacterData } from '@/lib/types/5etools'
 import { calculateProficiencyBonus, calculateAC, calculateInitiative, calculateSpeed, formatModifier, calculateMaxHp } from '@/lib/calculations'
 import { getStatModifier } from '@/lib/statMapper'
 import { applyASIs } from '@/lib/asiCalculator'
 
+interface Owner {
+  id: string
+  name: string | null
+  image: string | null
+}
+
 interface CharacterWithLives extends Character {
   lives: Life[]
   isRegenerist: boolean
+  isOwner?: boolean
+  owner?: Owner | null
+  visibility?: string
 }
 
 export default function CharacterPage() {
@@ -301,6 +312,24 @@ export default function CharacterPage() {
     }
   }
 
+  const handleVisibilityChange = async (visibility: string) => {
+    if (!character) return
+    try {
+      const res = await fetch(`/api/characters/${slug}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ visibility }),
+      })
+      if (res.ok) {
+        setCharacter({ ...character, visibility })
+      }
+    } catch (err) {
+      console.error('Failed to update visibility:', err)
+    }
+  }
+
+  const isOwner = character?.isOwner ?? false
+
   if (isLoading) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-slate-900">
@@ -336,13 +365,32 @@ export default function CharacterPage() {
           >
             <span>&larr;</span> Back to Hub
           </Link>
-          <button
-            onClick={handleDeleteCharacter}
-            className="text-red-400 hover:text-red-300 text-sm transition-colors"
-          >
-            Delete Character
-          </button>
+          <div className="flex items-center gap-4">
+            {isOwner && (
+              <>
+                <VisibilitySelector
+                  value={character.visibility || 'private'}
+                  onChange={handleVisibilityChange}
+                />
+                <button
+                  onClick={handleDeleteCharacter}
+                  className="text-red-400 hover:text-red-300 text-sm transition-colors"
+                >
+                  Delete Character
+                </button>
+              </>
+            )}
+          </div>
         </div>
+
+        {/* Owner Info (for viewing others' characters) */}
+        {!isOwner && character.owner && (
+          <div className="flex items-center justify-center gap-2 mb-4 text-sm text-slate-400">
+            <span>Owned by</span>
+            <UserAvatar src={character.owner.image} name={character.owner.name} size="sm" />
+            <span className="text-slate-300">{character.owner.name || 'Anonymous'}</span>
+          </div>
+        )}
 
         <div className="text-center mb-8">
           <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">
@@ -354,44 +402,46 @@ export default function CharacterPage() {
             </p>
           )}
 
-          {/* Regenerate Button and Controls */}
-          <div className="mt-6 flex flex-col items-center gap-4">
-            {character && character.isRegenerist && (
-              <>
-                <RegenerateButton onClick={handleRegenerate} isLoading={isRegenerating} />
-                <div className="flex items-center gap-3">
-                  <label className="flex items-center gap-2 cursor-pointer">
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        checked={uniqueSubclasses}
-                        onChange={(e) => setUniqueSubclasses(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-gold-500 transition-colors"></div>
-                      <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
-                    </div>
-                    <span className="text-sm text-slate-400">
-                      Unique Subclasses
-                    </span>
-                  </label>
-                  {uniqueSubclasses && (
-                    <span className="text-xs text-slate-500">
-                      ({allLives.length} used)
-                    </span>
-                  )}
-                </div>
-              </>
-            )}
-            {character && !character.isRegenerist && currentLife && (
-              <button
-                onClick={() => setShowEditor(true)}
-                className="px-6 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 font-semibold transition-colors"
-              >
-                ✎ Edit Character
-              </button>
-            )}
-          </div>
+          {/* Regenerate Button and Controls (owner only) */}
+          {isOwner && (
+            <div className="mt-6 flex flex-col items-center gap-4">
+              {character && character.isRegenerist && (
+                <>
+                  <RegenerateButton onClick={handleRegenerate} isLoading={isRegenerating} />
+                  <div className="flex items-center gap-3">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                      <div className="relative">
+                        <input
+                          type="checkbox"
+                          checked={uniqueSubclasses}
+                          onChange={(e) => setUniqueSubclasses(e.target.checked)}
+                          className="sr-only peer"
+                        />
+                        <div className="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-gold-500 transition-colors"></div>
+                        <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
+                      </div>
+                      <span className="text-sm text-slate-400">
+                        Unique Subclasses
+                      </span>
+                    </label>
+                    {uniqueSubclasses && (
+                      <span className="text-xs text-slate-500">
+                        ({allLives.length} used)
+                      </span>
+                    )}
+                  </div>
+                </>
+              )}
+              {character && !character.isRegenerist && currentLife && (
+                <button
+                  onClick={() => setShowEditor(true)}
+                  className="px-6 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 font-semibold transition-colors"
+                >
+                  ✎ Edit Character
+                </button>
+              )}
+            </div>
+          )}
         </div>
 
         {/* Main Content */}

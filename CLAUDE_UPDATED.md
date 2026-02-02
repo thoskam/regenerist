@@ -359,7 +359,7 @@ SSH into Unraid server and run:
 ```bash
 cd /path/to/dnd
 git pull
-docker-compose -f docker-compose.unraid.yml up --build -d app
+docker-compose up --build -d app
 ```
 
 ---

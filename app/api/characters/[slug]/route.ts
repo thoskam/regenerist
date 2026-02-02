@@ -1,17 +1,65 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getSession } from '@/lib/auth-utils'
+
+// Helper to check if user can view a character
+async function canViewCharacter(
+  character: { userId: string | null; visibility: string; id: number },
+  userId?: string
+): Promise<boolean> {
+  // Public characters are visible to everyone
+  if (character.visibility === 'public') return true
+
+  // Must be logged in to view non-public characters
+  if (!userId) return false
+
+  // Owner can always view
+  if (character.userId === userId) return true
+
+  // Campaign visibility - check if user shares a campaign
+  if (character.visibility === 'campaign') {
+    const sharedCampaign = await prisma.characterCampaign.findFirst({
+      where: {
+        characterId: character.id,
+        campaign: {
+          members: {
+            some: { userId },
+          },
+        },
+      },
+    })
+    return !!sharedCampaign
+  }
+
+  return false
+}
+
+// Helper to check if user can edit a character
+function canEditCharacter(
+  character: { userId: string | null },
+  userId?: string
+): boolean {
+  if (!userId) return false
+  return character.userId === userId
+}
 
 // GET a single character by slug
 export async function GET(
-  request: Request,
-  { params }: { params: { slug: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
 ) {
+  const { slug } = await params
+  const session = await getSession()
+
   try {
     const character = await prisma.character.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
       include: {
         lives: {
           orderBy: { lifeNumber: 'desc' },
+        },
+        user: {
+          select: { id: true, name: true, image: true },
         },
       },
     })
@@ -23,7 +71,24 @@ export async function GET(
       )
     }
 
-    return NextResponse.json(character)
+    // Check authorization
+    const canView = await canViewCharacter(character, session?.user?.id)
+    if (!canView) {
+      return NextResponse.json(
+        { error: 'You do not have permission to view this character' },
+        { status: 403 }
+      )
+    }
+
+    // Add ownership info
+    const isOwner = canEditCharacter(character, session?.user?.id)
+
+    return NextResponse.json({
+      ...character,
+      owner: character.user,
+      isOwner,
+      user: undefined,
+    })
   } catch (error) {
     console.error('Error fetching character:', error)
     return NextResponse.json(
@@ -35,15 +100,25 @@ export async function GET(
 
 // PUT update a character
 export async function PUT(
-  request: Request,
-  { params }: { params: { slug: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
 ) {
+  const { slug } = await params
+  const session = await getSession()
+
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { error: 'You must be signed in to update a character' },
+      { status: 401 }
+    )
+  }
+
   try {
     const body = await request.json()
-    const { name, level, isRegenerist } = body
+    const { name, level, isRegenerist, visibility } = body
 
     const existingCharacter = await prisma.character.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
     })
 
     if (!existingCharacter) {
@@ -53,7 +128,21 @@ export async function PUT(
       )
     }
 
-    const updateData: { name?: string; slug?: string; level?: number; isRegenerist?: boolean } = {}
+    // Check ownership
+    if (!canEditCharacter(existingCharacter, session.user.id)) {
+      return NextResponse.json(
+        { error: 'You do not have permission to edit this character' },
+        { status: 403 }
+      )
+    }
+
+    const updateData: {
+      name?: string
+      slug?: string
+      level?: number
+      isRegenerist?: boolean
+      visibility?: string
+    } = {}
 
     if (name && typeof name === 'string' && name.trim().length > 0) {
       updateData.name = name.trim()
@@ -64,7 +153,7 @@ export async function PUT(
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '')
 
-      if (newSlug !== params.slug) {
+      if (newSlug !== slug) {
         // Check if new slug is already taken
         const slugExists = await prisma.character.findUnique({
           where: { slug: newSlug },
@@ -87,8 +176,12 @@ export async function PUT(
       updateData.isRegenerist = isRegenerist
     }
 
+    if (visibility && ['private', 'campaign', 'public'].includes(visibility)) {
+      updateData.visibility = visibility
+    }
+
     const character = await prisma.character.update({
-      where: { slug: params.slug },
+      where: { slug },
       data: updateData,
     })
 
@@ -104,12 +197,22 @@ export async function PUT(
 
 // DELETE a character (cascade deletes lives)
 export async function DELETE(
-  request: Request,
-  { params }: { params: { slug: string } }
+  request: NextRequest,
+  { params }: { params: Promise<{ slug: string }> }
 ) {
+  const { slug } = await params
+  const session = await getSession()
+
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { error: 'You must be signed in to delete a character' },
+      { status: 401 }
+    )
+  }
+
   try {
     const character = await prisma.character.findUnique({
-      where: { slug: params.slug },
+      where: { slug },
     })
 
     if (!character) {
@@ -119,8 +222,16 @@ export async function DELETE(
       )
     }
 
+    // Check ownership
+    if (!canEditCharacter(character, session.user.id)) {
+      return NextResponse.json(
+        { error: 'You do not have permission to delete this character' },
+        { status: 403 }
+      )
+    }
+
     await prisma.character.delete({
-      where: { slug: params.slug },
+      where: { slug },
     })
 
     return NextResponse.json({ success: true })

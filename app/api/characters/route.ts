@@ -1,10 +1,34 @@
-import { NextResponse } from 'next/server'
+import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { getSession } from '@/lib/auth-utils'
 
 // GET all characters with their current life
-export async function GET() {
+export async function GET(request: NextRequest) {
+  const session = await getSession()
+  const searchParams = request.nextUrl.searchParams
+  const filter = searchParams.get('filter') || 'mine' // 'mine' or 'public'
+
   try {
+    let whereClause = {}
+
+    if (session?.user?.id) {
+      if (filter === 'mine') {
+        // Show only user's characters
+        whereClause = { userId: session.user.id }
+      } else {
+        // Show public characters (excluding user's own)
+        whereClause = {
+          visibility: 'public',
+          userId: { not: session.user.id },
+        }
+      }
+    } else {
+      // Not logged in - show only public characters
+      whereClause = { visibility: 'public' }
+    }
+
     const characters = await prisma.character.findMany({
+      where: whereClause,
       include: {
         lives: {
           where: { isActive: true },
@@ -12,6 +36,9 @@ export async function GET() {
         },
         _count: {
           select: { lives: true },
+        },
+        user: {
+          select: { id: true, name: true, image: true },
         },
       },
       orderBy: { createdAt: 'desc' },
@@ -22,8 +49,10 @@ export async function GET() {
       ...char,
       currentLife: char.lives[0] || null,
       totalLives: char._count.lives,
+      owner: char.user,
       lives: undefined,
       _count: undefined,
+      user: undefined,
     }))
 
     return NextResponse.json(result)
@@ -38,6 +67,15 @@ export async function GET() {
 
 // POST create a new character
 export async function POST(request: Request) {
+  const session = await getSession()
+
+  if (!session?.user?.id) {
+    return NextResponse.json(
+      { error: 'You must be signed in to create a character' },
+      { status: 401 }
+    )
+  }
+
   try {
     const body = await request.json()
     const { name, level = 1, isRegenerist = true } = body
@@ -74,6 +112,8 @@ export async function POST(request: Request) {
         slug,
         level: Math.max(1, Math.min(20, level)),
         isRegenerist: typeof isRegenerist === 'boolean' ? isRegenerist : true,
+        userId: session.user.id,
+        visibility: 'private',
       },
     })
 
