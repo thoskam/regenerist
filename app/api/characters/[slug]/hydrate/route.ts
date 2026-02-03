@@ -25,36 +25,34 @@ import {
 async function hydrateSpellbook(spellbook: Spellbook): Promise<HydratedSpellbook> {
   const allSpells = await loadSpells()
 
-  const hydratedSpells: HydratedSpell[] = spellbook.spellNames
-    .map((name) => {
-      const spell = allSpells.find(
-        (s) => s.name.toLowerCase() === name.toLowerCase()
-      )
-      if (!spell) return null
+  const hydratedSpells = spellbook.spellNames.reduce<HydratedSpell[]>((acc, name) => {
+    const spell = allSpells.find((s) => s.name.toLowerCase() === name.toLowerCase())
+    if (!spell) return acc
 
-      return {
-        name: spell.name,
-        level: spell.level,
-        school: getSpellSchool(spell.school),
-        castingTime: formatCastingTime(spell.time),
-        range: formatSpellRange(spell.range),
-        componentsText: formatSpellComponents(spell.components),
-        components: {
-          v: spell.components?.v,
-          s: spell.components?.s,
-          m:
-            typeof spell.components?.m === 'string'
-              ? spell.components.m
-              : spell.components?.m?.text,
-        },
-        duration: formatSpellDuration(spell.duration),
-        description: entriesToText(spell.entries),
-        concentration: spell.duration.some((entry) => entry.concentration),
-        ritual: Boolean(spell.meta?.ritual),
-        higherLevels: spell.entriesHigherLevel ? entriesToText(spell.entriesHigherLevel) : undefined,
-      }
+    acc.push({
+      name: spell.name,
+      level: spell.level,
+      school: getSpellSchool(spell.school),
+      castingTime: formatCastingTime(spell.time),
+      range: formatSpellRange(spell.range),
+      componentsText: formatSpellComponents(spell.components),
+      components: {
+        v: spell.components?.v,
+        s: spell.components?.s,
+        m:
+          typeof spell.components?.m === 'string'
+            ? spell.components.m
+            : spell.components?.m?.text,
+      },
+      duration: formatSpellDuration(spell.duration),
+      description: entriesToText(spell.entries),
+      concentration: spell.duration.some((entry) => entry.concentration),
+      ritual: Boolean(spell.meta?.ritual),
+      higherLevels: spell.entriesHigherLevel ? entriesToText(spell.entriesHigherLevel) : undefined,
     })
-    .filter((spell): spell is HydratedSpell => spell !== null)
+
+    return acc
+  }, [])
 
   return {
     spells: hydratedSpells,
