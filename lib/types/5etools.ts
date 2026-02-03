@@ -252,6 +252,9 @@ export interface SpellData {
   range: SpellRange
   components: SpellComponents
   duration: SpellDuration[]
+  meta?: {
+    ritual?: boolean
+  }
   entries: Entry[]
   entriesHigherLevel?: Entry[]
   damageInflict?: string[]
@@ -312,9 +315,17 @@ export interface HydratedSpell {
   school: string
   castingTime: string
   range: string
-  components: string
+  componentsText: string
+  components?: {
+    v?: boolean
+    s?: boolean
+    m?: string
+  }
   duration: string
   description: string
+  concentration: boolean
+  ritual: boolean
+  higherLevels?: string
 }
 
 // Spellbook types for smart spell selection

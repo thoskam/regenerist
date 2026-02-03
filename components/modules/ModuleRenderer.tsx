@@ -14,15 +14,17 @@ import HitPointsModule from './HitPointsModule'
 import AbilityScoresModule from './AbilityScoresModule'
 import InfoTabsModule from './InfoTabsModule'
 import StoryTabsModule from './StoryTabsModule'
+import SpellbookModule from './SpellbookModule'
 import ChronicleModule from './ChronicleModule'
 import QuirksModule from './QuirksModule'
 import TempHpModule from './TempHpModule'
 import ConditionsModule from './ConditionsModule'
 import ExhaustionModule from './ExhaustionModule'
 import DeathSavesModule from './DeathSavesModule'
-import ConcentrationModule from './ConcentrationModule'
 
 export interface CharacterData {
+  characterId: string
+  characterName: string
   slug: string
   lifeId: number
   className: string
@@ -33,7 +35,7 @@ export interface CharacterData {
   maxHp: number
   stats: Stats
   baseStats?: Stats | null
-  story: string
+  story: string | null
   effect: string
   subclassChoice: string | null
   isOwner: boolean
@@ -56,6 +58,8 @@ interface ModuleRendererProps {
 
 export default function ModuleRenderer({ moduleId, characterData }: ModuleRendererProps) {
   const {
+    characterId,
+    characterName,
     slug,
     lifeId,
     className,
@@ -87,6 +91,8 @@ export default function ModuleRenderer({ moduleId, characterData }: ModuleRender
           stats={stats}
           proficiencies={skillProficiencies}
           proficiencyBonus={proficiencyBonus}
+          characterId={characterId}
+          characterName={characterName}
         />
       )
     case 'saving-throws':
@@ -95,6 +101,8 @@ export default function ModuleRenderer({ moduleId, characterData }: ModuleRender
           stats={stats}
           savingThrowProficiencies={hydratedData?.savingThrowProficiencies || []}
           proficiencyBonus={proficiencyBonus}
+          characterId={characterId}
+          characterName={characterName}
         />
       )
     case 'resources':
@@ -110,7 +118,14 @@ export default function ModuleRenderer({ moduleId, characterData }: ModuleRender
       )
     case 'combat-stats':
       return (
-        <CombatStatsModule stats={stats} className={className} race={race} regenPhase={regenPhase} />
+        <CombatStatsModule
+          stats={stats}
+          className={className}
+          race={race}
+          regenPhase={regenPhase}
+          characterId={characterId}
+          characterName={characterName}
+        />
       )
     case 'proficiency':
       return <ProficiencyModule proficiencyBonus={proficiencyBonus} regenPhase={regenPhase} />
@@ -134,6 +149,8 @@ export default function ModuleRenderer({ moduleId, characterData }: ModuleRender
           baseStats={baseStats}
           isRegenerating={isRegenerating}
           regenPhase={regenPhase}
+          characterId={characterId}
+          characterName={characterName}
         />
       )
     case 'info-tabs':
@@ -153,22 +170,29 @@ export default function ModuleRenderer({ moduleId, characterData }: ModuleRender
     case 'story-tabs':
       return (
         <StoryTabsModule
-          story={story}
-          effect={effect}
           actions={actions}
           hydratedData={hydratedData}
           stats={stats}
-          proficiencyBonus={proficiencyBonus}
           slug={slug}
           lifeId={lifeId}
+          characterId={characterId}
+          characterName={characterName}
           level={level}
           activeState={activeState}
           onUseAction={onUseAction}
           onRefresh={onRefresh}
         />
       )
+    case 'spellbook':
+      return null
     case 'chronicle':
-      return <ChronicleModule chronicle={story} />
+      return (
+        <ChronicleModule
+          chronicle={story}
+          quirk={effect}
+          isRegenerist={characterData.isRegenerist}
+        />
+      )
     case 'quirks':
       return <QuirksModule quirk={effect} />
     case 'temp-hp':
@@ -194,18 +218,13 @@ export default function ModuleRenderer({ moduleId, characterData }: ModuleRender
           failures={activeState.deathSaveFailures}
           currentHp={activeState.currentHp}
           characterSlug={slug}
+          characterId={characterId}
+          characterName={characterName}
           onUpdate={onRefresh}
         />
       )
     case 'concentration':
-      if (!activeState || !isOwner) return null
-      return (
-        <ConcentrationModule
-          spellName={activeState.concentratingOn}
-          characterSlug={slug}
-          onUpdate={onRefresh}
-        />
-      )
+      return null
     default:
       return null
   }

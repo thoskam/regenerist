@@ -1,15 +1,19 @@
 'use client'
 
 import { Stats } from '@/lib/types'
-import { SKILLS_BY_ABILITY, SKILL_ABILITIES, calculateSkillModifier } from '@/lib/proficiencyEngine'
+import { SKILLS_BY_ABILITY, calculateSkillModifier } from '@/lib/proficiencyEngine'
 import { formatModifier } from '@/lib/calculations'
 import { StatName } from '@/lib/statMapper'
 import SkillTooltip from './SkillTooltip'
+import RollableSkill from './skills/RollableSkill'
+import { getStatModifier } from '@/lib/statMapper'
 
 interface ProficiencyListProps {
   stats: Stats
   proficiencies: string[]
   proficiencyBonus: number
+  characterId: string
+  characterName: string
 }
 
 const ABILITY_LABELS: Record<StatName, string> = {
@@ -21,9 +25,24 @@ const ABILITY_LABELS: Record<StatName, string> = {
   cha: 'CHA',
 }
 
+const ABILITY_NAMES: Record<StatName, string> = {
+  str: 'Strength',
+  dex: 'Dexterity',
+  con: 'Constitution',
+  int: 'Intelligence',
+  wis: 'Wisdom',
+  cha: 'Charisma',
+}
+
 const ABILITY_ORDER: StatName[] = ['str', 'dex', 'int', 'wis', 'cha']
 
-export default function ProficiencyList({ stats, proficiencies, proficiencyBonus }: ProficiencyListProps) {
+export default function ProficiencyList({
+  stats,
+  proficiencies,
+  proficiencyBonus,
+  characterId,
+  characterName,
+}: ProficiencyListProps) {
   return (
     <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
       <h3 className="text-xs text-slate-400 font-semibold tracking-wider mb-4">SKILLS</h3>
@@ -42,37 +61,32 @@ export default function ProficiencyList({ stats, proficiencies, proficiencyBonus
                 {skills.map((skill) => {
                   const isProficient = proficiencies.includes(skill)
                   const modifier = calculateSkillModifier(skill, stats, proficiencies, proficiencyBonus)
+                  const abilityModifier = getStatModifier(stats[ability])
 
                   return (
-                    <div
-                      key={skill}
-                      className={`flex items-center justify-between py-1 px-2 rounded ${
-                        isProficient ? 'bg-gold-500/10' : ''
-                      }`}
-                    >
-                      <div className="flex items-center gap-2">
-                        <span
-                          className={`w-2 h-2 rounded-full ${
-                            isProficient ? 'bg-gold-400' : 'bg-slate-600'
-                          }`}
-                        />
-                        <SkillTooltip skillName={skill}>
-                          <span
-                            className={`text-sm ${
-                              isProficient ? 'text-gold-400 font-medium' : 'text-slate-400'
-                            }`}
-                          >
-                            {skill}
-                          </span>
-                        </SkillTooltip>
-                      </div>
-                      <span
-                        className={`text-sm font-mono ${
-                          isProficient ? 'text-gold-400' : 'text-slate-500'
-                        }`}
-                      >
-                        {formatModifier(modifier)}
-                      </span>
+                    <div key={skill} className={`${isProficient ? 'bg-gold-500/10 rounded' : ''}`}>
+                      <RollableSkill
+                        skillName={skill}
+                        abilityName={ABILITY_NAMES[ability]}
+                        modifier={modifier}
+                        isProficient={isProficient}
+                        hasExpertise={false}
+                        proficiencyBonus={proficiencyBonus}
+                        abilityModifier={abilityModifier}
+                        characterId={characterId}
+                        characterName={characterName}
+                        label={
+                          <SkillTooltip skillName={skill}>
+                            <span
+                              className={`text-sm ${
+                                isProficient ? 'text-gold-400 font-medium' : 'text-slate-400'
+                              }`}
+                            >
+                              {skill}
+                            </span>
+                          </SkillTooltip>
+                        }
+                      />
                     </div>
                   )
                 })}

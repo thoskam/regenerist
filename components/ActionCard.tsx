@@ -2,26 +2,54 @@
 
 import type { CharacterAction, ActionTiming } from '@/lib/actions/types'
 import type { HydratedActiveState } from '@/lib/types/5etools'
+import { useRoller } from '@/lib/dice/useRoller'
 
 interface ActionCardProps {
   action: CharacterAction
   activeState: HydratedActiveState | null
   onUse: () => void
+  characterId: string
+  characterName: string
 }
 
-export default function ActionCard({ action, activeState, onUse }: ActionCardProps) {
+export default function ActionCard({
+  action,
+  activeState,
+  onUse,
+  characterId,
+  characterName,
+}: ActionCardProps) {
+  const { makeAttackRoll } = useRoller({ characterId, characterName })
   const isAvailable = checkActionAvailable(action, activeState)
   const timingLabel = action.timing.charAt(0).toUpperCase() + action.timing.slice(1)
 
+  const handleActionClick = () => {
+    if (!isAvailable) return
+
+    if (action.isAttack && typeof action.attackBonus === 'number') {
+      makeAttackRoll(
+        action.name,
+        action.attackBonus,
+        [{ source: 'Attack Bonus', value: action.attackBonus }]
+      )
+      if (action.isLimited) {
+        onUse()
+      }
+      return
+    }
+
+    onUse()
+  }
+
   return (
     <div
-      className={`border rounded-lg p-3 transition-colors ${
+      className={`border rounded-lg p-4 transition-colors ${
         isAvailable ? 'bg-slate-800 border-slate-600' : 'bg-slate-900 border-slate-700 opacity-60'
       }`}
     >
-      <div className="flex justify-between items-start mb-2">
+      <div className="flex justify-between items-start mb-3">
         <div>
-          <h4 className="font-semibold text-white">{action.name}</h4>
+          <h4 className="font-semibold text-white leading-snug">{action.name}</h4>
           <span className="text-xs text-slate-400">{action.sourceName}</span>
         </div>
 
@@ -51,6 +79,9 @@ export default function ActionCard({ action, activeState, onUse }: ActionCardPro
             <span className="text-yellow-400">⟳ Concentration</span>
           )}
           {action.spellSchool && <span className="text-slate-400">{action.spellSchool}</span>}
+          {typeof action.saveDC === 'number' && (
+            <span className="text-slate-400">DC {action.saveDC}</span>
+          )}
         </div>
       )}
 
@@ -67,7 +98,7 @@ export default function ActionCard({ action, activeState, onUse }: ActionCardPro
 
       {(action.isLimited || action.isAttack || action.isSpell) && (
         <button
-          onClick={onUse}
+          onClick={handleActionClick}
           disabled={!isAvailable}
           className={`mt-3 w-full py-1 rounded text-sm font-medium ${
             isAvailable

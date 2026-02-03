@@ -8,6 +8,7 @@ export type ModuleId =
   | 'ability-scores'
   | 'info-tabs'
   | 'story-tabs'
+  | 'spellbook'
   | 'chronicle'
   | 'quirks'
   | 'temp-hp'

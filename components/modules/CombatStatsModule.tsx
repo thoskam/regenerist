@@ -1,17 +1,28 @@
 'use client'
 
 import DraggableModule from '@/components/layout/DraggableModule'
-import { calculateAC, calculateInitiative, calculateSpeed, formatModifier } from '@/lib/calculations'
+import { calculateAC, calculateInitiative, calculateSpeed } from '@/lib/calculations'
 import type { Stats } from '@/lib/types'
+import { getStatModifier } from '@/lib/statMapper'
+import InitiativeRoller from '@/components/combat/InitiativeRoller'
 
 interface CombatStatsModuleProps {
   stats: Stats
   className: string
   race: string
   regenPhase: 'idle' | 'fading-out' | 'loading' | 'flashing-in'
+  characterId: string
+  characterName: string
 }
 
-export default function CombatStatsModule({ stats, className, race, regenPhase }: CombatStatsModuleProps) {
+export default function CombatStatsModule({
+  stats,
+  className,
+  race,
+  regenPhase,
+  characterId,
+  characterName,
+}: CombatStatsModuleProps) {
   return (
     <DraggableModule moduleId="combat-stats">
       <div className="grid grid-cols-3 gap-4">
@@ -22,12 +33,13 @@ export default function CombatStatsModule({ stats, className, race, regenPhase }
           <span className="text-xs text-slate-400 font-semibold tracking-wider block">AC</span>
           <span className="text-3xl font-bold text-white">{calculateAC(stats, className)}</span>
         </div>
-        <div
-          className="bg-slate-800 rounded-lg p-4 border border-slate-700 text-center"
-          style={regenPhase === 'loading' ? { animation: 'grid-pulse 1.2s ease-in-out infinite 0.1s' } : undefined}
-        >
-          <span className="text-xs text-slate-400 font-semibold tracking-wider block">INITIATIVE</span>
-          <span className="text-3xl font-bold text-white">{formatModifier(calculateInitiative(stats))}</span>
+        <div style={regenPhase === 'loading' ? { animation: 'grid-pulse 1.2s ease-in-out infinite 0.1s' } : undefined}>
+          <InitiativeRoller
+            dexModifier={getStatModifier(stats.dex)}
+            bonuses={calculateInitiative(stats) - getStatModifier(stats.dex)}
+            characterId={characterId}
+            characterName={characterName}
+          />
         </div>
         <div
           className="bg-slate-800 rounded-lg p-4 border border-slate-700 text-center"

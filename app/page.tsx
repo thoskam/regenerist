@@ -29,7 +29,6 @@ export default function CharacterHub() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newCharacterName, setNewCharacterName] = useState('')
   const [isCreating, setIsCreating] = useState(false)
-  const [isRegeneristMode, setIsRegeneristMode] = useState(true)
   const [createError, setCreateError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -65,16 +64,15 @@ export default function CharacterHub() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: newCharacterName.trim(),
-          isRegenerist: isRegeneristMode,
+          isRegenerist: false,
         }),
       })
       if (res.ok) {
         const newCharacter = await res.json()
         if (filter === 'mine') {
-          setCharacters(prev => [{ ...newCharacter, currentLife: null, totalLives: 0, isRegenerist: isRegeneristMode }, ...prev])
+          setCharacters(prev => [{ ...newCharacter, currentLife: null, totalLives: 0, isRegenerist: false }, ...prev])
         }
         setNewCharacterName('')
-        setIsRegeneristMode(true)
         setCreateError(null)
         setShowCreateModal(false)
       } else {
@@ -332,31 +330,11 @@ export default function CharacterHub() {
                   />
                 </div>
 
-                <div className="mb-6">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        checked={isRegeneristMode}
-                        onChange={(e) => setIsRegeneristMode(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-gold-500 transition-colors"></div>
-                      <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-300">Regenerist Mode</p>
-                      <p className="text-xs text-slate-500">{isRegeneristMode ? 'Auto-generates lives with AI stories' : 'Manual static character'}</p>
-                    </div>
-                  </label>
-                </div>
-
                 <div className="flex gap-3 justify-end">
                   <button
                     type="button"
                     onClick={() => {
                       setShowCreateModal(false)
-                      setIsRegeneristMode(true)
                       setCreateError(null)
                     }}
                     className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors"

@@ -200,6 +200,8 @@ export default function CharacterSheet() {
                 stats={stats}
                 proficiencies={skillProficiencies}
                 proficiencyBonus={proficiencyBonus}
+                characterId={String(currentLife.id)}
+                characterName={currentLife.name}
               />
             )}
           </div>
@@ -303,7 +305,7 @@ export default function CharacterSheet() {
           {/* Right Sidebar - Story */}
           <div className="lg:col-span-1">
             {currentLife && (
-              <StoryDisplay story={currentLife.story} effect={currentLife.effect} />
+              <StoryDisplay story={currentLife.story} isRegenerist={false} />
             )}
           </div>
         </div>

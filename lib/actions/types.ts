@@ -6,6 +6,7 @@ export interface CharacterAction {
   timing: ActionTiming
   source: 'weapon' | 'spell' | 'class' | 'race' | 'feat' | 'item' | 'standard'
   sourceName: string // "Longsword", "Fighter", "Elf", etc.
+  isStandard?: boolean
 
   // For attacks
   isAttack?: boolean
@@ -21,6 +22,7 @@ export interface CharacterAction {
   isCantrip?: boolean
   requiresConcentration?: boolean
   spellSchool?: string
+  saveDC?: number
 
   // For limited use abilities
   isLimited?: boolean

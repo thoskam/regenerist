@@ -3,11 +3,14 @@
 import { Stats } from '@/lib/types'
 import { formatModifier } from '@/lib/calculations'
 import { StatName, getStatModifier } from '@/lib/statMapper'
+import RollableSave from '@/components/saves/RollableSave'
 
 interface SavesTableProps {
   stats: Stats
   savingThrowProficiencies: string[]
   proficiencyBonus: number
+  characterId: string
+  characterName: string
 }
 
 const SAVE_ORDER: StatName[] = ['str', 'dex', 'con', 'int', 'wis', 'cha']
@@ -25,6 +28,8 @@ export default function SavesTable({
   stats,
   savingThrowProficiencies,
   proficiencyBonus,
+  characterId,
+  characterName,
 }: SavesTableProps) {
   const calculateSaveModifier = (ability: StatName): number => {
     const statMod = getStatModifier(stats[ability])
@@ -36,39 +41,24 @@ export default function SavesTable({
     <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
       <h3 className="text-xs text-slate-400 font-semibold tracking-wider mb-3">SAVING THROWS</h3>
 
-      <div className="grid grid-cols-2 gap-2">
+      <div className="grid grid-cols-2 gap-1">
         {SAVE_ORDER.map((ability) => {
           const isProficient = savingThrowProficiencies.includes(ability)
           const modifier = calculateSaveModifier(ability)
+          const abilityModifier = getStatModifier(stats[ability])
 
           return (
-            <div
-              key={ability}
-              className={`flex items-center justify-between py-1.5 px-2 rounded ${
-                isProficient ? 'bg-gold-500/10' : 'bg-slate-900/30'
-              }`}
-            >
-              <div className="flex items-center gap-2">
-                <span
-                  className={`w-2 h-2 rounded-full ${
-                    isProficient ? 'bg-gold-400' : 'bg-slate-600'
-                  }`}
-                />
-                <span
-                  className={`text-sm ${
-                    isProficient ? 'text-gold-400 font-medium' : 'text-slate-400'
-                  }`}
-                >
-                  {SAVE_LABELS[ability]}
-                </span>
-              </div>
-              <span
-                className={`text-sm font-mono ${
-                  isProficient ? 'text-gold-400 font-semibold' : 'text-slate-500'
-                }`}
-              >
-                {formatModifier(modifier)}
-              </span>
+            <div key={ability}>
+              <RollableSave
+                saveName={SAVE_LABELS[ability]}
+                modifier={modifier}
+                isProficient={isProficient}
+                proficiencyBonus={proficiencyBonus}
+                abilityModifier={abilityModifier}
+                characterId={characterId}
+                characterName={characterName}
+              />
+              <span className="sr-only">{formatModifier(modifier)}</span>
             </div>
           )
         })}

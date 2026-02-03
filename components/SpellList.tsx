@@ -1,7 +1,8 @@
 'use client'
 
 import { useState } from 'react'
-import type { HydratedSpell, HydratedSpellbook } from '@/lib/types/5etools'
+import SpellCard from '@/components/spells/SpellCard'
+import type { HydratedSpell, HydratedSpellbook, HydratedActiveState } from '@/lib/types/5etools'
 
 interface Stats {
   str: number
@@ -19,10 +20,12 @@ interface SpellListProps {
   spellcastingAbility: string
   stats: Stats
   proficiencyBonus: number
+  activeState?: HydratedActiveState | null
   // For editing
   slug?: string
   lifeId?: number
   onSpellbookUpdate?: (spellbook: { spellNames: string[]; archivistNote: string }) => void
+  onCast?: () => void
 }
 
 const ABILITY_LABELS: Record<string, string> = {
@@ -60,9 +63,11 @@ export default function SpellList({
   spellcastingAbility,
   stats,
   proficiencyBonus,
+  activeState,
   slug,
   lifeId,
   onSpellbookUpdate,
+  onCast,
 }: SpellListProps) {
   const [selectedLevel, setSelectedLevel] = useState<number | null>(null)
   const [expandedSpell, setExpandedSpell] = useState<string | null>(null)
@@ -79,6 +84,13 @@ export default function SpellList({
   const abilityMod = getStatModifier(stats[spellcastingAbility as keyof Stats] || 10)
   const spellSaveDC = 8 + proficiencyBonus + abilityMod
   const spellAttackBonus = proficiencyBonus + abilityMod
+  const spellSlots = activeState?.spellSlots || {}
+  const pactSlots = {
+    used: activeState?.pactSlotsUsed || 0,
+    max: activeState?.pactSlotsMax || 0,
+    level: activeState?.pactSlotLevel || 0,
+  }
+  const currentConcentration = activeState?.concentratingOn || null
 
   // When entering edit mode, initialize with current spellbook
   const handleStartEditing = () => {
@@ -152,11 +164,12 @@ export default function SpellList({
     .sort((a, b) => a - b)
 
   // Filter spells by search query
-  const filteredSpells = selectedLevel !== null
-    ? (spellsByLevel[selectedLevel] || []).filter((s) =>
-        s.name.toLowerCase().includes(searchQuery.toLowerCase())
-      )
-    : []
+  const filteredSpells =
+    selectedLevel !== null
+      ? (spellsByLevel[selectedLevel] || []).filter((s) =>
+          s.name.toLowerCase().includes(searchQuery.toLowerCase())
+        )
+      : []
 
   // Check if spell is in edited list
   const isSpellSelected = (spellName: string) => editedSpellNames.includes(spellName)
@@ -297,6 +310,24 @@ export default function SpellList({
             ) : (
               filteredSpells.map((spell) => {
                 const isSelected = isSpellSelected(spell.name)
+                if (!isEditing) {
+                  return (
+                    <SpellCard
+                      key={spell.name}
+                      spell={spell}
+                      spellSlots={spellSlots}
+                      pactSlots={pactSlots}
+                      currentConcentration={currentConcentration}
+                      characterSlug={slug || ''}
+                      onCast={() => onCast?.()}
+                      isExpanded={expandedSpell === spell.name}
+                      onToggleExpand={() =>
+                        setExpandedSpell(expandedSpell === spell.name ? null : spell.name)
+                      }
+                    />
+                  )
+                }
+
                 return (
                   <div
                     key={spell.name}
@@ -307,19 +338,16 @@ export default function SpellList({
                     }`}
                   >
                     <div className="flex items-center">
-                      {/* Add/Remove button in edit mode */}
-                      {isEditing && (
-                        <button
-                          onClick={() => isSelected ? handleRemoveSpell(spell.name) : handleAddSpell(spell.name)}
-                          className={`px-3 py-2 text-lg transition-colors ${
-                            isSelected
-                              ? 'text-red-400 hover:text-red-300'
-                              : 'text-green-400 hover:text-green-300'
-                          }`}
-                        >
-                          {isSelected ? '−' : '+'}
-                        </button>
-                      )}
+                      <button
+                        onClick={() => isSelected ? handleRemoveSpell(spell.name) : handleAddSpell(spell.name)}
+                        className={`px-3 py-2 text-lg transition-colors ${
+                          isSelected
+                            ? 'text-red-400 hover:text-red-300'
+                            : 'text-green-400 hover:text-green-300'
+                        }`}
+                      >
+                        {isSelected ? '−' : '+'}
+                      </button>
 
                       <button
                         onClick={() => setExpandedSpell(expandedSpell === spell.name ? null : spell.name)}
@@ -332,6 +360,8 @@ export default function SpellList({
                           <span className={`text-xs ${SCHOOL_COLORS[spell.school] || 'text-slate-400'}`}>
                             {spell.school}
                           </span>
+                          {spell.concentration && <span className="text-xs text-yellow-400">⟳</span>}
+                          {spell.ritual && <span className="text-xs text-blue-400">ℛ</span>}
                         </div>
                         <span
                           className={`text-slate-500 transition-transform text-xs ${
@@ -356,7 +386,7 @@ export default function SpellList({
                           </div>
                           <div>
                             <span className="text-slate-500">Components:</span>{' '}
-                            <span className="text-slate-300">{spell.components}</span>
+                            <span className="text-slate-300">{spell.componentsText}</span>
                           </div>
                           <div>
                             <span className="text-slate-500">Duration:</span>{' '}
@@ -366,6 +396,12 @@ export default function SpellList({
                         <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap pt-1 border-t border-slate-600">
                           {spell.description}
                         </div>
+                        {spell.higherLevels && (
+                          <div className="text-sm text-slate-300 pt-1 border-t border-slate-600">
+                            <span className="text-green-400 font-medium">At Higher Levels: </span>
+                            {spell.higherLevels}
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>

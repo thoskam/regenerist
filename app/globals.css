@@ -256,3 +256,43 @@ body {
 .edit-mode .draggable-module {
   animation: edit-pulse 2s ease-in-out infinite;
 }
+
+/* Roll animations */
+@keyframes roll-pulse {
+  0% {
+    transform: scale(1);
+  }
+  50% {
+    transform: scale(0.95);
+  }
+  100% {
+    transform: scale(1);
+  }
+}
+
+.rolling {
+  animation: roll-pulse 0.3s ease-in-out;
+}
+
+.dice-indicator {
+  opacity: 0;
+  transition: opacity 0.2s ease;
+}
+
+.rollable:hover .dice-indicator {
+  opacity: 1;
+}
+
+@keyframes crit-glow {
+  0%,
+  100% {
+    box-shadow: 0 0 5px rgba(234, 179, 8, 0.5);
+  }
+  50% {
+    box-shadow: 0 0 20px rgba(234, 179, 8, 0.8);
+  }
+}
+
+.crit-highlight {
+  animation: crit-glow 1s ease-in-out infinite;
+}

@@ -5,11 +5,14 @@ import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import LevelSelector from '@/components/LevelSelector'
 import RegenerateButton from '@/components/RegenerateButton'
-import LifeHistory from '@/components/LifeHistory'
+import LifeHistoryDrawer from '@/components/LifeHistoryDrawer'
 import ModuleRenderer, { type CharacterData } from '@/components/modules/ModuleRenderer'
 import LayoutGrid from '@/components/layout/LayoutGrid'
 import LayoutControls from '@/components/layout/LayoutControls'
 import MobileLayoutEditor from '@/components/layout/MobileLayoutEditor'
+import DiceControls from '@/components/dice/DiceControls'
+import SpellbookDrawer from '@/components/SpellbookDrawer'
+import ConcentrationBanner from '@/components/ConcentrationBanner'
 import { ModuleErrorBoundary } from '@/components/layout/ModuleErrorBoundary'
 import StaticCharacterEditor, { EditorData } from '@/components/StaticCharacterEditor'
 import VisibilitySelector from '@/components/VisibilitySelector'
@@ -60,6 +63,18 @@ export default function CharacterPage() {
   const [regenPhase, setRegenPhase] = useState<'idle' | 'fading-out' | 'loading' | 'flashing-in'>('idle')
   const [showFlash, setShowFlash] = useState(false)
   const [showEditor, setShowEditor] = useState(false)
+  const [isLifeDrawerOpen, setIsLifeDrawerOpen] = useState(false)
+  const [isSpellbookOpen, setIsSpellbookOpen] = useState(false)
+
+  const handleBreakConcentration = async () => {
+    if (!slug) return
+    await fetch(`/api/characters/${slug}/active-state/concentration`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ spellName: null }),
+    })
+    refreshAll()
+  }
   const [isSavingEdit, setIsSavingEdit] = useState(false)
 
   const handleEditCharacter = async (data: EditorData) => {
@@ -431,6 +446,8 @@ export default function CharacterPage() {
   const characterData: CharacterData | null =
     currentLife && stats
       ? {
+          characterId: String(character.id),
+          characterName: character.name,
           slug,
           lifeId: currentLife.id,
           className: currentLife.class,
@@ -548,9 +565,26 @@ export default function CharacterPage() {
         {initialLayout ? (
           <LayoutProvider characterSlug={slug} initialLayout={initialLayout}>
             <div className="space-y-4">
+              {activeState?.concentratingOn && (
+                <div className="sticky top-16 z-30">
+                  <ConcentrationBanner
+                    spellName={activeState.concentratingOn}
+                    onBreak={handleBreakConcentration}
+                  />
+                </div>
+              )}
               {isOwner && (
                 <div className="flex items-center justify-between gap-4">
                   <LayoutControls />
+                  <DiceControls />
+                  {character.isRegenerist && (
+                    <button
+                      onClick={() => setIsLifeDrawerOpen(true)}
+                      className="px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg"
+                    >
+                      Past Lives
+                    </button>
+                  )}
                   {character && !character.isRegenerist && currentLife && (
                     <button
                       onClick={() => setShowEditor(true)}
@@ -562,11 +596,13 @@ export default function CharacterPage() {
                 </div>
               )}
               {character.isRegenerist && (
-                <LifeHistory
+                <LifeHistoryDrawer
                   lives={allLives}
                   currentLifeId={currentLife?.id || null}
                   onSelectLife={handleSelectLife}
                   onClearHistory={handleClearHistory}
+                  isOpen={isLifeDrawerOpen}
+                  onClose={() => setIsLifeDrawerOpen(false)}
                 />
               )}
 
@@ -598,6 +634,28 @@ export default function CharacterPage() {
                     No active life. Begin your journey with a regeneration.
                   </p>
                 </div>
+              )}
+
+              {characterData && hydratedData?.isSpellcaster && (
+                <>
+                  <button
+                    onClick={() => setIsSpellbookOpen(true)}
+                    className="fixed right-8 top-1/2 -translate-y-1/2 bg-slate-800 border border-slate-700 rounded-l-lg px-5 py-3 text-base text-slate-200 hover:bg-slate-700 z-40 rotate-[-90deg] origin-right"
+                  >
+                    Spellbook
+                  </button>
+                  <SpellbookDrawer
+                    hydratedData={hydratedData}
+                    stats={characterData.stats}
+                    proficiencyBonus={characterData.proficiencyBonus}
+                    slug={characterData.slug}
+                    lifeId={characterData.lifeId}
+                    className={characterData.className}
+                    onRefresh={characterData.onRefresh}
+                    isOpen={isSpellbookOpen}
+                    onClose={() => setIsSpellbookOpen(false)}
+                  />
+                </>
               )}
             </div>
           </LayoutProvider>

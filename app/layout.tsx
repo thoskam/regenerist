@@ -3,6 +3,9 @@ import { Inter } from 'next/font/google'
 import './globals.css'
 import Providers from '@/components/Providers'
 import Header from '@/components/Header'
+import { RollProvider } from '@/lib/dice/RollContext'
+import RollResultModal from '@/components/dice/RollResultModal'
+import RollHistoryPanel from '@/components/dice/RollHistoryPanel'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -20,8 +23,12 @@ export default function RootLayout({
     <html lang="en">
       <body className={inter.className}>
         <Providers>
-          <Header />
-          <main>{children}</main>
+          <RollProvider>
+            <Header />
+            <main>{children}</main>
+            <RollResultModal />
+            <RollHistoryPanel />
+          </RollProvider>
         </Providers>
       </body>
     </html>

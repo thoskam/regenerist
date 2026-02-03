@@ -8,7 +8,7 @@ import {
   getHydratedClassInfo,
   getHydratedSubclassInfo,
   getHydratedRaceInfo,
-  getSpellsForClass,
+  getCasterType,
 } from '@/lib/dndApi'
 
 // GET - Return aggregated actions for the character
@@ -52,12 +52,12 @@ export async function GET(
 
     const life = character.lives[0]
 
-    const [classInfo, subclassInfo, raceInfo, spells] = await Promise.all([
+    const [classInfo, subclassInfo, raceInfo] = await Promise.all([
       getHydratedClassInfo(life.class, life.level),
       getHydratedSubclassInfo(life.class, life.subclass, life.level),
       getHydratedRaceInfo(life.race),
-      getSpellsForClass(life.class, life.subclass, life.level),
     ])
+    const isSpellcaster = getCasterType(life.class, life.subclass) !== null
 
     const stats = life.stats as unknown as { str: number; dex: number; con: number; int: number; wis: number; cha: number }
     const abilityModifiers = {
@@ -90,7 +90,7 @@ export async function GET(
       },
       subclassInfo,
       raceInfo,
-      spells: spells || [],
+      isSpellcaster,
       proficiencyBonus,
       abilityModifiers,
     })

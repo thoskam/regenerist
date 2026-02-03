@@ -9,6 +9,8 @@ interface ActionsTabProps {
   actions: CharacterAction[]
   activeState: HydratedActiveState | null
   onUseAction: (action: CharacterAction) => void
+  characterId: string
+  characterName: string
 }
 
 const sections: Array<{ key: ActionTiming; title: string }> = [
@@ -18,14 +20,24 @@ const sections: Array<{ key: ActionTiming; title: string }> = [
   { key: 'special', title: '✨ Special' },
 ]
 
-export default function ActionsTab({ actions, activeState, onUseAction }: ActionsTabProps) {
+export default function ActionsTab({
+  actions,
+  activeState,
+  onUseAction,
+  characterId,
+  characterName,
+}: ActionsTabProps) {
   const [filter, setFilter] = useState<ActionTiming | 'all'>('all')
-  const [showStandard, setShowStandard] = useState(false)
+  const [standardOpen, setStandardOpen] = useState(false)
 
   const grouped = useMemo(() => groupActionsByTiming(actions), [actions])
+  const standardActions = useMemo(
+    () => (grouped.action || []).filter((action) => action.isStandard),
+    [grouped]
+  )
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-2 sm:p-3">
       <div className="flex gap-2 flex-wrap items-center">
         <button
           onClick={() => setFilter('all')}
@@ -52,39 +64,61 @@ export default function ActionsTab({ actions, activeState, onUseAction }: Action
           Reactions
         </button>
 
-        <label className="ml-auto flex items-center gap-2 text-xs text-slate-400">
-          <input
-            type="checkbox"
-            checked={showStandard}
-            onChange={(e) => setShowStandard(e.target.checked)}
-          />
-          Show Standard Actions
-        </label>
       </div>
 
       {sections.map((section) => {
         if (filter !== 'all' && filter !== section.key) return null
-        const sectionActions = (grouped[section.key] || []).filter(
-          (action) => showStandard || action.source !== 'standard'
+        const sectionActions = (grouped[section.key as ActionTiming] || []).filter(
+          (action) => !action.isStandard
         )
         if (sectionActions.length === 0) return null
 
         return (
           <div key={section.key}>
             <h3 className="text-lg font-bold mb-3">{section.title}</h3>
-            <div className="grid gap-3 md:grid-cols-2">
+            <div className="grid gap-3">
               {sectionActions.map((action) => (
                 <ActionCard
                   key={action.id}
                   action={action}
                   activeState={activeState}
                   onUse={() => onUseAction(action)}
+                  characterId={characterId}
+                  characterName={characterName}
                 />
               ))}
             </div>
           </div>
         )
       })}
+
+      {standardActions.length > 0 && (
+        <div>
+          <button
+            type="button"
+            onClick={() => setStandardOpen((prev) => !prev)}
+            className="text-lg font-bold mb-3 flex items-center gap-2 text-slate-300 hover:text-white"
+          >
+            📋 Standard Actions
+            <span className="text-xs text-slate-500">({standardActions.length})</span>
+            <span className="text-sm text-slate-400">{standardOpen ? '▲' : '▼'}</span>
+          </button>
+          {standardOpen && (
+            <div className="grid gap-3">
+              {standardActions.map((action) => (
+                <ActionCard
+                  key={action.id}
+                  action={action}
+                  activeState={activeState}
+                  onUse={() => onUseAction(action)}
+                  characterId={characterId}
+                  characterName={characterName}
+                />
+              ))}
+            </div>
+          )}
+        </div>
+      )}
     </div>
   )
 }
