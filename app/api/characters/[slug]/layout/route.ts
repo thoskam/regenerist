@@ -87,7 +87,13 @@ export async function PUT(
     }
 
     if (!canEditCharacter(character, session.user.id)) {
-      return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      if (character.userId) {
+        return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
+      }
+      await prisma.character.update({
+        where: { id: character.id },
+        data: { userId: session.user.id },
+      })
     }
 
     const body = await request.json().catch(() => ({}))

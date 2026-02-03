@@ -94,11 +94,14 @@ export function LayoutProvider({ children, characterSlug, initialLayout }: Layou
   }, [savedLayout])
 
   const saveLayout = useCallback(async () => {
-    await fetch(`/api/characters/${characterSlug}/layout`, {
+    const res = await fetch(`/api/characters/${characterSlug}/layout`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ layout }),
     })
+    if (!res.ok) {
+      throw new Error('Failed to save layout')
+    }
     setSavedLayout(layout)
   }, [characterSlug, layout])
 

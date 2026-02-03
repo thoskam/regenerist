@@ -23,9 +23,14 @@ export default function LayoutControls() {
 
   const handleSave = async () => {
     setIsSaving(true)
-    await saveLayout()
-    setIsSaving(false)
-    setEditMode(false)
+    try {
+      await saveLayout()
+      setEditMode(false)
+    } catch (error) {
+      console.error('Failed to save layout:', error)
+    } finally {
+      setIsSaving(false)
+    }
   }
 
   const handleCancel = () => {
