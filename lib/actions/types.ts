@@ -34,4 +34,11 @@ export interface CharacterAction {
   // Description
   description: string
   shortDescription?: string // One-liner for compact view
+
+  // Rollable mechanics (calculated by mechanicsEnhancer)
+  mechanicsKey?: string    // Key to look up in featureMechanics
+  damageDice?: string      // "3d6", "1d10+5", "2×1d10"
+  healingDice?: string     // "1d10+5" for healing features
+  saveAbility?: string     // "CON", "DEX", "WIS" - what target saves with
+  scalingNote?: string     // "Increases by 1d6 every 2 levels"
 }

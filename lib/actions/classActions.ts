@@ -7,11 +7,12 @@ export interface ClassActionMapping {
   featureKey?: string
   recharge?: 'short' | 'long' | 'dawn'
   description?: string
+  mechanicsKey?: string // Key to look up in featureMechanics for damage/DC
 }
 
 export const CLASS_ACTION_MAPPINGS: Record<string, ClassActionMapping[]> = {
   barbarian: [
-    { featureName: 'Rage', timing: 'bonus', isLimited: true, featureKey: 'rage', recharge: 'long' },
+    { featureName: 'Rage', timing: 'bonus', isLimited: true, featureKey: 'rage', recharge: 'long', mechanicsKey: 'rage' },
     {
       featureName: 'Reckless Attack',
       timing: 'special',
@@ -22,12 +23,12 @@ export const CLASS_ACTION_MAPPINGS: Record<string, ClassActionMapping[]> = {
     { featureName: 'Danger Sense', timing: 'reaction', isLimited: false },
   ],
   bard: [
-    { featureName: 'Bardic Inspiration', timing: 'bonus', isLimited: true, featureKey: 'bardicInspiration', recharge: 'long' },
+    { featureName: 'Bardic Inspiration', timing: 'bonus', isLimited: true, featureKey: 'bardicInspiration', recharge: 'long', mechanicsKey: 'bardic-inspiration' },
     { featureName: 'Countercharm', timing: 'action', isLimited: false },
   ],
   cleric: [
-    { featureName: 'Channel Divinity', timing: 'action', isLimited: true, featureKey: 'channelDivinity', recharge: 'short' },
-    { featureName: 'Turn Undead', timing: 'action', isLimited: true, featureKey: 'channelDivinity', recharge: 'short' },
+    { featureName: 'Channel Divinity', timing: 'action', isLimited: true, featureKey: 'channelDivinity', recharge: 'short', mechanicsKey: 'channel-divinity' },
+    { featureName: 'Turn Undead', timing: 'action', isLimited: true, featureKey: 'channelDivinity', recharge: 'short', mechanicsKey: 'turn-undead' },
     { featureName: 'Divine Intervention', timing: 'action', isLimited: true, recharge: 'long' },
   ],
   druid: [
@@ -40,6 +41,7 @@ export const CLASS_ACTION_MAPPINGS: Record<string, ClassActionMapping[]> = {
       isLimited: true,
       featureKey: 'secondWind',
       recharge: 'short',
+      mechanicsKey: 'second-wind',
       description:
         'You have a limited well of stamina that you can draw on to protect yourself from harm. On your turn, you can use a bonus action to regain hit points equal to 1d10 + your fighter level.',
     },
@@ -49,6 +51,7 @@ export const CLASS_ACTION_MAPPINGS: Record<string, ClassActionMapping[]> = {
       isLimited: true,
       featureKey: 'actionSurge',
       recharge: 'short',
+      mechanicsKey: 'action-surge',
       description:
         'On your turn, you can take one additional action on top of your regular action and a possible bonus action. Once you use this feature, you must finish a short or long rest before you can use it again.',
     },
@@ -75,6 +78,7 @@ export const CLASS_ACTION_MAPPINGS: Record<string, ClassActionMapping[]> = {
       timing: 'bonus',
       isLimited: true,
       featureKey: 'kiPoints',
+      mechanicsKey: 'flurry-of-blows',
       description:
         'Immediately after you take the Attack action, you can spend 1 ki point to make two unarmed strikes as a bonus action.',
     },
@@ -98,6 +102,7 @@ export const CLASS_ACTION_MAPPINGS: Record<string, ClassActionMapping[]> = {
       timing: 'special',
       isLimited: true,
       featureKey: 'kiPoints',
+      mechanicsKey: 'stunning-strike',
       description:
         'When you hit another creature with a melee weapon attack, you can spend 1 ki point to attempt a stunning strike. The target must succeed on a Constitution saving throw or be stunned until the end of your next turn.',
     },
@@ -105,15 +110,16 @@ export const CLASS_ACTION_MAPPINGS: Record<string, ClassActionMapping[]> = {
     { featureName: 'Slow Fall', timing: 'reaction', isLimited: false },
   ],
   paladin: [
-    { featureName: 'Lay on Hands', timing: 'action', isLimited: true, featureKey: 'layOnHands', recharge: 'long' },
+    { featureName: 'Lay on Hands', timing: 'action', isLimited: true, featureKey: 'layOnHands', recharge: 'long', mechanicsKey: 'lay-on-hands' },
     {
       featureName: 'Divine Smite',
       timing: 'special',
       isLimited: false,
+      mechanicsKey: 'divine-smite',
       description:
         'When you hit a creature with a melee weapon attack, you can expend one spell slot to deal radiant damage in addition to the weapon\'s damage. The extra damage is 2d8 for a 1st-level slot, plus 1d8 for each spell level higher than 1st, to a maximum of 5d8.',
     },
-    { featureName: 'Channel Divinity', timing: 'action', isLimited: true, featureKey: 'channelDivinity', recharge: 'short' },
+    { featureName: 'Channel Divinity', timing: 'action', isLimited: true, featureKey: 'channelDivinity', recharge: 'short', mechanicsKey: 'channel-divinity' },
     { featureName: 'Cleansing Touch', timing: 'action', isLimited: true, recharge: 'long' },
   ],
   ranger: [
@@ -136,6 +142,7 @@ export const CLASS_ACTION_MAPPINGS: Record<string, ClassActionMapping[]> = {
       featureName: 'Sneak Attack',
       timing: 'special',
       isLimited: false,
+      mechanicsKey: 'sneak-attack',
       description:
         'Once per turn, you can deal extra damage to one creature you hit with an attack if you have advantage on the attack roll or an ally is within 5 feet of the target.',
     },
@@ -153,6 +160,7 @@ export const CLASS_ACTION_MAPPINGS: Record<string, ClassActionMapping[]> = {
       timing: 'bonus',
       isLimited: true,
       featureKey: 'sorceryPoints',
+      mechanicsKey: 'font-of-magic',
       description: 'You can use sorcery points to gain additional spell slots, or sacrifice spell slots to gain additional sorcery points.',
     },
     { featureName: 'Metamagic', timing: 'special', isLimited: true, featureKey: 'sorceryPoints' },
@@ -165,6 +173,7 @@ export const CLASS_ACTION_MAPPINGS: Record<string, ClassActionMapping[]> = {
       isLimited: true,
       featureKey: 'arcaneRecovery',
       recharge: 'long',
+      mechanicsKey: 'arcane-recovery',
       description:
         'Once per day when you finish a short rest, you can recover expended spell slots with a combined level equal to or less than half your wizard level (rounded up).',
     },
@@ -200,6 +209,7 @@ export const SUBCLASS_ACTION_MAPPINGS: Record<string, ClassActionMapping[]> = {
       isLimited: true,
       featureKey: 'superiorityDice',
       recharge: 'short',
+      mechanicsKey: 'combat-superiority',
       description: 'You have superiority dice that you can expend to fuel various maneuvers.',
     },
     { featureName: 'Know Your Enemy', timing: 'special', isLimited: false },

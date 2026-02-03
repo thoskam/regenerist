@@ -3,6 +3,7 @@ import type { HydratedClassInfo, HydratedRaceInfo, HydratedSubclassInfo } from '
 import type { Stats } from '@/lib/types'
 import { STANDARD_ACTIONS } from '@/lib/data/standardActions'
 import { CLASS_ACTION_MAPPINGS, SUBCLASS_ACTION_MAPPINGS } from './classActions'
+import { enhanceAllActionMechanics } from './mechanicsEnhancer'
 
 interface LimitedFeatureState {
   name: string
@@ -32,7 +33,7 @@ interface AggregateActionsParams {
 
 export function aggregateActions(params: AggregateActionsParams): CharacterAction[] {
   const actions: CharacterAction[] = []
-  const { isSpellcaster } = params
+  const { isSpellcaster, life, abilityModifiers, proficiencyBonus } = params
 
   actions.push(...getStandardActions(isSpellcaster))
   actions.push(...getWeaponAttacks(params))
@@ -40,7 +41,15 @@ export function aggregateActions(params: AggregateActionsParams): CharacterActio
   actions.push(...getSubclassFeatureActions(params))
   actions.push(...getRacialActions(params))
 
-  return actions
+  // Enhance actions with calculated damage dice, save DCs, and scaling notes
+  return enhanceAllActionMechanics(actions, {
+    className: life.class,
+    classLevel: life.level,
+    characterLevel: life.level,
+    abilityModifiers,
+    proficiencyBonus,
+    raceName: life.race,
+  })
 }
 
 function getStandardActions(isSpellcaster: boolean): CharacterAction[] {
@@ -152,6 +161,7 @@ function getClassFeatureActions(params: AggregateActionsParams): CharacterAction
       usesRemaining,
       maxUses,
       recharge: mapping.recharge,
+      mechanicsKey: mapping.mechanicsKey,
     })
   }
 
@@ -194,6 +204,7 @@ function getSubclassFeatureActions(params: AggregateActionsParams): CharacterAct
       usesRemaining,
       maxUses,
       recharge: mapping.recharge,
+      mechanicsKey: mapping.mechanicsKey,
     })
   }
 
@@ -205,17 +216,17 @@ function getRacialActions(params: AggregateActionsParams): CharacterAction[] {
   const actions: CharacterAction[] = []
   if (!raceInfo) return actions
 
-  const racialActionMap: Record<string, { timing: ActionTiming; isLimited: boolean; recharge?: 'short' | 'long' }> = {
-    'breath weapon': { timing: 'action', isLimited: true, recharge: 'short' },
-    'fey step': { timing: 'bonus', isLimited: true, recharge: 'short' },
+  const racialActionMap: Record<string, { timing: ActionTiming; isLimited: boolean; recharge?: 'short' | 'long'; mechanicsKey?: string }> = {
+    'breath weapon': { timing: 'action', isLimited: true, recharge: 'short', mechanicsKey: 'breath-weapon' },
+    'fey step': { timing: 'bonus', isLimited: true, recharge: 'short', mechanicsKey: 'fey-step' },
     'misty step': { timing: 'bonus', isLimited: true, recharge: 'long' },
-    'relentless endurance': { timing: 'reaction', isLimited: true, recharge: 'long' },
-    'hellish rebuke': { timing: 'reaction', isLimited: true, recharge: 'long' },
-    'healing hands': { timing: 'action', isLimited: true, recharge: 'long' },
+    'relentless endurance': { timing: 'reaction', isLimited: true, recharge: 'long', mechanicsKey: 'relentless-endurance' },
+    'hellish rebuke': { timing: 'reaction', isLimited: true, recharge: 'long', mechanicsKey: 'hellish-rebuke' },
+    'healing hands': { timing: 'action', isLimited: true, recharge: 'long', mechanicsKey: 'healing-hands' },
     'celestial revelation': { timing: 'bonus', isLimited: true, recharge: 'long' },
-    'fury of the small': { timing: 'special', isLimited: true, recharge: 'short' },
+    'fury of the small': { timing: 'special', isLimited: true, recharge: 'short', mechanicsKey: 'fury-of-the-small' },
     'nimble escape': { timing: 'bonus', isLimited: false },
-    "stone's endurance": { timing: 'reaction', isLimited: true, recharge: 'short' },
+    "stone's endurance": { timing: 'reaction', isLimited: true, recharge: 'short', mechanicsKey: "stone's-endurance" },
   }
 
   for (const trait of raceInfo.traits) {
@@ -231,6 +242,7 @@ function getRacialActions(params: AggregateActionsParams): CharacterAction[] {
         description: trait.description || '',
         isLimited: config.isLimited,
         recharge: config.recharge,
+        mechanicsKey: config.mechanicsKey,
       })
       break
     }

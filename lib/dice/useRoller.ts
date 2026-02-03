@@ -168,6 +168,49 @@ export function useRoller({ characterId, characterName }: UseRollerProps) {
     [characterId, characterName, executeRoll]
   )
 
+  /**
+   * Roll damage for a class/race feature like Sneak Attack or Breath Weapon.
+   * Parses dice strings like "6d6", "2d8", "1d10+5"
+   */
+  const makeFeatureDamageRoll = useCallback(
+    (featureName: string, damageDice: string, damageType?: string) => {
+      const { dice, modifier } = parseDiceString(damageDice)
+      const rollName = damageType
+        ? `${featureName} (${damageType})`
+        : featureName
+      const roll = performRoll({
+        rollType: 'damage',
+        rollName,
+        dice,
+        modifier,
+        characterId,
+        characterName,
+      })
+      return executeRoll(roll)
+    },
+    [characterId, characterName, executeRoll]
+  )
+
+  /**
+   * Roll healing for features like Second Wind or Lay on Hands.
+   * Parses dice strings like "1d10+5"
+   */
+  const makeHealingRoll = useCallback(
+    (featureName: string, healingDice: string) => {
+      const { dice, modifier } = parseDiceString(healingDice)
+      const roll = performRoll({
+        rollType: 'generic',
+        rollName: `${featureName} (Healing)`,
+        dice,
+        modifier,
+        characterId,
+        characterName,
+      })
+      return executeRoll(roll)
+    },
+    [characterId, characterName, executeRoll]
+  )
+
   return {
     makeSkillCheck,
     makeSavingThrow,
@@ -178,5 +221,7 @@ export function useRoller({ characterId, characterName }: UseRollerProps) {
     makeDeathSave,
     makeHitDiceRoll,
     makeGenericRoll,
+    makeFeatureDamageRoll,
+    makeHealingRoll,
   }
 }
