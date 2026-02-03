@@ -12,7 +12,7 @@ interface InfoTabsModuleProps {
   className: string
   subclass: string
   effect: string
-  story: string
+  story: string | null
   subclassChoice: string | null
   level: number
   raceInfo: HydratedRaceInfo | null
@@ -74,7 +74,13 @@ export default function InfoTabsModule({
 
         <div className="p-5">
           {formTab === 'summary' && (
-            <FormSummary race={race} className={className} subclass={subclass} effect={effect} story={story} />
+            <FormSummary
+              race={race}
+              className={className}
+              subclass={subclass}
+              effect={effect}
+              story={story ?? ''}
+            />
           )}
 
           {formTab === 'traits' && raceInfo && raceInfo.traits.length > 0 && (
