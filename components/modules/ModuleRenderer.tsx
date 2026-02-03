@@ -184,7 +184,20 @@ export default function ModuleRenderer({ moduleId, characterData }: ModuleRender
         />
       )
     case 'spellbook':
-      return null
+      if (!hydratedData?.isSpellcaster) return null
+      return (
+        <SpellbookModule
+          hydratedData={hydratedData}
+          stats={stats}
+          proficiencyBonus={proficiencyBonus}
+          slug={slug}
+          lifeId={lifeId}
+          className={className}
+          subclassName={subclass}
+          level={level}
+          onRefresh={onRefresh}
+        />
+      )
     case 'chronicle':
       return (
         <ChronicleModule

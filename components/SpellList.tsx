@@ -1,7 +1,10 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useMemo } from 'react'
+import { BookOpen } from 'lucide-react'
 import SpellCard from '@/components/spells/SpellCard'
+import SpellFilters, { SpellFilterState, defaultFilters, filterSpells } from '@/components/spells/SpellFilters'
+import ArchivistConsultModal from '@/components/spells/ArchivistConsultModal'
 import type { HydratedSpell, HydratedSpellbook, HydratedActiveState } from '@/lib/types/5etools'
 
 interface Stats {
@@ -26,6 +29,13 @@ interface SpellListProps {
   lifeId?: number
   onSpellbookUpdate?: (spellbook: { spellNames: string[]; archivistNote: string }) => void
   onCast?: () => void
+  // For prepared casters
+  className?: string
+  isPreparedCaster?: boolean
+  preparedSpells?: string[]
+  alwaysPreparedSpells?: string[]
+  maxPreparedSpells?: number
+  onPreparedSpellsChange?: (preparedSpells: string[]) => void
 }
 
 const ABILITY_LABELS: Record<string, string> = {
@@ -68,17 +78,36 @@ export default function SpellList({
   lifeId,
   onSpellbookUpdate,
   onCast,
+  className,
+  isPreparedCaster = false,
+  preparedSpells = [],
+  alwaysPreparedSpells = [],
+  maxPreparedSpells = 0,
+  onPreparedSpellsChange,
 }: SpellListProps) {
-  const [selectedLevel, setSelectedLevel] = useState<number | null>(null)
   const [expandedSpell, setExpandedSpell] = useState<string | null>(null)
-  const [searchQuery, setSearchQuery] = useState('')
+  const [filters, setFilters] = useState<SpellFilterState>(defaultFilters)
   const [isEditing, setIsEditing] = useState(false)
   const [editedSpellNames, setEditedSpellNames] = useState<string[]>([])
   const [isSaving, setIsSaving] = useState(false)
+  const [showArchivistModal, setShowArchivistModal] = useState(false)
 
   // Use selected spellbook if available, otherwise fall back to all available spells
   const selectedSpells = selectedSpellbook?.spells || []
   const availableSpells = allAvailableSpells || []
+
+  // Get all prepared spells (user prepared + always prepared)
+  const allPreparedSpells = useMemo(() => {
+    return Array.from(new Set([...preparedSpells, ...alwaysPreparedSpells]))
+  }, [preparedSpells, alwaysPreparedSpells])
+
+  // Get available schools and levels from spells
+  const { availableSchools, availableLevels } = useMemo(() => {
+    const spells = isEditing ? availableSpells : (selectedSpells.length > 0 ? selectedSpells : availableSpells)
+    const schools = Array.from(new Set(spells.map(s => s.school))).sort()
+    const levels = Array.from(new Set(spells.map(s => s.level))).sort((a, b) => a - b)
+    return { availableSchools: schools, availableLevels: levels }
+  }, [availableSpells, selectedSpells, isEditing])
 
   // Calculate spellcasting stats
   const abilityMod = getStatModifier(stats[spellcastingAbility as keyof Stats] || 10)
@@ -145,34 +174,51 @@ export default function SpellList({
   // Determine which spells to show based on edit mode
   const spellsToShow = isEditing ? availableSpells : (selectedSpells.length > 0 ? selectedSpells : availableSpells)
 
-  // Group spells by level
-  const spellsByLevel = spellsToShow.reduce((acc, spell) => {
-    const level = spell.level
-    if (!acc[level]) acc[level] = []
-    acc[level].push(spell)
-    return acc
-  }, {} as Record<number, HydratedSpell[]>)
+  // Apply filters to spells
+  const filteredSpells = useMemo(() => {
+    const filtered = filterSpells(spellsToShow, filters, isPreparedCaster ? allPreparedSpells : undefined)
+    // Sort by level, then alphabetically
+    return filtered.sort((a, b) => {
+      if (a.level !== b.level) return a.level - b.level
+      return a.name.localeCompare(b.name)
+    })
+  }, [spellsToShow, filters, isPreparedCaster, allPreparedSpells])
 
-  // Sort spells alphabetically within each level
-  Object.values(spellsByLevel).forEach((levelSpells) => {
-    levelSpells.sort((a, b) => a.name.localeCompare(b.name))
-  })
+  // Group filtered spells by level for display
+  const spellsByLevel = useMemo(() => {
+    return filteredSpells.reduce((acc, spell) => {
+      const level = spell.level
+      if (!acc[level]) acc[level] = []
+      acc[level].push(spell)
+      return acc
+    }, {} as Record<number, HydratedSpell[]>)
+  }, [filteredSpells])
 
   const levels = Object.keys(spellsByLevel)
     .map(Number)
     .filter((l) => l <= maxSpellLevel)
     .sort((a, b) => a - b)
 
-  // Filter spells by search query
-  const filteredSpells =
-    selectedLevel !== null
-      ? (spellsByLevel[selectedLevel] || []).filter((s) =>
-          s.name.toLowerCase().includes(searchQuery.toLowerCase())
-        )
-      : []
-
   // Check if spell is in edited list
   const isSpellSelected = (spellName: string) => editedSpellNames.includes(spellName)
+
+  // Check if spell is prepared (for prepared casters)
+  const isSpellPrepared = (spellName: string) => allPreparedSpells.includes(spellName)
+  const isSpellAlwaysPrepared = (spellName: string) => alwaysPreparedSpells.includes(spellName)
+
+  // Toggle spell preparation
+  const handleTogglePrepared = (spellName: string) => {
+    if (isSpellAlwaysPrepared(spellName)) return // Can't unprepare always-prepared spells
+
+    const newPrepared = preparedSpells.includes(spellName)
+      ? preparedSpells.filter(s => s !== spellName)
+      : [...preparedSpells, spellName]
+
+    onPreparedSpellsChange?.(newPrepared)
+  }
+
+  // Current preparation count (excluding always-prepared)
+  const currentPreparedCount = preparedSpells.length
 
   // Check if we can edit (need slug, lifeId, and available spells)
   const canEdit = slug && lifeId && availableSpells.length > 0
@@ -205,16 +251,58 @@ export default function SpellList({
         </div>
       </div>
 
+      {/* Preparation Counter (for prepared casters) */}
+      {isPreparedCaster && maxPreparedSpells > 0 && !isEditing && (
+        <div className="bg-slate-700/50 rounded-lg p-3">
+          <div className="flex items-center justify-between">
+            <span className="text-xs text-slate-400 font-semibold tracking-wider">SPELLS PREPARED</span>
+            <span className={`text-sm font-bold ${currentPreparedCount > maxPreparedSpells ? 'text-red-400' : 'text-green-400'}`}>
+              {currentPreparedCount} / {maxPreparedSpells}
+              {alwaysPreparedSpells.length > 0 && (
+                <span className="text-slate-400 font-normal ml-1">
+                  (+{alwaysPreparedSpells.length} always)
+                </span>
+              )}
+            </span>
+          </div>
+          {currentPreparedCount > maxPreparedSpells && (
+            <p className="text-xs text-red-400 mt-1">
+              You have too many spells prepared. Remove {currentPreparedCount - maxPreparedSpells} spell(s).
+            </p>
+          )}
+        </div>
+      )}
+
       {/* Archivist's Note (only show when not editing) */}
       {!isEditing && selectedSpellbook?.archivistNote && (
         <div className="bg-slate-700/30 border border-slate-600 rounded-lg p-3">
-          <div className="flex items-center gap-2 mb-2">
+          <div className="flex items-center justify-between mb-2">
             <span className="text-gold-400 text-xs font-semibold tracking-wider">THE ARCHIVIST&apos;S NOTE</span>
+            {slug && lifeId && (
+              <button
+                onClick={() => setShowArchivistModal(true)}
+                className="flex items-center gap-1.5 text-xs text-amber-400 hover:text-amber-300 transition-colors"
+              >
+                <BookOpen className="w-3.5 h-3.5" />
+                Consult
+              </button>
+            )}
           </div>
           <p className="text-sm text-slate-300 italic leading-relaxed">
             &ldquo;{selectedSpellbook.archivistNote}&rdquo;
           </p>
         </div>
+      )}
+
+      {/* Consult The Archivist button (show when no note) */}
+      {!isEditing && !selectedSpellbook?.archivistNote && slug && lifeId && (
+        <button
+          onClick={() => setShowArchivistModal(true)}
+          className="w-full flex items-center justify-center gap-2 px-3 py-2 text-sm bg-amber-600/10 hover:bg-amber-600/20 text-amber-400 border border-amber-600/30 rounded-lg transition-colors"
+        >
+          <BookOpen className="w-4 h-4" />
+          Consult The Archivist
+        </button>
       )}
 
       {/* Header with Edit Button */}
@@ -267,155 +355,150 @@ export default function SpellList({
         </div>
       )}
 
-      {/* Spell level tabs */}
-      <div className="flex flex-wrap gap-2">
-        {levels.map((level) => (
-          <button
-            key={level}
-            onClick={() => {
-              setSelectedLevel(selectedLevel === level ? null : level)
-              setExpandedSpell(null)
-            }}
-            className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
-              selectedLevel === level
-                ? 'bg-gold-500 text-slate-900'
-                : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-            }`}
-          >
-            {level === 0 ? 'Cantrips' : `${level}${getOrdinalSuffix(level)}`}
-            <span className="ml-1 text-xs opacity-70">
-              ({spellsByLevel[level]?.length || 0})
-            </span>
-          </button>
-        ))}
-      </div>
+      {/* Spell Filters */}
+      <SpellFilters
+        filters={filters}
+        onChange={setFilters}
+        showPreparedFilter={isPreparedCaster && !isEditing}
+        availableSchools={availableSchools}
+        availableLevels={availableLevels}
+        maxSpellLevel={maxSpellLevel}
+      />
 
-      {/* Spell list for selected level */}
-      {selectedLevel !== null && (
-        <>
-          {/* Search input */}
-          <div>
-            <input
-              type="text"
-              placeholder="Search spells..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full px-3 py-2 bg-slate-700 border border-slate-600 rounded text-sm text-slate-300 placeholder-slate-500 focus:outline-none focus:border-gold-500"
-            />
-          </div>
+      {/* Spell list grouped by level */}
+      <div className="space-y-4 max-h-[500px] overflow-y-auto">
+        {filteredSpells.length === 0 ? (
+          <p className="text-sm text-slate-500 py-4 text-center">No spells found</p>
+        ) : (
+          levels.map((level) => (
+            <div key={level}>
+              <h4 className="text-xs text-slate-400 font-semibold tracking-wider mb-2">
+                {level === 0 ? 'CANTRIPS' : `${level}${getOrdinalSuffix(level)} LEVEL`}
+                <span className="ml-2 text-slate-500">({spellsByLevel[level]?.length || 0})</span>
+              </h4>
+              <div className="space-y-2">
+                {(spellsByLevel[level] || []).map((spell) => {
+                  const isSelected = isSpellSelected(spell.name)
+                  const isPrepared = isSpellPrepared(spell.name)
+                  const isAlwaysPrepared = isSpellAlwaysPrepared(spell.name)
 
-          <div className="space-y-2 max-h-96 overflow-y-auto">
-            {filteredSpells.length === 0 ? (
-              <p className="text-sm text-slate-500 py-2">No spells found</p>
-            ) : (
-              filteredSpells.map((spell) => {
-                const isSelected = isSpellSelected(spell.name)
-                if (!isEditing) {
+                  if (!isEditing) {
+                    return (
+                      <div key={spell.name} className="relative">
+                        <SpellCard
+                          spell={spell}
+                          spellSlots={spellSlots}
+                          pactSlots={pactSlots}
+                          currentConcentration={currentConcentration}
+                          characterSlug={slug || ''}
+                          onCast={() => onCast?.()}
+                          isExpanded={expandedSpell === spell.name}
+                          onToggleExpand={() =>
+                            setExpandedSpell(expandedSpell === spell.name ? null : spell.name)
+                          }
+                          // Prepared caster props
+                          isPreparedCaster={isPreparedCaster}
+                          isPrepared={isPrepared}
+                          isAlwaysPrepared={isAlwaysPrepared}
+                          onTogglePrepared={() => handleTogglePrepared(spell.name)}
+                        />
+                      </div>
+                    )
+                  }
+
                   return (
-                    <SpellCard
+                    <div
                       key={spell.name}
-                      spell={spell}
-                      spellSlots={spellSlots}
-                      pactSlots={pactSlots}
-                      currentConcentration={currentConcentration}
-                      characterSlug={slug || ''}
-                      onCast={() => onCast?.()}
-                      isExpanded={expandedSpell === spell.name}
-                      onToggleExpand={() =>
-                        setExpandedSpell(expandedSpell === spell.name ? null : spell.name)
-                      }
-                    />
-                  )
-                }
-
-                return (
-                  <div
-                    key={spell.name}
-                    className={`border rounded-lg overflow-hidden ${
-                      isEditing && isSelected
-                        ? 'border-gold-500 bg-gold-500/10'
-                        : 'border-slate-600 bg-slate-700/50'
-                    }`}
-                  >
-                    <div className="flex items-center">
-                      <button
-                        onClick={() => isSelected ? handleRemoveSpell(spell.name) : handleAddSpell(spell.name)}
-                        className={`px-3 py-2 text-lg transition-colors ${
-                          isSelected
-                            ? 'text-red-400 hover:text-red-300'
-                            : 'text-green-400 hover:text-green-300'
-                        }`}
-                      >
-                        {isSelected ? '−' : '+'}
-                      </button>
-
-                      <button
-                        onClick={() => setExpandedSpell(expandedSpell === spell.name ? null : spell.name)}
-                        className="flex-1 px-3 py-2 flex items-center justify-between text-left hover:bg-slate-700/80 transition-colors"
-                      >
-                        <div className="flex items-center gap-2">
-                          <span className={`font-medium ${isEditing && isSelected ? 'text-gold-400' : 'text-slate-200'}`}>
-                            {spell.name}
-                          </span>
-                          <span className={`text-xs ${SCHOOL_COLORS[spell.school] || 'text-slate-400'}`}>
-                            {spell.school}
-                          </span>
-                          {spell.concentration && <span className="text-xs text-yellow-400">⟳</span>}
-                          {spell.ritual && <span className="text-xs text-blue-400">ℛ</span>}
-                        </div>
-                        <span
-                          className={`text-slate-500 transition-transform text-xs ${
-                            expandedSpell === spell.name ? 'rotate-180' : ''
+                      className={`border rounded-lg overflow-hidden ${
+                        isEditing && isSelected
+                          ? 'border-gold-500 bg-gold-500/10'
+                          : 'border-slate-600 bg-slate-700/50'
+                      }`}
+                    >
+                      <div className="flex items-center">
+                        <button
+                          onClick={() => isSelected ? handleRemoveSpell(spell.name) : handleAddSpell(spell.name)}
+                          className={`px-3 py-2 text-lg transition-colors ${
+                            isSelected
+                              ? 'text-red-400 hover:text-red-300'
+                              : 'text-green-400 hover:text-green-300'
                           }`}
                         >
-                          ▼
-                        </span>
-                      </button>
-                    </div>
+                          {isSelected ? '−' : '+'}
+                        </button>
 
-                    {expandedSpell === spell.name && (
-                      <div className="px-3 py-2 border-t border-slate-600 space-y-2">
-                        <div className="grid grid-cols-2 gap-2 text-xs">
-                          <div>
-                            <span className="text-slate-500">Casting Time:</span>{' '}
-                            <span className="text-slate-300">{spell.castingTime}</span>
+                        <button
+                          onClick={() => setExpandedSpell(expandedSpell === spell.name ? null : spell.name)}
+                          className="flex-1 px-3 py-2 flex items-center justify-between text-left hover:bg-slate-700/80 transition-colors"
+                        >
+                          <div className="flex items-center gap-2">
+                            <span className={`font-medium ${isEditing && isSelected ? 'text-gold-400' : 'text-slate-200'}`}>
+                              {spell.name}
+                            </span>
+                            <span className={`text-xs ${SCHOOL_COLORS[spell.school] || 'text-slate-400'}`}>
+                              {spell.school}
+                            </span>
+                            {spell.concentration && <span className="text-xs text-yellow-400">⟳</span>}
+                            {spell.ritual && <span className="text-xs text-blue-400">ℛ</span>}
                           </div>
-                          <div>
-                            <span className="text-slate-500">Range:</span>{' '}
-                            <span className="text-slate-300">{spell.range}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-500">Components:</span>{' '}
-                            <span className="text-slate-300">{spell.componentsText}</span>
-                          </div>
-                          <div>
-                            <span className="text-slate-500">Duration:</span>{' '}
-                            <span className="text-slate-300">{spell.duration}</span>
-                          </div>
-                        </div>
-                        <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap pt-1 border-t border-slate-600">
-                          {spell.description}
-                        </div>
-                        {spell.higherLevels && (
-                          <div className="text-sm text-slate-300 pt-1 border-t border-slate-600">
-                            <span className="text-green-400 font-medium">At Higher Levels: </span>
-                            {spell.higherLevels}
-                          </div>
-                        )}
+                          <span
+                            className={`text-slate-500 transition-transform text-xs ${
+                              expandedSpell === spell.name ? 'rotate-180' : ''
+                            }`}
+                          >
+                            ▼
+                          </span>
+                        </button>
                       </div>
-                    )}
-                  </div>
-                )
-              })
-            )}
-          </div>
-        </>
-      )}
 
-      {selectedLevel === null && (
-        <p className="text-sm text-slate-500 text-center py-2">
-          Select a spell level to view spells
-        </p>
+                      {expandedSpell === spell.name && (
+                        <div className="px-3 py-2 border-t border-slate-600 space-y-2">
+                          <div className="grid grid-cols-2 gap-2 text-xs">
+                            <div>
+                              <span className="text-slate-500">Casting Time:</span>{' '}
+                              <span className="text-slate-300">{spell.castingTime}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">Range:</span>{' '}
+                              <span className="text-slate-300">{spell.range}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">Components:</span>{' '}
+                              <span className="text-slate-300">{spell.componentsText}</span>
+                            </div>
+                            <div>
+                              <span className="text-slate-500">Duration:</span>{' '}
+                              <span className="text-slate-300">{spell.duration}</span>
+                            </div>
+                          </div>
+                          <div className="text-sm text-slate-300 leading-relaxed whitespace-pre-wrap pt-1 border-t border-slate-600">
+                            {spell.description}
+                          </div>
+                          {spell.higherLevels && (
+                            <div className="text-sm text-slate-300 pt-1 border-t border-slate-600">
+                              <span className="text-green-400 font-medium">At Higher Levels: </span>
+                              {spell.higherLevels}
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </div>
+                  )
+                })}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* Archivist Consultation Modal */}
+      {slug && lifeId && (
+        <ArchivistConsultModal
+          isOpen={showArchivistModal}
+          onClose={() => setShowArchivistModal(false)}
+          characterSlug={slug}
+          lifeId={lifeId}
+        />
       )}
     </div>
   )

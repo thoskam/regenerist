@@ -25,6 +25,11 @@ interface SpellCardProps {
   onCast: () => void
   isExpanded?: boolean
   onToggleExpand?: () => void
+  // Prepared caster props
+  isPreparedCaster?: boolean
+  isPrepared?: boolean
+  isAlwaysPrepared?: boolean
+  onTogglePrepared?: () => void
 }
 
 export default function SpellCard({
@@ -36,10 +41,15 @@ export default function SpellCard({
   onCast,
   isExpanded = false,
   onToggleExpand,
+  isPreparedCaster = false,
+  isPrepared = true,
+  isAlwaysPrepared = false,
+  onTogglePrepared,
 }: SpellCardProps) {
   const [showCastModal, setShowCastModal] = useState(false)
 
   const isCantrip = spell.level === 0
+  const showPreparedToggle = isPreparedCaster && !isCantrip && !isAlwaysPrepared
 
   const canCast = (): boolean => {
     if (!characterSlug) return false
@@ -128,29 +138,60 @@ export default function SpellCard({
                     ℛ
                   </span>
                 )}
+                {isAlwaysPrepared && (
+                  <span className="text-amber-400 text-xs" title="Always Prepared (Domain/Oath)">
+                    🔒
+                  </span>
+                )}
               </h4>
               <span className={`text-xs ${getSchoolColor(spell.school)}`}>{spell.school}</span>
             </div>
           </div>
 
-          <button
-            onClick={(event) => {
-              event.stopPropagation()
-              setShowCastModal(true)
-            }}
-            disabled={!canCast()}
-            className={`
-              px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all
-              ${
-                canCast()
-                  ? 'bg-purple-600 hover:bg-purple-500 text-white'
-                  : 'bg-slate-700 text-slate-500 cursor-not-allowed'
-              }
-            `}
-          >
-            <Sparkles className="w-3.5 h-3.5" />
-            Cast
-          </button>
+          <div className="flex items-center gap-2">
+            {/* Prepared Toggle for prepared casters */}
+            {showPreparedToggle && (
+              <button
+                onClick={(event) => {
+                  event.stopPropagation()
+                  onTogglePrepared?.()
+                }}
+                className={`
+                  px-2 py-1.5 rounded-lg text-xs font-medium transition-all
+                  ${
+                    isPrepared
+                      ? 'bg-green-600/20 text-green-400 border border-green-600/50 hover:bg-green-600/30'
+                      : 'bg-slate-700 text-slate-400 border border-slate-600 hover:bg-slate-600'
+                  }
+                `}
+                title={isPrepared ? 'Click to unprepare' : 'Click to prepare'}
+              >
+                {isPrepared ? '✓ Prepared' : 'Prepare'}
+              </button>
+            )}
+
+            {/* Cast Button - only show if spell is prepared (or not a prepared caster) */}
+            {(!isPreparedCaster || isPrepared || isCantrip) && (
+              <button
+                onClick={(event) => {
+                  event.stopPropagation()
+                  setShowCastModal(true)
+                }}
+                disabled={!canCast()}
+                className={`
+                  px-3 py-1.5 rounded-lg text-sm font-medium flex items-center gap-1.5 transition-all
+                  ${
+                    canCast()
+                      ? 'bg-purple-600 hover:bg-purple-500 text-white'
+                      : 'bg-slate-700 text-slate-500 cursor-not-allowed'
+                  }
+                `}
+              >
+                <Sparkles className="w-3.5 h-3.5" />
+                Cast
+              </button>
+            )}
+          </div>
         </div>
 
         {currentConcentration === spell.name && (

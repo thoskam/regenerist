@@ -332,11 +332,13 @@ export interface HydratedSpell {
 export interface Spellbook {
   spellNames: string[]
   archivistNote: string
+  preparedSpells?: string[]  // For prepared casters
 }
 
 export interface HydratedSpellbook {
   spells: HydratedSpell[]
   archivistNote: string
+  preparedSpells?: string[]  // For prepared casters
 }
 
 /** Active state runtime resource (from Prisma ActiveState) */

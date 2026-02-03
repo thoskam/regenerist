@@ -1,0 +1,373 @@
+{
+  "Cleric": {
+    "Knowledge Domain": {
+      "1": ["Command", "Identify"],
+      "3": ["Augury", "Suggestion"],
+      "5": ["Nondetection", "Speak with Dead"],
+      "7": ["Arcane Eye", "Confusion"],
+      "9": ["Legend Lore", "Scrying"]
+    },
+    "Life Domain": {
+      "1": ["Bless", "Cure Wounds"],
+      "3": ["Lesser Restoration", "Spiritual Weapon"],
+      "5": ["Beacon of Hope", "Revivify"],
+      "7": ["Death Ward", "Guardian of Faith"],
+      "9": ["Mass Cure Wounds", "Raise Dead"]
+    },
+    "Light Domain": {
+      "1": ["Burning Hands", "Faerie Fire"],
+      "3": ["Flaming Sphere", "Scorching Ray"],
+      "5": ["Daylight", "Fireball"],
+      "7": ["Guardian of Faith", "Wall of Fire"],
+      "9": ["Flame Strike", "Scrying"]
+    },
+    "Nature Domain": {
+      "1": ["Animal Friendship", "Speak with Animals"],
+      "3": ["Barkskin", "Spike Growth"],
+      "5": ["Plant Growth", "Wind Wall"],
+      "7": ["Dominate Beast", "Grasping Vine"],
+      "9": ["Insect Plague", "Tree Stride"]
+    },
+    "Tempest Domain": {
+      "1": ["Fog Cloud", "Thunderwave"],
+      "3": ["Gust of Wind", "Shatter"],
+      "5": ["Call Lightning", "Sleet Storm"],
+      "7": ["Control Water", "Ice Storm"],
+      "9": ["Destructive Wave", "Insect Plague"]
+    },
+    "Trickery Domain": {
+      "1": ["Charm Person", "Disguise Self"],
+      "3": ["Mirror Image", "Pass without Trace"],
+      "5": ["Blink", "Dispel Magic"],
+      "7": ["Dimension Door", "Polymorph"],
+      "9": ["Dominate Person", "Modify Memory"]
+    },
+    "War Domain": {
+      "1": ["Divine Favor", "Shield of Faith"],
+      "3": ["Magic Weapon", "Spiritual Weapon"],
+      "5": ["Crusader's Mantle", "Spirit Guardians"],
+      "7": ["Freedom of Movement", "Stoneskin"],
+      "9": ["Flame Strike", "Hold Monster"]
+    },
+    "Death Domain": {
+      "1": ["False Life", "Ray of Sickness"],
+      "3": ["Blindness/Deafness", "Ray of Enfeeblement"],
+      "5": ["Animate Dead", "Vampiric Touch"],
+      "7": ["Blight", "Death Ward"],
+      "9": ["Antilife Shell", "Cloudkill"]
+    },
+    "Arcana Domain": {
+      "1": ["Detect Magic", "Magic Missile"],
+      "3": ["Magic Weapon", "Nystul's Magic Aura"],
+      "5": ["Dispel Magic", "Magic Circle"],
+      "7": ["Arcane Eye", "Leomund's Secret Chest"],
+      "9": ["Planar Binding", "Teleportation Circle"]
+    },
+    "Forge Domain": {
+      "1": ["Identify", "Searing Smite"],
+      "3": ["Heat Metal", "Magic Weapon"],
+      "5": ["Elemental Weapon", "Protection from Energy"],
+      "7": ["Fabricate", "Wall of Fire"],
+      "9": ["Animate Objects", "Creation"]
+    },
+    "Grave Domain": {
+      "1": ["Bane", "False Life"],
+      "3": ["Gentle Repose", "Ray of Enfeeblement"],
+      "5": ["Revivify", "Vampiric Touch"],
+      "7": ["Blight", "Death Ward"],
+      "9": ["Antilife Shell", "Raise Dead"]
+    },
+    "Order Domain": {
+      "1": ["Command", "Heroism"],
+      "3": ["Hold Person", "Zone of Truth"],
+      "5": ["Mass Healing Word", "Slow"],
+      "7": ["Compulsion", "Locate Creature"],
+      "9": ["Commune", "Dominate Person"]
+    },
+    "Peace Domain": {
+      "1": ["Heroism", "Sanctuary"],
+      "3": ["Aid", "Warding Bond"],
+      "5": ["Beacon of Hope", "Sending"],
+      "7": ["Aura of Purity", "Otiluke's Resilient Sphere"],
+      "9": ["Greater Restoration", "Rary's Telepathic Bond"]
+    },
+    "Twilight Domain": {
+      "1": ["Faerie Fire", "Sleep"],
+      "3": ["Moonbeam", "See Invisibility"],
+      "5": ["Aura of Vitality", "Leomund's Tiny Hut"],
+      "7": ["Aura of Life", "Greater Invisibility"],
+      "9": ["Circle of Power", "Mislead"]
+    }
+  },
+  "Paladin": {
+    "Oath of Devotion": {
+      "3": ["Protection from Evil and Good", "Sanctuary"],
+      "5": ["Lesser Restoration", "Zone of Truth"],
+      "9": ["Beacon of Hope", "Dispel Magic"],
+      "13": ["Freedom of Movement", "Guardian of Faith"],
+      "17": ["Commune", "Flame Strike"]
+    },
+    "Oath of the Ancients": {
+      "3": ["Ensnaring Strike", "Speak with Animals"],
+      "5": ["Moonbeam", "Misty Step"],
+      "9": ["Plant Growth", "Protection from Energy"],
+      "13": ["Ice Storm", "Stoneskin"],
+      "17": ["Commune with Nature", "Tree Stride"]
+    },
+    "Oath of Vengeance": {
+      "3": ["Bane", "Hunter's Mark"],
+      "5": ["Hold Person", "Misty Step"],
+      "9": ["Haste", "Protection from Energy"],
+      "13": ["Banishment", "Dimension Door"],
+      "17": ["Hold Monster", "Scrying"]
+    },
+    "Oath of Conquest": {
+      "3": ["Armor of Agathys", "Command"],
+      "5": ["Hold Person", "Spiritual Weapon"],
+      "9": ["Bestow Curse", "Fear"],
+      "13": ["Dominate Beast", "Stoneskin"],
+      "17": ["Cloudkill", "Dominate Person"]
+    },
+    "Oath of Redemption": {
+      "3": ["Sanctuary", "Sleep"],
+      "5": ["Calm Emotions", "Hold Person"],
+      "9": ["Counterspell", "Hypnotic Pattern"],
+      "13": ["Otiluke's Resilient Sphere", "Stoneskin"],
+      "17": ["Hold Monster", "Wall of Force"]
+    },
+    "Oath of Glory": {
+      "3": ["Guiding Bolt", "Heroism"],
+      "5": ["Enhance Ability", "Magic Weapon"],
+      "9": ["Haste", "Protection from Energy"],
+      "13": ["Compulsion", "Freedom of Movement"],
+      "17": ["Commune", "Flame Strike"]
+    },
+    "Oath of the Watchers": {
+      "3": ["Alarm", "Detect Magic"],
+      "5": ["Moonbeam", "See Invisibility"],
+      "9": ["Counterspell", "Nondetection"],
+      "13": ["Aura of Purity", "Banishment"],
+      "17": ["Hold Monster", "Scrying"]
+    },
+    "Oath of the Crown": {
+      "3": ["Command", "Compelled Duel"],
+      "5": ["Warding Bond", "Zone of Truth"],
+      "9": ["Aura of Vitality", "Spirit Guardians"],
+      "13": ["Banishment", "Guardian of Faith"],
+      "17": ["Circle of Power", "Geas"]
+    },
+    "Oathbreaker": {
+      "3": ["Hellish Rebuke", "Inflict Wounds"],
+      "5": ["Crown of Madness", "Darkness"],
+      "9": ["Animate Dead", "Bestow Curse"],
+      "13": ["Blight", "Confusion"],
+      "17": ["Contagion", "Dominate Person"]
+    }
+  },
+  "Druid": {
+    "Circle of the Land (Arctic)": {
+      "3": ["Hold Person", "Spike Growth"],
+      "5": ["Sleet Storm", "Slow"],
+      "7": ["Freedom of Movement", "Ice Storm"],
+      "9": ["Commune with Nature", "Cone of Cold"]
+    },
+    "Circle of the Land (Coast)": {
+      "3": ["Mirror Image", "Misty Step"],
+      "5": ["Water Breathing", "Water Walk"],
+      "7": ["Control Water", "Freedom of Movement"],
+      "9": ["Conjure Elemental", "Scrying"]
+    },
+    "Circle of the Land (Desert)": {
+      "3": ["Blur", "Silence"],
+      "5": ["Create Food and Water", "Protection from Energy"],
+      "7": ["Blight", "Hallucinatory Terrain"],
+      "9": ["Insect Plague", "Wall of Stone"]
+    },
+    "Circle of the Land (Forest)": {
+      "3": ["Barkskin", "Spider Climb"],
+      "5": ["Call Lightning", "Plant Growth"],
+      "7": ["Divination", "Freedom of Movement"],
+      "9": ["Commune with Nature", "Tree Stride"]
+    },
+    "Circle of the Land (Grassland)": {
+      "3": ["Invisibility", "Pass without Trace"],
+      "5": ["Daylight", "Haste"],
+      "7": ["Divination", "Freedom of Movement"],
+      "9": ["Dream", "Insect Plague"]
+    },
+    "Circle of the Land (Mountain)": {
+      "3": ["Spider Climb", "Spike Growth"],
+      "5": ["Lightning Bolt", "Meld into Stone"],
+      "7": ["Stone Shape", "Stoneskin"],
+      "9": ["Passwall", "Wall of Stone"]
+    },
+    "Circle of the Land (Swamp)": {
+      "3": ["Darkness", "Melf's Acid Arrow"],
+      "5": ["Water Walk", "Stinking Cloud"],
+      "7": ["Freedom of Movement", "Locate Creature"],
+      "9": ["Insect Plague", "Scrying"]
+    },
+    "Circle of the Land (Underdark)": {
+      "3": ["Spider Climb", "Web"],
+      "5": ["Gaseous Form", "Stinking Cloud"],
+      "7": ["Greater Invisibility", "Stone Shape"],
+      "9": ["Cloudkill", "Insect Plague"]
+    },
+    "Circle of Spores": {
+      "3": ["Blindness/Deafness", "Gentle Repose"],
+      "5": ["Animate Dead", "Gaseous Form"],
+      "7": ["Blight", "Confusion"],
+      "9": ["Cloudkill", "Contagion"]
+    },
+    "Circle of Stars": {
+      "3": ["Guiding Bolt", "Faerie Fire"],
+      "5": ["See Invisibility", "Moonbeam"],
+      "7": ["Aura of Life", "Aura of Vitality"],
+      "9": ["Commune", "Dream"]
+    },
+    "Circle of Wildfire": {
+      "3": ["Burning Hands", "Cure Wounds"],
+      "5": ["Flaming Sphere", "Scorching Ray"],
+      "7": ["Plant Growth", "Revivify"],
+      "9": ["Aura of Life", "Fire Shield"]
+    }
+  },
+  "Warlock": {
+    "The Archfey": {
+      "1": ["Faerie Fire", "Sleep"],
+      "3": ["Calm Emotions", "Phantasmal Force"],
+      "5": ["Blink", "Plant Growth"],
+      "7": ["Dominate Beast", "Greater Invisibility"],
+      "9": ["Dominate Person", "Seeming"]
+    },
+    "The Fiend": {
+      "1": ["Burning Hands", "Command"],
+      "3": ["Blindness/Deafness", "Scorching Ray"],
+      "5": ["Fireball", "Stinking Cloud"],
+      "7": ["Fire Shield", "Wall of Fire"],
+      "9": ["Flame Strike", "Hallow"]
+    },
+    "The Great Old One": {
+      "1": ["Dissonant Whispers", "Tasha's Hideous Laughter"],
+      "3": ["Detect Thoughts", "Phantasmal Force"],
+      "5": ["Clairvoyance", "Sending"],
+      "7": ["Dominate Beast", "Evard's Black Tentacles"],
+      "9": ["Dominate Person", "Telekinesis"]
+    },
+    "The Celestial": {
+      "1": ["Cure Wounds", "Guiding Bolt"],
+      "3": ["Flaming Sphere", "Lesser Restoration"],
+      "5": ["Daylight", "Revivify"],
+      "7": ["Guardian of Faith", "Wall of Fire"],
+      "9": ["Flame Strike", "Greater Restoration"]
+    },
+    "The Hexblade": {
+      "1": ["Shield", "Wrathful Smite"],
+      "3": ["Blur", "Branding Smite"],
+      "5": ["Blink", "Elemental Weapon"],
+      "7": ["Phantasmal Killer", "Staggering Smite"],
+      "9": ["Banishing Smite", "Cone of Cold"]
+    },
+    "The Fathomless": {
+      "1": ["Create or Destroy Water", "Thunderwave"],
+      "3": ["Gust of Wind", "Silence"],
+      "5": ["Lightning Bolt", "Sleet Storm"],
+      "7": ["Control Water", "Summon Elemental"],
+      "9": ["Bigby's Hand", "Cone of Cold"]
+    },
+    "The Genie": {
+      "1": ["Detect Evil and Good", "Sanctuary"],
+      "3": ["Phantasmal Force", "See Invisibility"],
+      "5": ["Create Food and Water", "Protection from Energy"],
+      "7": ["Phantasmal Killer", "Polymorph"],
+      "9": ["Creation", "Wish"]
+    },
+    "The Undead": {
+      "1": ["Bane", "False Life"],
+      "3": ["Blindness/Deafness", "Phantasmal Force"],
+      "5": ["Phantom Steed", "Speak with Dead"],
+      "7": ["Death Ward", "Greater Invisibility"],
+      "9": ["Antilife Shell", "Cloudkill"]
+    },
+    "The Undying": {
+      "1": ["False Life", "Ray of Sickness"],
+      "3": ["Blindness/Deafness", "Silence"],
+      "5": ["Feign Death", "Speak with Dead"],
+      "7": ["Aura of Life", "Death Ward"],
+      "9": ["Contagion", "Legend Lore"]
+    }
+  },
+  "Ranger": {
+    "Hunter": {},
+    "Beast Master": {},
+    "Gloom Stalker": {
+      "3": ["Disguise Self"],
+      "5": ["Rope Trick"],
+      "9": ["Fear"],
+      "13": ["Greater Invisibility"],
+      "17": ["Seeming"]
+    },
+    "Horizon Walker": {
+      "3": ["Protection from Evil and Good"],
+      "5": ["Misty Step"],
+      "9": ["Haste"],
+      "13": ["Banishment"],
+      "17": ["Teleportation Circle"]
+    },
+    "Monster Slayer": {
+      "3": ["Protection from Evil and Good"],
+      "5": ["Zone of Truth"],
+      "9": ["Magic Circle"],
+      "13": ["Banishment"],
+      "17": ["Hold Monster"]
+    },
+    "Swarmkeeper": {
+      "3": ["Faerie Fire", "Mage Hand"],
+      "5": ["Web"],
+      "9": ["Gaseous Form"],
+      "13": ["Arcane Eye"],
+      "17": ["Insect Plague"]
+    },
+    "Fey Wanderer": {
+      "3": ["Charm Person"],
+      "5": ["Misty Step"],
+      "9": ["Dispel Magic"],
+      "13": ["Dimension Door"],
+      "17": ["Mislead"]
+    },
+    "Drakewarden": {
+      "3": ["Thaumaturgy"],
+      "5": ["Dragon's Breath"],
+      "9": ["Fear"],
+      "13": ["Elemental Bane"],
+      "17": ["Summon Draconic Spirit"]
+    }
+  },
+  "Sorcerer": {
+    "Draconic Bloodline": {},
+    "Wild Magic": {},
+    "Divine Soul": {
+      "_note": "Divine Soul gains access to the entire Cleric spell list, not specific always-prepared spells"
+    },
+    "Shadow Magic": {
+      "_note": "Shadow Magic gains specific features but no always-prepared spells"
+    },
+    "Storm Sorcery": {
+      "_note": "Storm Sorcery gains specific features but no always-prepared spells"
+    },
+    "Aberrant Mind": {
+      "1": ["Arms of Hadar", "Dissonant Whispers", "Mind Sliver"],
+      "3": ["Calm Emotions", "Detect Thoughts"],
+      "5": ["Hunger of Hadar", "Sending"],
+      "7": ["Evard's Black Tentacles", "Summon Aberration"],
+      "9": ["Rary's Telepathic Bond", "Telekinesis"]
+    },
+    "Clockwork Soul": {
+      "1": ["Alarm", "Protection from Evil and Good"],
+      "3": ["Aid", "Lesser Restoration"],
+      "5": ["Dispel Magic", "Protection from Energy"],
+      "7": ["Freedom of Movement", "Summon Construct"],
+      "9": ["Greater Restoration", "Wall of Force"]
+    }
+  }
+}

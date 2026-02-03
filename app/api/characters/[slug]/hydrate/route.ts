@@ -20,9 +20,23 @@ import {
 } from '@/lib/entryParser'
 
 /**
+ * Extended spellbook type that includes prepared spells
+ */
+interface ExtendedSpellbook extends Spellbook {
+  preparedSpells?: string[]
+}
+
+/**
+ * Extended hydrated spellbook that includes prepared spells
+ */
+interface ExtendedHydratedSpellbook extends HydratedSpellbook {
+  preparedSpells?: string[]
+}
+
+/**
  * Hydrate a spellbook with full spell data
  */
-async function hydrateSpellbook(spellbook: Spellbook): Promise<HydratedSpellbook> {
+async function hydrateSpellbook(spellbook: ExtendedSpellbook): Promise<ExtendedHydratedSpellbook> {
   const allSpells = await loadSpells()
 
   const hydratedSpells = spellbook.spellNames.reduce<HydratedSpell[]>((acc, name) => {
@@ -57,6 +71,7 @@ async function hydrateSpellbook(spellbook: Spellbook): Promise<HydratedSpellbook
   return {
     spells: hydratedSpells,
     archivistNote: spellbook.archivistNote,
+    preparedSpells: spellbook.preparedSpells || [],
   }
 }
 
@@ -156,9 +171,9 @@ export async function GET(
     }
 
     // Hydrate spellbook if character has one
-    let selectedSpellbook: HydratedSpellbook | null = null
+    let selectedSpellbook: ExtendedHydratedSpellbook | null = null
     if (activeLife.spellbook) {
-      selectedSpellbook = await hydrateSpellbook(activeLife.spellbook as unknown as Spellbook)
+      selectedSpellbook = await hydrateSpellbook(activeLife.spellbook as unknown as ExtendedSpellbook)
     }
 
     // Get saving throw proficiencies - use stored values, or fall back to class defaults
