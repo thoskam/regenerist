@@ -4,11 +4,15 @@ import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { Character, Quirk } from '@/lib/types'
 
+interface AdminCharacter extends Character {
+  owner?: { id: string; name: string | null; email?: string | null; image?: string | null } | null
+}
+
 type Tab = 'characters' | 'quirks'
 
 export default function AdminPage() {
   const [activeTab, setActiveTab] = useState<Tab>('characters')
-  const [characters, setCharacters] = useState<Character[]>([])
+  const [characters, setCharacters] = useState<AdminCharacter[]>([])
   const [quirks, setQuirks] = useState<Quirk[]>([])
   const [isLoading, setIsLoading] = useState(true)
 
@@ -30,7 +34,7 @@ export default function AdminPage() {
     setIsLoading(true)
     try {
       const [charsRes, quirksRes] = await Promise.all([
-        fetch('/api/characters'),
+        fetch('/api/admin/characters'),
         fetch('/api/quirks'),
       ])
       const [charsData, quirksData] = await Promise.all([
@@ -252,6 +256,7 @@ export default function AdminPage() {
                     <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Name</th>
                     <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Slug</th>
                     <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Level</th>
+                    <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Owner</th>
                     <th className="text-left px-4 py-3 text-sm font-semibold text-slate-300">Created</th>
                     <th className="text-right px-4 py-3 text-sm font-semibold text-slate-300">Actions</th>
                   </tr>
@@ -262,6 +267,10 @@ export default function AdminPage() {
                       <td className="px-4 py-3 font-medium">{character.name}</td>
                       <td className="px-4 py-3 text-slate-400 text-sm">{character.slug}</td>
                       <td className="px-4 py-3">{character.level}</td>
+                      <td className="px-4 py-3 text-slate-400 text-sm">
+                        {character.owner?.name || 'Unassigned'}
+                        {character.owner?.email ? ` (${character.owner.email})` : ''}
+                      </td>
                       <td className="px-4 py-3 text-slate-400 text-sm">
                         {new Date(character.createdAt).toLocaleDateString()}
                       </td>
@@ -283,7 +292,7 @@ export default function AdminPage() {
                   ))}
                   {characters.length === 0 && (
                     <tr>
-                      <td colSpan={5} className="px-4 py-8 text-center text-slate-500">
+                      <td colSpan={6} className="px-4 py-8 text-center text-slate-500">
                         No characters yet
                       </td>
                     </tr>
