@@ -79,7 +79,7 @@ export async function GET(
         if (invItem.itemId) {
           itemData = await getItem(invItem.itemId)
         } else if (invItem.customItem) {
-          itemData = invItem.customItem as InventoryItem['item']
+          itemData = invItem.customItem as unknown as InventoryItem['item']
         }
 
         return {
