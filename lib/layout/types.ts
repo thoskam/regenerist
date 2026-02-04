@@ -16,6 +16,8 @@ export type ModuleId =
   | 'exhaustion'
   | 'death-saves'
   | 'concentration'
+  | 'languages'
+  | 'senses'
   | 'inventory'
 
 export interface ModulePosition {
@@ -37,6 +39,8 @@ export interface ModuleDefinition {
   defaultOrder: number
   canCollapse: boolean
   canHide: boolean
+  canDismiss?: boolean
+  defaultVisible?: boolean
   minHeight?: number
   conditionalRender?: 'always' | 'caster-only' | 'at-zero-hp' | 'when-concentrating'
 }

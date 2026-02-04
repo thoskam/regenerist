@@ -3,6 +3,7 @@
 import DraggableModule from '@/components/layout/DraggableModule'
 import ProficiencyList from '@/components/ProficiencyList'
 import PassiveScores from '@/components/stats/PassiveScores'
+import { formatModifier } from '@/lib/calculations'
 import type { Stats } from '@/lib/types'
 
 interface SkillsModuleProps {
@@ -27,6 +28,10 @@ export default function SkillsModule({
   return (
     <DraggableModule moduleId="skills">
       <div className="space-y-3">
+        <div className="bg-slate-800 rounded-lg p-3 border border-slate-700 text-center">
+          <div className="text-xs text-slate-400 font-semibold tracking-wider">PROFICIENCY BONUS</div>
+          <div className="text-lg font-bold text-gold-400">{formatModifier(proficiencyBonus)}</div>
+        </div>
         <ProficiencyList
           stats={stats}
           proficiencies={proficiencies}

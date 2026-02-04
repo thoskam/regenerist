@@ -11,10 +11,11 @@ import LayoutGrid from '@/components/layout/LayoutGrid'
 import LayoutControls from '@/components/layout/LayoutControls'
 import MobileLayoutEditor from '@/components/layout/MobileLayoutEditor'
 import DiceControls from '@/components/dice/DiceControls'
-import SpellbookDrawer from '@/components/SpellbookDrawer'
 import ConcentrationBanner from '@/components/ConcentrationBanner'
 import { useCharacterStats } from '@/lib/modifiers/useCharacterStats'
 import { ModuleErrorBoundary } from '@/components/layout/ModuleErrorBoundary'
+import GlobalHUD from '@/components/character/GlobalHUD'
+import UtilityDrawerManager from '@/components/layout/UtilityDrawerManager'
 import StaticCharacterEditor, { EditorData } from '@/components/StaticCharacterEditor'
 import VisibilitySelector from '@/components/VisibilitySelector'
 import UserAvatar from '@/components/UserAvatar'
@@ -60,12 +61,12 @@ export default function CharacterPage() {
   const [hydratedData, setHydratedData] = useState<HydratedCharacterData | null>(null)
   const [actions, setActions] = useState<CharacterAction[]>([])
   const [initialLayout, setInitialLayout] = useState<LayoutConfig | null>(null)
+  const [initialSidebarItems, setInitialSidebarItems] = useState<ModuleId[]>([])
   const isMobile = useMediaQuery('(max-width: 767px)')
   const [regenPhase, setRegenPhase] = useState<'idle' | 'fading-out' | 'loading' | 'flashing-in'>('idle')
   const [showFlash, setShowFlash] = useState(false)
   const [showEditor, setShowEditor] = useState(false)
   const [isLifeDrawerOpen, setIsLifeDrawerOpen] = useState(false)
-  const [isSpellbookOpen, setIsSpellbookOpen] = useState(false)
   const [statsRefresh, setStatsRefresh] = useState(0)
   const { stats: calculatedStats } = useCharacterStats({
     characterSlug: slug,
@@ -171,6 +172,7 @@ export default function CharacterPage() {
         if (res.ok) {
           const data = await res.json()
           setInitialLayout(data.layout || generateDefaultLayout())
+          setInitialSidebarItems(data.sidebarItems || [])
           return
         }
       } catch (err) {
@@ -530,6 +532,12 @@ export default function CharacterPage() {
           <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">
             {character.name}
           </h1>
+          {currentLife && (
+            <p className="text-slate-300 mt-1">
+              {currentLife.class}
+              {currentLife.subclass ? ` (${currentLife.subclass})` : ''}
+            </p>
+          )}
           {currentLife && character.isRegenerist && (
             <p className="text-slate-400 mt-2">
               Life #{currentLife.lifeNumber}
@@ -572,7 +580,11 @@ export default function CharacterPage() {
 
         {/* Main Content */}
         {initialLayout ? (
-          <LayoutProvider characterSlug={slug} initialLayout={initialLayout}>
+      <LayoutProvider
+        characterSlug={slug}
+        initialLayout={initialLayout}
+        initialSidebarItems={initialSidebarItems}
+      >
             <div className="space-y-4">
               {activeState?.concentratingOn && (
                 <div className="sticky top-16 z-30">
@@ -581,6 +593,20 @@ export default function CharacterPage() {
                     onBreak={handleBreakConcentration}
                   />
                 </div>
+              )}
+              {characterData && (
+                <GlobalHUD
+                  stats={characterData.stats}
+                  baseStats={characterData.baseStats}
+                  currentHp={characterData.currentHp}
+                  maxHp={characterData.maxHp}
+                  tempHp={activeState?.tempHp ?? 0}
+                  ac={characterData.calculatedStats?.ac.total}
+                  initiative={characterData.calculatedStats?.initiative}
+                  speed={characterData.calculatedStats?.speed}
+                  characterId={characterData.characterId}
+                  characterName={characterData.characterName}
+                />
               )}
               {isOwner && (
                 <div className="flex items-center justify-between gap-4">
@@ -636,6 +662,7 @@ export default function CharacterPage() {
                       )}
                     />
                   )}
+                  {characterData && <UtilityDrawerManager characterData={characterData} />}
                 </div>
               ) : (
                 <div className="bg-slate-800 rounded-lg p-8 border border-slate-700 text-center">
@@ -645,29 +672,7 @@ export default function CharacterPage() {
                 </div>
               )}
 
-              {characterData && hydratedData?.isSpellcaster && (
-                <>
-                  <button
-                    onClick={() => setIsSpellbookOpen(true)}
-                    className="fixed right-8 top-1/2 -translate-y-1/2 bg-slate-800 border border-slate-700 rounded-l-lg px-5 py-3 text-base text-slate-200 hover:bg-slate-700 z-40 rotate-[-90deg] origin-right"
-                  >
-                    Spellbook
-                  </button>
-                  <SpellbookDrawer
-                    hydratedData={hydratedData}
-                    stats={characterData.stats}
-                    proficiencyBonus={characterData.proficiencyBonus}
-                    slug={characterData.slug}
-                    lifeId={characterData.lifeId}
-                    className={characterData.className}
-                    onRefresh={characterData.onRefresh}
-                    isOpen={isSpellbookOpen}
-                    onClose={() => setIsSpellbookOpen(false)}
-                    characterId={characterData.characterId}
-                    characterName={characterData.characterName}
-                  />
-                </>
-              )}
+              {characterData && hydratedData?.isSpellcaster && null}
             </div>
           </LayoutProvider>
         ) : (

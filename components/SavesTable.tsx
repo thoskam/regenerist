@@ -43,7 +43,7 @@ export default function SavesTable({
     <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
       <h3 className="text-xs text-slate-400 font-semibold tracking-wider mb-3">SAVING THROWS</h3>
 
-      <div className="grid grid-cols-2 gap-1">
+      <div className="grid grid-cols-1 gap-2">
         {SAVE_ORDER.map((ability) => {
           const isProficient = savingThrowProficiencies.includes(ability)
           const calculated = calculatedSaves?.[ability]

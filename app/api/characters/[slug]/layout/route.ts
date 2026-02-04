@@ -4,6 +4,13 @@ import { prisma } from '@/lib/prisma'
 import { getSession } from '@/lib/auth-utils'
 import { generateDefaultLayout, mergeWithDefaults } from '@/lib/layout/defaultLayout'
 import type { LayoutConfig } from '@/lib/layout/types'
+import { MODULE_REGISTRY } from '@/lib/layout/moduleRegistry'
+
+function getDefaultSidebarItems() {
+  return Object.values(MODULE_REGISTRY)
+    .filter((module) => module.defaultVisible === false && module.canDismiss)
+    .map((module) => module.id)
+}
 
 async function canViewCharacter(
   character: { userId: string | null; visibility: string; id: number },
@@ -54,11 +61,25 @@ export async function GET(
       return NextResponse.json({ error: 'You do not have permission to view this character' }, { status: 403 })
     }
 
-    const layout = character.layout?.layout
-      ? mergeWithDefaults(character.layout.layout as unknown as Partial<LayoutConfig>)
-      : generateDefaultLayout()
+    const rawLayout = character.layout?.layout as unknown
+    let layout = generateDefaultLayout()
+    let sidebarItems: string[] = []
 
-    return NextResponse.json({ layout })
+    if (rawLayout && typeof rawLayout === 'object') {
+      const record = rawLayout as { layout?: Partial<LayoutConfig>; sidebarItems?: string[] }
+      if (record.layout) {
+        layout = mergeWithDefaults(record.layout)
+        sidebarItems = Array.isArray(record.sidebarItems) ? record.sidebarItems : []
+      } else {
+        layout = mergeWithDefaults(rawLayout as Partial<LayoutConfig>)
+      }
+    }
+
+    if (sidebarItems.length === 0) {
+      sidebarItems = getDefaultSidebarItems()
+    }
+
+    return NextResponse.json({ layout, sidebarItems })
   } catch (error) {
     console.error('Layout fetch error:', error)
     return NextResponse.json({ error: 'Failed to fetch layout' }, { status: 500 })
@@ -98,15 +119,16 @@ export async function PUT(
 
     const body = await request.json().catch(() => ({}))
     const layout = body.layout ?? {}
+    const sidebarItems = Array.isArray(body.sidebarItems) ? body.sidebarItems : []
 
     await prisma.characterLayout.upsert({
       where: { characterId: character.id },
       create: {
         characterId: character.id,
-        layout: layout as Prisma.InputJsonValue,
+        layout: { layout, sidebarItems } as Prisma.InputJsonValue,
       },
       update: {
-        layout: layout as Prisma.InputJsonValue,
+        layout: { layout, sidebarItems } as Prisma.InputJsonValue,
       },
     })
 
@@ -142,7 +164,10 @@ export async function DELETE(
       where: { characterId: character.id },
     })
 
-    return NextResponse.json({ layout: generateDefaultLayout() })
+    return NextResponse.json({
+      layout: generateDefaultLayout(),
+      sidebarItems: getDefaultSidebarItems(),
+    })
   } catch (error) {
     console.error('Layout reset error:', error)
     return NextResponse.json({ error: 'Failed to reset layout' }, { status: 500 })

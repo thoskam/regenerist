@@ -9,10 +9,7 @@ import type { CalculatedStats } from '@/lib/modifiers/types'
 import SkillsModule from './SkillsModule'
 import SavingThrowsModule from './SavingThrowsModule'
 import ResourcesModule from './ResourcesModule'
-import CombatStatsModule from './CombatStatsModule'
 import ProficiencyModule from './ProficiencyModule'
-import HitPointsModule from './HitPointsModule'
-import AbilityScoresModule from './AbilityScoresModule'
 import InfoTabsModule from './InfoTabsModule'
 import StoryTabsModule from './StoryTabsModule'
 import SpellbookModule from './SpellbookModule'
@@ -23,6 +20,8 @@ import ConditionsModule from './ConditionsModule'
 import ExhaustionModule from './ExhaustionModule'
 import DeathSavesModule from './DeathSavesModule'
 import InventoryModule from './InventoryModule'
+import LanguagesModule from './LanguagesModule'
+import SensesModule from './SensesModule'
 
 export interface CharacterData {
   characterId: string
@@ -124,43 +123,13 @@ export default function ModuleRenderer({ moduleId, characterData }: ModuleRender
         />
       )
     case 'combat-stats':
-      return (
-        <CombatStatsModule
-          stats={stats}
-          className={className}
-          race={race}
-          regenPhase={regenPhase}
-          characterId={characterId}
-          characterName={characterName}
-          calculatedStats={calculatedStats}
-        />
-      )
+      return null
     case 'proficiency':
       return <ProficiencyModule proficiencyBonus={proficiencyBonus} regenPhase={regenPhase} />
     case 'hit-points':
-      return (
-        <HitPointsModule
-          slug={slug}
-          lifeId={lifeId}
-          currentHp={characterData.currentHp}
-          maxHp={maxHp}
-          activeState={activeState}
-          conModifier={Math.floor((stats.con - 10) / 2)}
-          isOwner={isOwner}
-          onUpdate={onRefresh}
-        />
-      )
+      return null
     case 'ability-scores':
-      return (
-        <AbilityScoresModule
-          stats={stats}
-          baseStats={baseStats}
-          isRegenerating={isRegenerating}
-          regenPhase={regenPhase}
-          characterId={characterId}
-          characterName={characterName}
-        />
-      )
+      return null
     case 'info-tabs':
       return (
         <InfoTabsModule
@@ -257,6 +226,10 @@ export default function ModuleRenderer({ moduleId, characterData }: ModuleRender
           onRefresh={onRefresh}
         />
       )
+    case 'languages':
+      return <LanguagesModule raceInfo={hydratedData?.raceInfo || null} />
+    case 'senses':
+      return <SensesModule raceInfo={hydratedData?.raceInfo || null} />
     default:
       return null
   }

@@ -9,7 +9,7 @@ export function generateDefaultLayout(): LayoutConfig {
     layout[moduleId] = {
       column: definition.defaultColumn,
       order: definition.defaultOrder,
-      visible: true,
+      visible: definition.defaultVisible ?? true,
       collapsed: false,
     }
   }

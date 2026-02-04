@@ -6,12 +6,15 @@ import { generateDefaultLayout } from './defaultLayout'
 
 interface LayoutContextType {
   layout: LayoutConfig
+  sidebarItems: ModuleId[]
   isEditMode: boolean
   setEditMode: (editing: boolean) => void
   setLayout: React.Dispatch<React.SetStateAction<LayoutConfig>>
   moveModule: (moduleId: ModuleId, toColumn: number, toOrder: number) => void
   toggleModuleVisibility: (moduleId: ModuleId) => void
   toggleModuleCollapsed: (moduleId: ModuleId) => void
+  dismissModule: (moduleId: ModuleId) => void
+  restoreModule: (moduleId: ModuleId) => void
   resetLayout: () => void
   revertLayout: () => void
   saveLayout: () => Promise<void>
@@ -32,15 +35,25 @@ interface LayoutProviderProps {
   children: React.ReactNode
   characterSlug: string
   initialLayout?: LayoutConfig
+  initialSidebarItems?: ModuleId[]
 }
 
-export function LayoutProvider({ children, characterSlug, initialLayout }: LayoutProviderProps) {
+export function LayoutProvider({
+  children,
+  characterSlug,
+  initialLayout,
+  initialSidebarItems,
+}: LayoutProviderProps) {
   const defaultLayout = initialLayout || generateDefaultLayout()
   const [layout, setLayout] = useState<LayoutConfig>(defaultLayout)
   const [savedLayout, setSavedLayout] = useState<LayoutConfig>(defaultLayout)
+  const [sidebarItems, setSidebarItems] = useState<ModuleId[]>(initialSidebarItems || [])
+  const [savedSidebarItems, setSavedSidebarItems] = useState<ModuleId[]>(initialSidebarItems || [])
   const [isEditMode, setEditMode] = useState(false)
 
-  const hasUnsavedChanges = JSON.stringify(layout) !== JSON.stringify(savedLayout)
+  const hasUnsavedChanges =
+    JSON.stringify(layout) !== JSON.stringify(savedLayout) ||
+    JSON.stringify(sidebarItems) !== JSON.stringify(savedSidebarItems)
 
   const moveModule = useCallback((moduleId: ModuleId, toColumn: number, toOrder: number) => {
     setLayout((prev) => {
@@ -87,23 +100,83 @@ export function LayoutProvider({ children, characterSlug, initialLayout }: Layou
   const resetLayout = useCallback(() => {
     const freshLayout = generateDefaultLayout()
     setLayout(freshLayout)
+    setSidebarItems([])
   }, [])
 
   const revertLayout = useCallback(() => {
     setLayout(savedLayout)
-  }, [savedLayout])
+    setSidebarItems(savedSidebarItems)
+  }, [savedLayout, savedSidebarItems])
+
+  const persistLayout = useCallback(
+    async (nextLayout: LayoutConfig, nextSidebarItems: ModuleId[]) => {
+      const res = await fetch(`/api/characters/${characterSlug}/layout`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ layout: nextLayout, sidebarItems: nextSidebarItems }),
+      })
+      if (res.ok) {
+        setSavedLayout(nextLayout)
+        setSavedSidebarItems(nextSidebarItems)
+      }
+    },
+    [characterSlug]
+  )
+
+  const dismissModule = useCallback(
+    (moduleId: ModuleId) => {
+      setLayout((prev) => {
+        const nextLayout = {
+          ...prev,
+          [moduleId]: {
+            ...prev[moduleId],
+            visible: false,
+          },
+        }
+        setSidebarItems((current) => {
+          const nextSidebar = current.includes(moduleId) ? current : [...current, moduleId]
+          void persistLayout(nextLayout, nextSidebar)
+          return nextSidebar
+        })
+        return nextLayout
+      })
+    },
+    [persistLayout]
+  )
+
+  const restoreModule = useCallback(
+    (moduleId: ModuleId) => {
+      setLayout((prev) => {
+        const nextLayout = {
+          ...prev,
+          [moduleId]: {
+            ...prev[moduleId],
+            visible: true,
+          },
+        }
+        setSidebarItems((current) => {
+          const nextSidebar = current.filter((id) => id !== moduleId)
+          void persistLayout(nextLayout, nextSidebar)
+          return nextSidebar
+        })
+        return nextLayout
+      })
+    },
+    [persistLayout]
+  )
 
   const saveLayout = useCallback(async () => {
     const res = await fetch(`/api/characters/${characterSlug}/layout`, {
       method: 'PUT',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ layout }),
+      body: JSON.stringify({ layout, sidebarItems }),
     })
     if (!res.ok) {
       throw new Error('Failed to save layout')
     }
     setSavedLayout(layout)
-  }, [characterSlug, layout])
+    setSavedSidebarItems(sidebarItems)
+  }, [characterSlug, layout, sidebarItems])
 
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
@@ -128,12 +201,15 @@ export function LayoutProvider({ children, characterSlug, initialLayout }: Layou
     <LayoutContext.Provider
       value={{
         layout,
+        sidebarItems,
         isEditMode,
         setEditMode,
         setLayout,
         moveModule,
         toggleModuleVisibility,
         toggleModuleCollapsed,
+        dismissModule,
+        restoreModule,
         resetLayout,
         revertLayout,
         saveLayout,

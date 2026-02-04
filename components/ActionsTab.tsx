@@ -29,6 +29,8 @@ export default function ActionsTab({
 }: ActionsTabProps) {
   const [filter, setFilter] = useState<ActionTiming | 'all' | 'attack'>('all')
   const [standardOpen, setStandardOpen] = useState(false)
+  const [expandedActions, setExpandedActions] = useState<Record<string, boolean>>({})
+  const [expandAll, setExpandAll] = useState(false)
 
   const grouped = useMemo(() => groupActionsByTiming(actions), [actions])
   const standardActions = useMemo(
@@ -76,6 +78,13 @@ export default function ActionsTab({
         >
           Special
         </button>
+        <button
+          onClick={() => setExpandAll((prev) => !prev)}
+          className="ml-auto px-3 py-1 rounded text-sm bg-slate-700 text-slate-300 hover:bg-slate-600"
+          type="button"
+        >
+          {expandAll ? 'Collapse All' : 'Expand All'}
+        </button>
 
       </div>
 
@@ -91,6 +100,13 @@ export default function ActionsTab({
                 onUse={() => onUseAction(action)}
                 characterId={characterId}
                 characterName={characterName}
+                isCollapsed={!expandAll && !expandedActions[action.id]}
+                onToggle={() =>
+                  setExpandedActions((prev) => ({
+                    ...prev,
+                    [action.id]: !prev[action.id],
+                  }))
+                }
               />
             ))}
           </div>
@@ -116,6 +132,13 @@ export default function ActionsTab({
                   onUse={() => onUseAction(action)}
                   characterId={characterId}
                   characterName={characterName}
+                  isCollapsed={!expandAll && !expandedActions[action.id]}
+                  onToggle={() =>
+                    setExpandedActions((prev) => ({
+                      ...prev,
+                      [action.id]: !prev[action.id],
+                    }))
+                  }
                 />
               ))}
             </div>
@@ -144,6 +167,13 @@ export default function ActionsTab({
                   onUse={() => onUseAction(action)}
                   characterId={characterId}
                   characterName={characterName}
+                  isCollapsed={!expandAll && !expandedActions[action.id]}
+                  onToggle={() =>
+                    setExpandedActions((prev) => ({
+                      ...prev,
+                      [action.id]: !prev[action.id],
+                    }))
+                  }
                 />
               ))}
             </div>

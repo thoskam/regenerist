@@ -9,6 +9,8 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     defaultOrder: 0,
     canCollapse: true,
     canHide: true,
+    canDismiss: true,
+    defaultVisible: false,
   },
   'saving-throws': {
     id: 'saving-throws',
@@ -18,6 +20,8 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     defaultOrder: 1,
     canCollapse: true,
     canHide: false,
+    canDismiss: true,
+    defaultVisible: false,
   },
   resources: {
     id: 'resources',
@@ -45,6 +49,8 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     defaultOrder: 4,
     canCollapse: true,
     canHide: true,
+    canDismiss: true,
+    defaultVisible: false,
   },
   exhaustion: {
     id: 'exhaustion',
@@ -54,6 +60,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     defaultOrder: 5,
     canCollapse: false,
     canHide: true,
+    defaultVisible: false,
   },
   'death-saves': {
     id: 'death-saves',
@@ -64,6 +71,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     canCollapse: false,
     canHide: true,
     conditionalRender: 'at-zero-hp',
+    defaultVisible: false,
   },
   concentration: {
     id: 'concentration',
@@ -74,6 +82,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     canCollapse: false,
     canHide: true,
     conditionalRender: 'when-concentrating',
+    defaultVisible: false,
   },
   'combat-stats': {
     id: 'combat-stats',
@@ -83,6 +92,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     defaultOrder: 0,
     canCollapse: false,
     canHide: false,
+    defaultVisible: false,
   },
   proficiency: {
     id: 'proficiency',
@@ -92,6 +102,8 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     defaultOrder: 1,
     canCollapse: false,
     canHide: true,
+    canDismiss: false,
+    defaultVisible: false,
   },
   'hit-points': {
     id: 'hit-points',
@@ -101,6 +113,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     defaultOrder: 2,
     canCollapse: false,
     canHide: false,
+    defaultVisible: false,
   },
   'ability-scores': {
     id: 'ability-scores',
@@ -110,6 +123,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     defaultOrder: 3,
     canCollapse: false,
     canHide: false,
+    defaultVisible: false,
   },
   'info-tabs': {
     id: 'info-tabs',
@@ -119,6 +133,8 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     defaultOrder: 4,
     canCollapse: true,
     canHide: true,
+    canDismiss: true,
+    defaultVisible: false,
   },
   'story-tabs': {
     id: 'story-tabs',
@@ -138,6 +154,8 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     canCollapse: false,
     canHide: false,
     conditionalRender: 'caster-only',
+    canDismiss: true,
+    defaultVisible: false,
   },
   chronicle: {
     id: 'chronicle',
@@ -147,6 +165,8 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     defaultOrder: 2,
     canCollapse: true,
     canHide: true,
+    canDismiss: true,
+    defaultVisible: false,
   },
   quirks: {
     id: 'quirks',
@@ -156,6 +176,7 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     defaultOrder: 3,
     canCollapse: true,
     canHide: true,
+    defaultVisible: false,
   },
   inventory: {
     id: 'inventory',
@@ -165,6 +186,28 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     defaultOrder: 4,
     canCollapse: true,
     canHide: true,
+  },
+  languages: {
+    id: 'languages',
+    name: 'Languages',
+    description: 'Known languages and proficiencies',
+    defaultColumn: 0,
+    defaultOrder: 8,
+    canCollapse: true,
+    canHide: true,
+    canDismiss: true,
+    defaultVisible: false,
+  },
+  senses: {
+    id: 'senses',
+    name: 'Senses',
+    description: 'Darkvision and other senses',
+    defaultColumn: 0,
+    defaultOrder: 9,
+    canCollapse: true,
+    canHide: true,
+    canDismiss: true,
+    defaultVisible: false,
   },
 }
 

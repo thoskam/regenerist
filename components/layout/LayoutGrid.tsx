@@ -22,6 +22,8 @@ interface LayoutGridProps {
   renderModule: (moduleId: ModuleId) => React.ReactNode
 }
 
+const ACTION_CENTER_MODULES: ModuleId[] = ['story-tabs', 'inventory', 'resources']
+
 export default function LayoutGrid({ renderModule }: LayoutGridProps) {
   const { layout, isEditMode, moveModule } = useLayout()
   const isMobile = useMediaQuery('(max-width: 767px)')
@@ -79,7 +81,7 @@ export default function LayoutGrid({ renderModule }: LayoutGridProps) {
 
   const getSortedModules = () =>
     Object.entries(layout)
-      .filter(([, pos]) => pos.visible)
+      .filter(([id, pos]) => pos.visible && ACTION_CENTER_MODULES.includes(id as ModuleId))
       .sort((a, b) => {
         if (isMobile) {
           const colA = a[1].column
@@ -94,30 +96,39 @@ export default function LayoutGrid({ renderModule }: LayoutGridProps) {
   const getModulesForColumn = (columnIndex: 0 | 1 | 2) =>
     getSortedModules().filter((id) => getResponsiveColumn(id) === columnIndex)
 
+  const visibleCount = getSortedModules().length
+
   if (isMobile) {
-    return <div className="flex flex-col gap-3">{getSortedModules().map((id) => renderModule(id))}</div>
+    return <div className="flex flex-col gap-6">{getSortedModules().map((id) => renderModule(id))}</div>
   }
 
   if (!isEditMode) {
     return (
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-4">
-        <div className="lg:col-span-3 flex flex-col gap-4">
+      <div className="space-y-4">
+        {visibleCount > 6 && (
+          <div className="bg-amber-900/20 border border-amber-500/40 text-amber-300 text-sm rounded-lg p-3">
+            You have more than 6 primary blocks visible. Consider dismissing to the Utility Drawer.
+          </div>
+        )}
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
+          <div className="lg:col-span-3 flex flex-col gap-6">
           {getModulesForColumn(0).map((id) => renderModule(id))}
         </div>
         {isTablet ? (
-          <div className="lg:col-span-9 flex flex-col gap-4">
+            <div className="lg:col-span-9 flex flex-col gap-6">
             {getModulesForColumn(1).map((id) => renderModule(id))}
           </div>
         ) : (
           <>
-            <div className="lg:col-span-5 flex flex-col gap-4">
+              <div className="lg:col-span-5 flex flex-col gap-6">
               {getModulesForColumn(1).map((id) => renderModule(id))}
             </div>
-            <div className="lg:col-span-4 flex flex-col gap-4">
+              <div className="lg:col-span-4 flex flex-col gap-6">
               {getModulesForColumn(2).map((id) => renderModule(id))}
             </div>
           </>
         )}
+      </div>
       </div>
     )
   }
@@ -130,7 +141,7 @@ export default function LayoutGrid({ renderModule }: LayoutGridProps) {
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
-        <div className="grid grid-cols-2 gap-4 edit-mode">
+        <div className="grid grid-cols-2 gap-6 edit-mode">
           <DroppableColumn columnIndex={0}>
             {getModulesForColumn(0).map((id) => renderModule(id))}
           </DroppableColumn>
@@ -157,7 +168,7 @@ export default function LayoutGrid({ renderModule }: LayoutGridProps) {
       onDragStart={handleDragStart}
       onDragEnd={handleDragEnd}
     >
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4 edit-mode">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 edit-mode">
         <DroppableColumn columnIndex={0}>
           {getModulesForColumn(0).map((id) => renderModule(id))}
         </DroppableColumn>
