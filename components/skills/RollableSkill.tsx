@@ -16,6 +16,7 @@ interface RollableSkillProps {
   characterId: string
   characterName: string
   label?: ReactNode
+  modifierBreakdown?: { source: string; value: number }[]
 }
 
 export default function RollableSkill({
@@ -29,6 +30,7 @@ export default function RollableSkill({
   characterId,
   characterName,
   label,
+  modifierBreakdown,
 }: RollableSkillProps) {
   const { makeSkillCheck } = useRoller({ characterId, characterName })
   const [isRolling, setIsRolling] = useState(false)
@@ -36,14 +38,18 @@ export default function RollableSkill({
   const handleClick = () => {
     setIsRolling(true)
 
-    const breakdown = [{ source: abilityName, value: abilityModifier }]
-
-    if (isProficient) {
-      breakdown.push({
-        source: hasExpertise ? 'Expertise' : 'Proficiency',
-        value: hasExpertise ? proficiencyBonus * 2 : proficiencyBonus,
-      })
-    }
+    const breakdown =
+      modifierBreakdown ??
+      (() => {
+        const base = [{ source: abilityName, value: abilityModifier }]
+        if (isProficient) {
+          base.push({
+            source: hasExpertise ? 'Expertise' : 'Proficiency',
+            value: hasExpertise ? proficiencyBonus * 2 : proficiencyBonus,
+          })
+        }
+        return base
+      })()
 
     makeSkillCheck(skillName, modifier, breakdown)
 

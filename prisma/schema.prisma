@@ -145,12 +145,22 @@ model Life {
   createdAt                DateTime @default(now())
   isActive                 Boolean  @default(false)
 
+  // Currency (individual denomination tracking)
+  currencyCP               Int      @default(0)  // Copper pieces
+  currencySP               Int      @default(0)  // Silver pieces
+  currencyEP               Int      @default(0)  // Electrum pieces
+  currencyGP               Int      @default(0)  // Gold pieces
+  currencyPP               Int      @default(0)  // Platinum pieces
+
   // Relationship to Character
   characterId Int
   character   Character @relation(fields: [characterId], references: [id], onDelete: Cascade)
 
   // Active State - Runtime combat/resource tracking
   activeState ActiveState?
+
+  // Inventory relation
+  inventory   CharacterInventory[]
 
   // lifeNumber is unique per character, not globally
   @@unique([characterId, lifeNumber])
@@ -220,4 +230,42 @@ model Quirk {
   isActive    Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
+}
+
+// ============================================
+// INVENTORY & EQUIPMENT SYSTEM
+// ============================================
+
+model CharacterInventory {
+  id            String    @id @default(cuid())
+
+  // Link to character's current life
+  lifeId        Int
+  life          Life      @relation(fields: [lifeId], references: [id], onDelete: Cascade)
+
+  // Item reference (either from 5eTools or custom)
+  itemId        String?   // Reference to 5eTools item (null if custom)
+  customItem    Json?     // Custom item data if not from 5eTools
+
+  // Inventory state
+  quantity      Int       @default(1)
+  equipped      Boolean   @default(false)
+  attuned       Boolean   @default(false)
+
+  // Equipment slot (for equipped items)
+  // Values: 'armor', 'shield', 'main-hand', 'off-hand', 'two-hand',
+  //         'head', 'neck', 'cloak', 'ring-1', 'ring-2', 'belt', 'boots', 'gloves'
+  equipSlot     String?
+
+  // Customization
+  notes         String?   // Player notes about this item
+  customName    String?   // Override name (e.g., "Grandfather's Sword")
+  charges       Int?      // For items with charges
+  maxCharges    Int?      // Maximum charges
+
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  @@index([lifeId])
+  @@index([equipped])
 }

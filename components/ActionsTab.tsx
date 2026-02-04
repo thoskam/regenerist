@@ -27,7 +27,7 @@ export default function ActionsTab({
   characterId,
   characterName,
 }: ActionsTabProps) {
-  const [filter, setFilter] = useState<ActionTiming | 'all'>('all')
+  const [filter, setFilter] = useState<ActionTiming | 'all' | 'attack'>('all')
   const [standardOpen, setStandardOpen] = useState(false)
 
   const grouped = useMemo(() => groupActionsByTiming(actions), [actions])
@@ -35,6 +35,7 @@ export default function ActionsTab({
     () => (grouped.action || []).filter((action) => action.isStandard),
     [grouped]
   )
+  const attackActions = useMemo(() => actions.filter((action) => action.isAttack), [actions])
 
   return (
     <div className="space-y-6 p-2 sm:p-3">
@@ -44,6 +45,12 @@ export default function ActionsTab({
           className={`px-3 py-1 rounded text-sm ${filter === 'all' ? 'bg-amber-600 text-white' : 'bg-slate-700 text-slate-300'}`}
         >
           All
+        </button>
+        <button
+          onClick={() => setFilter('attack')}
+          className={`px-3 py-1 rounded text-sm ${filter === 'attack' ? 'bg-amber-600 text-white' : 'bg-slate-700 text-slate-300'}`}
+        >
+          Attacks
         </button>
         <button
           onClick={() => setFilter('action')}
@@ -63,13 +70,37 @@ export default function ActionsTab({
         >
           Reactions
         </button>
+        <button
+          onClick={() => setFilter('special')}
+          className={`px-3 py-1 rounded text-sm ${filter === 'special' ? 'bg-amber-600 text-white' : 'bg-slate-700 text-slate-300'}`}
+        >
+          Special
+        </button>
 
       </div>
+
+      {(filter === 'all' || filter === 'attack') && attackActions.length > 0 && (
+        <div>
+          <h3 className="text-lg font-bold mb-3">⚔️ Attacks</h3>
+          <div className="grid gap-3">
+            {attackActions.map((action) => (
+              <ActionCard
+                key={action.id}
+                action={action}
+                activeState={activeState}
+                onUse={() => onUseAction(action)}
+                characterId={characterId}
+                characterName={characterName}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {sections.map((section) => {
         if (filter !== 'all' && filter !== section.key) return null
         const sectionActions = (grouped[section.key as ActionTiming] || []).filter(
-          (action) => !action.isStandard
+          (action) => !action.isStandard && !action.isAttack
         )
         if (sectionActions.length === 0) return null
 
@@ -92,7 +123,7 @@ export default function ActionsTab({
         )
       })}
 
-      {standardActions.length > 0 && (
+      {filter === 'all' && standardActions.length > 0 && (
         <div>
           <button
             type="button"

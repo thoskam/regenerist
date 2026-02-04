@@ -10,6 +10,7 @@ interface SavingThrowsModuleProps {
   proficiencyBonus: number
   characterId: string
   characterName: string
+  calculatedSaves?: Record<string, { total: number; breakdown: { source: string; value: number }[] }>
 }
 
 export default function SavingThrowsModule({
@@ -18,6 +19,7 @@ export default function SavingThrowsModule({
   proficiencyBonus,
   characterId,
   characterName,
+  calculatedSaves,
 }: SavingThrowsModuleProps) {
   return (
     <DraggableModule moduleId="saving-throws">
@@ -27,6 +29,7 @@ export default function SavingThrowsModule({
         proficiencyBonus={proficiencyBonus}
         characterId={characterId}
         characterName={characterName}
+        calculatedSaves={calculatedSaves}
       />
     </DraggableModule>
   )

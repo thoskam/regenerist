@@ -3,6 +3,7 @@
 import type { CharacterAction, ActionTiming } from '@/lib/actions/types'
 import type { HydratedActiveState } from '@/lib/types/5etools'
 import { useRoller } from '@/lib/dice/useRoller'
+import { useRoll } from '@/lib/dice/RollContext'
 
 interface ActionCardProps {
   action: CharacterAction
@@ -20,6 +21,7 @@ export default function ActionCard({
   characterName,
 }: ActionCardProps) {
   const { makeAttackRoll, makeFeatureDamageRoll, makeHealingRoll } = useRoller({ characterId, characterName })
+  const { showRollResult } = useRoll()
   const isAvailable = checkActionAvailable(action, activeState)
   const timingLabel = action.timing.charAt(0).toUpperCase() + action.timing.slice(1)
 
@@ -31,11 +33,23 @@ export default function ActionCard({
     if (!isAvailable) return
 
     if (action.isAttack && typeof action.attackBonus === 'number') {
-      makeAttackRoll(
+      const attackRoll = makeAttackRoll(
         action.name,
         action.attackBonus,
-        [{ source: 'Attack Bonus', value: action.attackBonus }]
+        action.attackBreakdown ?? [{ source: 'Attack Bonus', value: action.attackBonus }]
       )
+      const damageDice = action.damageDice || extractDamageDice(action.damage)
+      if (attackRoll && damageDice) {
+        attackRoll.damageDice = damageDice
+        attackRoll.damageType = action.damageType
+        attackRoll.damageBreakdown = action.damageBreakdown
+      }
+      if (damageDice) {
+        makeFeatureDamageRoll(action.name, damageDice, action.damageType, action.damageBreakdown)
+      }
+      if (attackRoll) {
+        showRollResult(attackRoll)
+      }
       if (action.isLimited) {
         onUse()
       }
@@ -48,7 +62,7 @@ export default function ActionCard({
   const handleRollDamage = () => {
     if (!isAvailable) return
     if (action.damageDice) {
-      makeFeatureDamageRoll(action.name, action.damageDice, action.damageType)
+      makeFeatureDamageRoll(action.name, action.damageDice, action.damageType, action.damageBreakdown)
     }
   }
 
@@ -77,12 +91,24 @@ export default function ActionCard({
       </div>
 
       {action.isAttack && (
-        <div className="flex gap-4 text-sm mb-2">
-          {typeof action.attackBonus === 'number' && (
-            <span className="text-green-400">+{action.attackBonus} to hit</span>
+        <div className="mb-2 space-y-1">
+          <div className="flex gap-4 text-sm">
+            {typeof action.attackBonus === 'number' && (
+              <span className="text-green-400">+{action.attackBonus} to hit</span>
+            )}
+            {action.damage && <span className="text-red-400">{action.damage}</span>}
+            {action.range && <span className="text-slate-400">{action.range}</span>}
+          </div>
+          {action.attackBreakdown && action.attackBreakdown.length > 0 && (
+            <div className="text-xs text-slate-400">
+              To hit: {action.attackBreakdown.map((entry) => `${entry.source} ${formatSigned(entry.value)}`).join(' • ')}
+            </div>
           )}
-          {action.damage && <span className="text-red-400">{action.damage}</span>}
-          {action.range && <span className="text-slate-400">{action.range}</span>}
+          {action.damageBreakdown && action.damageBreakdown.length > 0 && (
+            <div className="text-xs text-slate-500">
+              Damage: {action.damageBreakdown.map((entry) => `${entry.source} ${formatSigned(entry.value)}`).join(' • ')}
+            </div>
+          )}
         </div>
       )}
 
@@ -201,6 +227,16 @@ export default function ActionCard({
       </div>
     </div>
   )
+}
+
+function extractDamageDice(damageText?: string) {
+  if (!damageText) return null
+  const match = damageText.match(/[0-9]+d[0-9]+(?:\s*[+-]\s*\d+)*/i)
+  return match ? match[0].replace(/\s+/g, '') : null
+}
+
+function formatSigned(value: number) {
+  return `${value >= 0 ? '+' : ''}${value}`
 }
 
 function checkActionAvailable(action: CharacterAction, activeState: HydratedActiveState | null): boolean {

@@ -22,6 +22,8 @@ interface SpellbookModuleProps {
   subclassName: string
   level: number
   onRefresh: () => void
+  characterId: string
+  characterName: string
 }
 
 function getSpellHeader(className: string, isPrepared: boolean): string {
@@ -40,6 +42,8 @@ export default function SpellbookModule({
   subclassName,
   level,
   onRefresh,
+  characterId,
+  characterName,
 }: SpellbookModuleProps) {
   // Track prepared spells locally for optimistic updates
   const [localPreparedSpells, setLocalPreparedSpells] = useState<string[] | null>(null)
@@ -122,6 +126,8 @@ export default function SpellbookModule({
             alwaysPreparedSpells={alwaysPreparedSpells}
             maxPreparedSpells={maxPreparedSpells}
             onPreparedSpellsChange={handlePreparedSpellsChange}
+            characterId={characterId}
+            characterName={characterName}
           />
         </div>
       </div>

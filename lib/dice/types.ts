@@ -43,6 +43,9 @@ export interface RollResult {
   characterName: string
   targetDC?: number
   isSuccess?: boolean
+  damageDice?: string
+  damageType?: string
+  damageBreakdown?: ModifierSource[]
 }
 
 export interface RollRequest {

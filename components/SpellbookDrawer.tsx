@@ -14,6 +14,8 @@ interface SpellbookDrawerProps {
   onRefresh: () => void
   isOpen: boolean
   onClose: () => void
+  characterId: string
+  characterName: string
 }
 
 function getSpellHeader(className: string): string {
@@ -30,6 +32,8 @@ export default function SpellbookDrawer({
   onRefresh,
   isOpen,
   onClose,
+  characterId,
+  characterName,
 }: SpellbookDrawerProps) {
   if (!hydratedData?.isSpellcaster || !hydratedData.spellcastingAbility) return null
 
@@ -71,6 +75,8 @@ export default function SpellbookDrawer({
             lifeId={lifeId}
             onSpellbookUpdate={onRefresh}
             onCast={onRefresh}
+            characterId={characterId}
+            characterName={characterName}
           />
         </div>
       </aside>

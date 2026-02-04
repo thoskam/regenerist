@@ -16,6 +16,7 @@ export type ModuleId =
   | 'exhaustion'
   | 'death-saves'
   | 'concentration'
+  | 'inventory'
 
 export interface ModulePosition {
   column: 0 | 1 | 2

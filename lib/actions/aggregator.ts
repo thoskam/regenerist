@@ -1,6 +1,7 @@
 import type { CharacterAction, ActionTiming } from './types'
 import type { HydratedClassInfo, HydratedRaceInfo, HydratedSubclassInfo } from '@/lib/types/5etools'
 import type { Stats } from '@/lib/types'
+import type { InventoryItem } from '@/lib/items/types'
 import { STANDARD_ACTIONS } from '@/lib/data/standardActions'
 import { CLASS_ACTION_MAPPINGS, SUBCLASS_ACTION_MAPPINGS } from './classActions'
 import { enhanceAllActionMechanics } from './mechanicsEnhancer'
@@ -23,6 +24,7 @@ interface AggregateActionsParams {
       limitedFeatures?: Record<string, LimitedFeatureState>
     } | null
   }
+  inventory: InventoryItem[]
   classInfo: HydratedClassInfo
   subclassInfo: HydratedSubclassInfo | null
   raceInfo: HydratedRaceInfo | null
@@ -68,7 +70,7 @@ function getStandardActions(isSpellcaster: boolean): CharacterAction[] {
 }
 
 function getWeaponAttacks(params: AggregateActionsParams): CharacterAction[] {
-  const { proficiencyBonus, abilityModifiers, life } = params
+  const { proficiencyBonus, abilityModifiers, life, inventory } = params
   const actions: CharacterAction[] = []
 
   const strMod = abilityModifiers.str ?? 0
@@ -77,37 +79,66 @@ function getWeaponAttacks(params: AggregateActionsParams): CharacterAction[] {
   let extraAttackNote = ''
 
   if (['fighter', 'paladin', 'ranger', 'barbarian', 'monk'].includes(classLower)) {
-    if (life.level >= 5) extraAttackNote = ' (Extra Attack: 2 attacks)'
-    if (classLower === 'fighter' && life.level >= 11) extraAttackNote = ' (Extra Attack: 3 attacks)'
-    if (classLower === 'fighter' && life.level >= 20) extraAttackNote = ' (Extra Attack: 4 attacks)'
+    if (life.level >= 5) extraAttackNote = 'Extra Attack: 2 attacks'
+    if (classLower === 'fighter' && life.level >= 11) extraAttackNote = 'Extra Attack: 3 attacks'
+    if (classLower === 'fighter' && life.level >= 20) extraAttackNote = 'Extra Attack: 4 attacks'
   }
 
-  actions.push({
-    id: 'weapon-melee',
-    name: `Melee Weapon Attack${extraAttackNote}`,
-    timing: 'action',
-    source: 'weapon',
-    sourceName: 'Equipped Weapon',
-    isAttack: true,
-    attackBonus: proficiencyBonus + Math.max(strMod, dexMod),
-    damage: `Weapon die + ${strMod} (STR) or ${dexMod} (DEX for finesse)`,
-    description:
-      'Make a melee attack with your equipped weapon. Add STR modifier to hit and damage (or DEX for finesse weapons).',
-    shortDescription: `+${proficiencyBonus + strMod} to hit (STR) or +${proficiencyBonus + dexMod} (DEX/finesse)`,
-  })
+  const equippedWeapons = inventory.filter((item) => item.equipped && item.item?.weapon)
+  for (const invItem of equippedWeapons) {
+    const item = invItem.item
+    const weapon = item.weapon
+    if (!weapon) continue
 
-  actions.push({
-    id: 'weapon-ranged',
-    name: `Ranged Weapon Attack${extraAttackNote}`,
-    timing: 'action',
-    source: 'weapon',
-    sourceName: 'Equipped Weapon',
-    isAttack: true,
-    attackBonus: proficiencyBonus + dexMod,
-    damage: `Weapon die + ${dexMod}`,
-    description: 'Make a ranged attack with your equipped weapon. Add DEX modifier to hit and damage.',
-    shortDescription: `+${proficiencyBonus + dexMod} to hit`,
-  })
+    const isFinesse = weapon.properties.includes('finesse')
+    const isThrown = weapon.properties.includes('thrown')
+    const isAmmunition = weapon.properties.includes('ammunition')
+    const isRanged = Boolean(weapon.range) || weapon.properties.includes('range') || isAmmunition
+    const useDex = (isRanged && !isThrown) || (isFinesse && dexMod > strMod)
+    const abilityMod = useDex ? dexMod : strMod
+
+    const attackBonusBonus = getItemBonus(item, 'attack')
+    const damageBonusBonus = getItemBonus(item, 'damage')
+    const attackBonus = proficiencyBonus + abilityMod + attackBonusBonus
+    const damageBonus = abilityMod + damageBonusBonus
+
+    const abilityLabel = useDex ? 'Dexterity' : 'Strength'
+    const attackBreakdown = [
+      { source: abilityLabel, value: abilityMod },
+      { source: 'Proficiency', value: proficiencyBonus },
+      ...(attackBonusBonus ? [{ source: `${item.name} bonus`, value: attackBonusBonus }] : []),
+    ]
+    const damageBreakdown = [
+      { source: abilityLabel, value: abilityMod },
+      ...(damageBonusBonus ? [{ source: `${item.name} bonus`, value: damageBonusBonus }] : []),
+    ]
+
+    const properties = weapon.properties.map(formatWeaponProperty)
+    if (weapon.versatileDamage) {
+      properties.push(`Versatile ${weapon.versatileDamage}`)
+    }
+
+    const shortParts = [properties.length ? properties.join(', ') : null, extraAttackNote || null].filter(Boolean)
+
+    actions.push({
+      id: `weapon-${invItem.id}`,
+      name: invItem.customName || item.name,
+      timing: 'action',
+      source: 'weapon',
+      sourceName: invItem.customName || item.name,
+      isAttack: true,
+      attackBonus,
+      attackBreakdown,
+      damage: formatDamage(weapon.damage, damageBonus, weapon.damageType),
+      damageType: weapon.damageType,
+      damageDice: formatDamageDice(weapon.damage, damageBonus),
+      damageBreakdown,
+      range: formatRange(weapon.range, isRanged),
+      properties,
+      description: item.description || 'Make a weapon attack.',
+      shortDescription: shortParts.length ? shortParts.join(' • ') : undefined,
+    })
+  }
 
   actions.push({
     id: 'weapon-unarmed',
@@ -117,13 +148,53 @@ function getWeaponAttacks(params: AggregateActionsParams): CharacterAction[] {
     sourceName: 'Natural Weapons',
     isAttack: true,
     attackBonus: proficiencyBonus + strMod,
+    attackBreakdown: [
+      { source: 'Strength', value: strMod },
+      { source: 'Proficiency', value: proficiencyBonus },
+    ],
     damage: `1+${strMod} bludgeoning`,
     damageType: 'bludgeoning',
+    damageDice: `1+${strMod}`,
+    damageBreakdown: [{ source: 'Strength', value: strMod }],
     range: '5 ft',
     description: 'Strike with your fist, elbow, knee, or other body part.',
   })
 
   return actions
+}
+
+function formatWeaponProperty(property: string) {
+  return property
+    .split('-')
+    .map((part) => part.charAt(0).toUpperCase() + part.slice(1))
+    .join(' ')
+}
+
+function formatRange(range: string | undefined, isRanged: boolean) {
+  if (!range) return isRanged ? undefined : '5 ft'
+  return range.includes('ft') ? range : `${range} ft`
+}
+
+function formatDamage(baseDice: string, bonus: number, damageType: string) {
+  const bonusText = bonus === 0 ? '' : bonus > 0 ? `+${bonus}` : `${bonus}`
+  return `${baseDice}${bonusText} ${damageType}`
+}
+
+function formatDamageDice(baseDice: string, bonus: number) {
+  const bonusText = bonus === 0 ? '' : bonus > 0 ? `+${bonus}` : `${bonus}`
+  return `${baseDice}${bonusText}`
+}
+
+function getItemBonus(item: InventoryItem['item'], type: 'attack' | 'damage') {
+  if (!item) return 0
+  const matching = item.bonuses?.filter((bonus) => bonus.type === type) ?? []
+  if (matching.length > 0) {
+    return matching.reduce((total, bonus) => total + bonus.value, 0)
+  }
+  if (item.magicBonus && (type === 'attack' || type === 'damage')) {
+    return item.magicBonus
+  }
+  return 0
 }
 
 function getClassFeatureActions(params: AggregateActionsParams): CharacterAction[] {

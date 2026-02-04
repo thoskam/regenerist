@@ -4,6 +4,8 @@ import { getSession } from '@/lib/auth-utils'
 import { calculateProficiencyBonus } from '@/lib/calculations'
 import { getStatModifier } from '@/lib/statMapper'
 import { aggregateActions } from '@/lib/actions/aggregator'
+import { getItem } from '@/lib/items/itemDatabase'
+import type { InventoryItem } from '@/lib/items/types'
 import {
   getHydratedClassInfo,
   getHydratedSubclassInfo,
@@ -26,7 +28,7 @@ export async function GET(
         lives: {
           where: { isActive: true },
           take: 1,
-          include: { activeState: true },
+          include: { activeState: true, inventory: true },
         },
       },
     })
@@ -71,6 +73,30 @@ export async function GET(
 
     const proficiencyBonus = calculateProficiencyBonus(life.level)
 
+    const hydratedInventory: InventoryItem[] = await Promise.all(
+      life.inventory.map(async (invItem) => {
+        let itemData = null
+        if (invItem.itemId) {
+          itemData = await getItem(invItem.itemId)
+        } else if (invItem.customItem) {
+          itemData = invItem.customItem as InventoryItem['item']
+        }
+
+        return {
+          id: invItem.id,
+          item: itemData as InventoryItem['item'],
+          quantity: invItem.quantity,
+          equipped: invItem.equipped,
+          attuned: invItem.attuned,
+          equipSlot: invItem.equipSlot as InventoryItem['equipSlot'],
+          notes: invItem.notes || undefined,
+          customName: invItem.customName || undefined,
+          charges: invItem.charges || undefined,
+          maxCharges: invItem.maxCharges || undefined,
+        }
+      })
+    )
+
     const actions = aggregateActions({
       life: {
         class: life.class,
@@ -80,6 +106,7 @@ export async function GET(
         stats: stats as { str: number; dex: number; con: number; int: number; wis: number; cha: number },
         activeState: life.activeState ? { limitedFeatures: (life.activeState.limitedFeatures as Record<string, { name: string; max: number; used: number; recharge?: string }>) } : null,
       },
+      inventory: hydratedInventory,
       classInfo: classInfo || {
         name: life.class,
         hitDie: 8,

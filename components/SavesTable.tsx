@@ -11,6 +11,7 @@ interface SavesTableProps {
   proficiencyBonus: number
   characterId: string
   characterName: string
+  calculatedSaves?: Record<string, { total: number; breakdown: { source: string; value: number }[] }>
 }
 
 const SAVE_ORDER: StatName[] = ['str', 'dex', 'con', 'int', 'wis', 'cha']
@@ -30,6 +31,7 @@ export default function SavesTable({
   proficiencyBonus,
   characterId,
   characterName,
+  calculatedSaves,
 }: SavesTableProps) {
   const calculateSaveModifier = (ability: StatName): number => {
     const statMod = getStatModifier(stats[ability])
@@ -44,7 +46,8 @@ export default function SavesTable({
       <div className="grid grid-cols-2 gap-1">
         {SAVE_ORDER.map((ability) => {
           const isProficient = savingThrowProficiencies.includes(ability)
-          const modifier = calculateSaveModifier(ability)
+          const calculated = calculatedSaves?.[ability]
+          const modifier = typeof calculated?.total === 'number' ? calculated.total : calculateSaveModifier(ability)
           const abilityModifier = getStatModifier(stats[ability])
 
           return (
@@ -57,6 +60,7 @@ export default function SavesTable({
                 abilityModifier={abilityModifier}
                 characterId={characterId}
                 characterName={characterName}
+                modifierBreakdown={calculated?.breakdown}
               />
               <span className="sr-only">{formatModifier(modifier)}</span>
             </div>

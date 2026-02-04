@@ -157,6 +157,15 @@ export const MODULE_REGISTRY: Record<ModuleId, ModuleDefinition> = {
     canCollapse: true,
     canHide: true,
   },
+  inventory: {
+    id: 'inventory',
+    name: 'Inventory',
+    description: 'Character inventory and equipment',
+    defaultColumn: 2,
+    defaultOrder: 4,
+    canCollapse: true,
+    canHide: true,
+  },
 }
 
 export const ALL_MODULE_IDS = Object.keys(MODULE_REGISTRY) as ModuleId[]

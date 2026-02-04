@@ -11,10 +11,12 @@ export interface CharacterAction {
   // For attacks
   isAttack?: boolean
   attackBonus?: number
+  attackBreakdown?: ModifierSource[]
   damage?: string // "1d8+4 slashing"
   damageType?: string
   range?: string // "5 ft" or "30/120 ft"
   properties?: string[] // ["finesse", "versatile (1d10)"]
+  damageBreakdown?: ModifierSource[]
 
   // For spells
   isSpell?: boolean

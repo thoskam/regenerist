@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react'
 import { X, Check, XCircle, Sparkles, Skull, Copy, Send } from 'lucide-react'
 import { useRoll } from '@/lib/dice/RollContext'
+import { useRoller } from '@/lib/dice/useRoller'
 import RollNarration from './RollNarration'
 
 export default function RollResultModal() {
@@ -55,6 +56,11 @@ export default function RollResultModal() {
     setIsLoadingNarration(false)
   }, [currentRoll, settings.enableAINarration])
 
+  const { makeFeatureDamageRoll } = useRoller({
+    characterId: currentRoll?.characterId ?? '',
+    characterName: currentRoll?.characterName ?? '',
+  })
+
   if (!currentRoll) return null
 
   const {
@@ -72,7 +78,12 @@ export default function RollResultModal() {
     targetDC,
     isSuccess,
     characterName,
+    damageDice,
+    damageType,
+    damageBreakdown,
+    characterId,
   } = currentRoll
+  const canRollDamage = rollType === 'attack' && Boolean(damageDice)
 
   const getResultStyle = () => {
     if (isCriticalSuccess) return 'from-yellow-600 to-amber-600 border-yellow-400'
@@ -262,6 +273,23 @@ export default function RollResultModal() {
           )}
 
         <div className="flex gap-2">
+          {canRollDamage && (
+            <button
+              onClick={() => {
+                if (!damageDice) return
+                makeFeatureDamageRoll(
+                  rollName.replace(/ Attack$/, ''),
+                  damageDice,
+                  damageType,
+                  damageBreakdown
+                )
+              }}
+              className="flex-1 py-2 bg-red-600 hover:bg-red-500 rounded flex items-center justify-center gap-2 text-sm"
+              type="button"
+            >
+              Roll Damage
+            </button>
+          )}
           <button
             onClick={() => {
               navigator.clipboard.writeText(`${rollName}: ${total}`)

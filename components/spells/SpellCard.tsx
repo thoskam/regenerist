@@ -23,6 +23,10 @@ interface SpellCardProps {
   currentConcentration: string | null
   characterSlug: string
   onCast: () => void
+  spellAttackBonus: number
+  spellAttackBreakdown: { source: string; value: number }[]
+  characterId: string
+  characterName: string
   isExpanded?: boolean
   onToggleExpand?: () => void
   // Prepared caster props
@@ -39,6 +43,10 @@ export default function SpellCard({
   currentConcentration,
   characterSlug,
   onCast,
+  spellAttackBonus,
+  spellAttackBreakdown,
+  characterId,
+  characterName,
   isExpanded = false,
   onToggleExpand,
   isPreparedCaster = false,
@@ -246,6 +254,10 @@ export default function SpellCard({
           characterSlug={characterSlug}
           onClose={() => setShowCastModal(false)}
           onCast={onCast}
+          spellAttackBonus={spellAttackBonus}
+          spellAttackBreakdown={spellAttackBreakdown}
+          characterId={characterId}
+          characterName={characterName}
         />
       )}
     </>

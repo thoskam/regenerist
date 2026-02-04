@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react'
 import { X, Sparkles, Clock } from 'lucide-react'
+import { useRoller } from '@/lib/dice/useRoller'
 
 interface SpellSlotState {
   used: number
@@ -27,6 +28,10 @@ interface CastSpellModalProps {
   characterSlug: string
   onClose: () => void
   onCast: () => void
+  spellAttackBonus: number
+  spellAttackBreakdown: { source: string; value: number }[]
+  characterId: string
+  characterName: string
 }
 
 export default function CastSpellModal({
@@ -37,7 +42,15 @@ export default function CastSpellModal({
   characterSlug,
   onClose,
   onCast,
+  spellAttackBonus,
+  spellAttackBreakdown,
+  characterId,
+  characterName,
 }: CastSpellModalProps) {
+  const { makeAttackRoll, makeFeatureDamageRoll } = useRoller({
+    characterId,
+    characterName,
+  })
   const isCantrip = spell.level === 0
   const canCastAsRitual = spell.ritual
   const requiresConcentration = spell.concentration
@@ -115,6 +128,16 @@ export default function CastSpellModal({
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ spellName: spell.name }),
         })
+      }
+
+      const attackType = getSpellAttackType(spell.description)
+      if (attackType) {
+        makeAttackRoll(spell.name, spellAttackBonus, spellAttackBreakdown)
+      }
+
+      const damageDice = getSpellDamageDice(spell.description)
+      if (damageDice) {
+        makeFeatureDamageRoll(spell.name, damageDice)
       }
 
       onCast()
@@ -333,4 +356,16 @@ export default function CastSpellModal({
       </div>
     </div>
   )
+}
+
+function getSpellAttackType(description: string) {
+  if (/melee spell attack/i.test(description)) return 'melee'
+  if (/ranged spell attack/i.test(description)) return 'ranged'
+  if (/spell attack/i.test(description)) return 'spell'
+  return null
+}
+
+function getSpellDamageDice(description: string) {
+  const match = description.match(/\d+d\d+(?:\s*[+-]\s*\d+)*/i)
+  return match ? match[0].replace(/\s+/g, '') : null
 }

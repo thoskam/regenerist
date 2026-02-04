@@ -11,6 +11,7 @@ interface RollableSaveProps {
   abilityModifier: number
   characterId: string
   characterName: string
+  modifierBreakdown?: { source: string; value: number }[]
 }
 
 export default function RollableSave({
@@ -21,6 +22,7 @@ export default function RollableSave({
   abilityModifier,
   characterId,
   characterName,
+  modifierBreakdown,
 }: RollableSaveProps) {
   const { makeSavingThrow } = useRoller({ characterId, characterName })
   const [isRolling, setIsRolling] = useState(false)
@@ -28,11 +30,15 @@ export default function RollableSave({
   const handleClick = () => {
     setIsRolling(true)
 
-    const breakdown = [{ source: saveName, value: abilityModifier }]
-
-    if (isProficient) {
-      breakdown.push({ source: 'Proficiency', value: proficiencyBonus })
-    }
+    const breakdown =
+      modifierBreakdown ??
+      (() => {
+        const base = [{ source: saveName, value: abilityModifier }]
+        if (isProficient) {
+          base.push({ source: 'Proficiency', value: proficiencyBonus })
+        }
+        return base
+      })()
 
     makeSavingThrow(saveName, modifier, breakdown)
 

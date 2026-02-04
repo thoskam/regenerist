@@ -36,6 +36,8 @@ interface SpellListProps {
   alwaysPreparedSpells?: string[]
   maxPreparedSpells?: number
   onPreparedSpellsChange?: (preparedSpells: string[]) => void
+  characterId: string
+  characterName: string
 }
 
 const ABILITY_LABELS: Record<string, string> = {
@@ -84,6 +86,8 @@ export default function SpellList({
   alwaysPreparedSpells = [],
   maxPreparedSpells = 0,
   onPreparedSpellsChange,
+  characterId,
+  characterName,
 }: SpellListProps) {
   const [expandedSpell, setExpandedSpell] = useState<string | null>(null)
   const [filters, setFilters] = useState<SpellFilterState>(defaultFilters)
@@ -113,6 +117,10 @@ export default function SpellList({
   const abilityMod = getStatModifier(stats[spellcastingAbility as keyof Stats] || 10)
   const spellSaveDC = 8 + proficiencyBonus + abilityMod
   const spellAttackBonus = proficiencyBonus + abilityMod
+  const spellAttackBreakdown = [
+    { source: ABILITY_LABELS[spellcastingAbility] || spellcastingAbility, value: abilityMod },
+    { source: 'Proficiency', value: proficiencyBonus },
+  ]
   const spellSlots = activeState?.spellSlots || {}
   const pactSlots = {
     used: activeState?.pactSlotsUsed || 0,
@@ -392,6 +400,10 @@ export default function SpellList({
                           currentConcentration={currentConcentration}
                           characterSlug={slug || ''}
                           onCast={() => onCast?.()}
+                          spellAttackBonus={spellAttackBonus}
+                          spellAttackBreakdown={spellAttackBreakdown}
+                          characterId={characterId}
+                          characterName={characterName}
                           isExpanded={expandedSpell === spell.name}
                           onToggleExpand={() =>
                             setExpandedSpell(expandedSpell === spell.name ? null : spell.name)

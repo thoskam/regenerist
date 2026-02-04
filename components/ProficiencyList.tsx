@@ -14,6 +14,7 @@ interface ProficiencyListProps {
   proficiencyBonus: number
   characterId: string
   characterName: string
+  calculatedSkills?: Record<string, { total: number; breakdown: { source: string; value: number }[] }>
 }
 
 const ABILITY_LABELS: Record<StatName, string> = {
@@ -42,6 +43,7 @@ export default function ProficiencyList({
   proficiencyBonus,
   characterId,
   characterName,
+  calculatedSkills,
 }: ProficiencyListProps) {
   return (
     <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
@@ -60,7 +62,11 @@ export default function ProficiencyList({
               <div className="space-y-1">
                 {skills.map((skill) => {
                   const isProficient = proficiencies.includes(skill)
-                  const modifier = calculateSkillModifier(skill, stats, proficiencies, proficiencyBonus)
+                  const calculated = calculatedSkills?.[skill]
+                  const modifier =
+                    typeof calculated?.total === 'number'
+                      ? calculated.total
+                      : calculateSkillModifier(skill, stats, proficiencies, proficiencyBonus)
                   const abilityModifier = getStatModifier(stats[ability])
 
                   return (
@@ -75,6 +81,7 @@ export default function ProficiencyList({
                         abilityModifier={abilityModifier}
                         characterId={characterId}
                         characterName={characterName}
+                        modifierBreakdown={calculated?.breakdown}
                         label={
                           <SkillTooltip skillName={skill}>
                             <span

@@ -173,7 +173,12 @@ export function useRoller({ characterId, characterName }: UseRollerProps) {
    * Parses dice strings like "6d6", "2d8", "1d10+5"
    */
   const makeFeatureDamageRoll = useCallback(
-    (featureName: string, damageDice: string, damageType?: string) => {
+    (
+      featureName: string,
+      damageDice: string,
+      damageType?: string,
+      modifierBreakdown?: ModifierSource[]
+    ) => {
       const { dice, modifier } = parseDiceString(damageDice)
       const rollName = damageType
         ? `${featureName} (${damageType})`
@@ -183,6 +188,7 @@ export function useRoller({ characterId, characterName }: UseRollerProps) {
         rollName,
         dice,
         modifier,
+        modifierBreakdown,
         characterId,
         characterName,
       })

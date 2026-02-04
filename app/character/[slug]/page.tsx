@@ -13,6 +13,7 @@ import MobileLayoutEditor from '@/components/layout/MobileLayoutEditor'
 import DiceControls from '@/components/dice/DiceControls'
 import SpellbookDrawer from '@/components/SpellbookDrawer'
 import ConcentrationBanner from '@/components/ConcentrationBanner'
+import { useCharacterStats } from '@/lib/modifiers/useCharacterStats'
 import { ModuleErrorBoundary } from '@/components/layout/ModuleErrorBoundary'
 import StaticCharacterEditor, { EditorData } from '@/components/StaticCharacterEditor'
 import VisibilitySelector from '@/components/VisibilitySelector'
@@ -65,6 +66,12 @@ export default function CharacterPage() {
   const [showEditor, setShowEditor] = useState(false)
   const [isLifeDrawerOpen, setIsLifeDrawerOpen] = useState(false)
   const [isSpellbookOpen, setIsSpellbookOpen] = useState(false)
+  const [statsRefresh, setStatsRefresh] = useState(0)
+  const { stats: calculatedStats } = useCharacterStats({
+    characterSlug: slug,
+    refreshTrigger: statsRefresh,
+    enabled: Boolean(currentLife),
+  })
 
   const handleBreakConcentration = async () => {
     if (!slug) return
@@ -441,6 +448,7 @@ export default function CharacterPage() {
     await fetchCharacter()
     await fetchHydratedData()
     await fetchActions()
+    setStatsRefresh((prev) => prev + 1)
   }
 
   const characterData: CharacterData | null =
@@ -468,6 +476,7 @@ export default function CharacterPage() {
           hydratedData,
           actions,
           activeState,
+          calculatedStats,
           regenPhase,
           isRegenerating,
           onUseAction: handleUseAction,
@@ -654,6 +663,8 @@ export default function CharacterPage() {
                     onRefresh={characterData.onRefresh}
                     isOpen={isSpellbookOpen}
                     onClose={() => setIsSpellbookOpen(false)}
+                    characterId={characterData.characterId}
+                    characterName={characterData.characterName}
                   />
                 </>
               )}

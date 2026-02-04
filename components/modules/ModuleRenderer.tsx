@@ -4,6 +4,7 @@ import type { ModuleId } from '@/lib/layout/types'
 import type { HydratedCharacterData, HydratedActiveState } from '@/lib/types/5etools'
 import type { CharacterAction } from '@/lib/actions/types'
 import type { Stats } from '@/lib/types'
+import type { CalculatedStats } from '@/lib/modifiers/types'
 
 import SkillsModule from './SkillsModule'
 import SavingThrowsModule from './SavingThrowsModule'
@@ -21,6 +22,7 @@ import TempHpModule from './TempHpModule'
 import ConditionsModule from './ConditionsModule'
 import ExhaustionModule from './ExhaustionModule'
 import DeathSavesModule from './DeathSavesModule'
+import InventoryModule from './InventoryModule'
 
 export interface CharacterData {
   characterId: string
@@ -45,6 +47,7 @@ export interface CharacterData {
   hydratedData: HydratedCharacterData | null
   actions: CharacterAction[]
   activeState: HydratedActiveState | null
+  calculatedStats?: CalculatedStats | null
   regenPhase: 'idle' | 'fading-out' | 'loading' | 'flashing-in'
   isRegenerating: boolean
   onUseAction: (action: CharacterAction) => void
@@ -78,6 +81,7 @@ export default function ModuleRenderer({ moduleId, characterData }: ModuleRender
     hydratedData,
     actions,
     activeState,
+    calculatedStats,
     regenPhase,
     isRegenerating,
     onUseAction,
@@ -93,6 +97,8 @@ export default function ModuleRenderer({ moduleId, characterData }: ModuleRender
           proficiencyBonus={proficiencyBonus}
           characterId={characterId}
           characterName={characterName}
+          calculatedSkills={calculatedStats?.skills}
+          passives={calculatedStats?.passives}
         />
       )
     case 'saving-throws':
@@ -103,6 +109,7 @@ export default function ModuleRenderer({ moduleId, characterData }: ModuleRender
           proficiencyBonus={proficiencyBonus}
           characterId={characterId}
           characterName={characterName}
+          calculatedSaves={calculatedStats?.savingThrows}
         />
       )
     case 'resources':
@@ -125,6 +132,7 @@ export default function ModuleRenderer({ moduleId, characterData }: ModuleRender
           regenPhase={regenPhase}
           characterId={characterId}
           characterName={characterName}
+          calculatedStats={calculatedStats}
         />
       )
     case 'proficiency':
@@ -196,6 +204,8 @@ export default function ModuleRenderer({ moduleId, characterData }: ModuleRender
           subclassName={subclass}
           level={level}
           onRefresh={onRefresh}
+          characterId={characterId}
+          characterName={characterName}
         />
       )
     case 'chronicle':
@@ -238,6 +248,15 @@ export default function ModuleRenderer({ moduleId, characterData }: ModuleRender
       )
     case 'concentration':
       return null
+    case 'inventory':
+      if (!isOwner) return null
+      return (
+        <InventoryModule
+          characterSlug={slug}
+          isOwner={isOwner}
+          onRefresh={onRefresh}
+        />
+      )
     default:
       return null
   }
