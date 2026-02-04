@@ -157,33 +157,35 @@ export function calculateCharacterStats(data: CharacterData): CalculatedStats {
     insight: calculatePassive(skills.Insight?.total ?? 0),
   }
 
+  const attackBreakdown: Modifier[] = [
+    {
+      id: 'str-attack',
+      type: 'attack',
+      source: 'ability',
+      sourceName: 'Strength (melee)',
+      value: abilityMods.str,
+    },
+    {
+      id: 'dex-attack',
+      type: 'attack',
+      source: 'ability',
+      sourceName: 'Dexterity (ranged)',
+      value: abilityMods.dex,
+    },
+    {
+      id: 'prof-attack',
+      type: 'attack',
+      source: 'proficiency',
+      sourceName: 'Proficiency',
+      value: proficiencyBonus,
+    },
+    ...engine.getBreakdown('attack'),
+  ]
+
   const attackBonus = {
     melee: abilityMods.str + proficiencyBonus + engine.getTotal('attack'),
     ranged: abilityMods.dex + proficiencyBonus + engine.getTotal('attack'),
-    breakdown: [
-      {
-        id: 'str-attack',
-        type: 'attack',
-        source: 'ability',
-        sourceName: 'Strength (melee)',
-        value: abilityMods.str,
-      },
-      {
-        id: 'dex-attack',
-        type: 'attack',
-        source: 'ability',
-        sourceName: 'Dexterity (ranged)',
-        value: abilityMods.dex,
-      },
-      {
-        id: 'prof-attack',
-        type: 'attack',
-        source: 'proficiency',
-        sourceName: 'Proficiency',
-        value: proficiencyBonus,
-      },
-      ...engine.getBreakdown('attack'),
-    ],
+    breakdown: attackBreakdown,
   }
 
   const damageBonus = {
