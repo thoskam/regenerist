@@ -1,5 +1,7 @@
 export type ActionTiming = 'action' | 'bonus' | 'reaction' | 'free' | 'movement' | 'special'
 
+import type { ModifierSource } from '@/lib/dice/types'
+
 export interface CharacterAction {
   id: string
   name: string
