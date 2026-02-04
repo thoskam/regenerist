@@ -58,7 +58,7 @@ export async function GET(
     }
 
     const life = character.lives[0]
-    const stats = life.stats as Stats
+    const stats = life.stats as unknown as Stats
 
     const hydratedInventory: InventoryItem[] = await Promise.all(
       life.inventory.map(async (invItem) => {
@@ -66,7 +66,7 @@ export async function GET(
         if (invItem.itemId) {
           itemData = await getItem(invItem.itemId)
         } else if (invItem.customItem) {
-          itemData = invItem.customItem as InventoryItem['item']
+          itemData = invItem.customItem as unknown as InventoryItem['item']
         }
 
         return {
