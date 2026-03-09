@@ -134,6 +134,7 @@ model Life {
   level                    Int      @default(1)
   stats                    Json     // {str, dex, con, int, wis, cha} - final stats with ASI applied
   baseStats                Json?    // {str, dex, con, int, wis, cha} - stats before ASI (standard array + racial)
+  statBonuses              Json?    // {str, dex, con, int, wis, cha} - campaign bonuses (paid/granted on top of base)
   currentHp                Int
   maxHp                    Int
   effect                   String

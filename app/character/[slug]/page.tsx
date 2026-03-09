@@ -3,33 +3,25 @@
 import { useState, useEffect, useCallback } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
-import LevelSelector from '@/components/LevelSelector'
 import RegenerateButton from '@/components/RegenerateButton'
 import LifeHistoryDrawer from '@/components/LifeHistoryDrawer'
-import ModuleRenderer, { type CharacterData } from '@/components/modules/ModuleRenderer'
-import LayoutGrid from '@/components/layout/LayoutGrid'
-import LayoutControls from '@/components/layout/LayoutControls'
-import MobileLayoutEditor from '@/components/layout/MobileLayoutEditor'
+import { type CharacterData } from '@/components/modules/ModuleRenderer'
 import DiceControls from '@/components/dice/DiceControls'
 import ConcentrationBanner from '@/components/ConcentrationBanner'
 import { useCharacterStats } from '@/lib/modifiers/useCharacterStats'
-import { ModuleErrorBoundary } from '@/components/layout/ModuleErrorBoundary'
-import GlobalHUD from '@/components/character/GlobalHUD'
-import UtilityDrawerManager from '@/components/layout/UtilityDrawerManager'
 import StaticCharacterEditor, { EditorData } from '@/components/StaticCharacterEditor'
 import VisibilitySelector from '@/components/VisibilitySelector'
 import UserAvatar from '@/components/UserAvatar'
+import CharacterSheetLayout from '@/components/CharacterSheetLayout'
 import { Character, Life, Stats } from '@/lib/types'
 import { HydratedCharacterData } from '@/lib/types/5etools'
 import { LayoutProvider } from '@/lib/layout/LayoutContext'
 import { generateDefaultLayout } from '@/lib/layout/defaultLayout'
-import type { LayoutConfig, ModuleId } from '@/lib/layout/types'
+import type { LayoutConfig } from '@/lib/layout/types'
 import type { CharacterAction } from '@/lib/actions/types'
 import { calculateProficiencyBonus, calculateMaxHp } from '@/lib/calculations'
 import { getStatModifier } from '@/lib/statMapper'
 import { applyASIs } from '@/lib/asiCalculator'
-import { MODULE_REGISTRY } from '@/lib/layout/moduleRegistry'
-import { useMediaQuery } from '@/hooks/useMediaQuery'
 
 interface Owner {
   id: string
@@ -60,9 +52,7 @@ export default function CharacterPage() {
   const [error, setError] = useState<string | null>(null)
   const [hydratedData, setHydratedData] = useState<HydratedCharacterData | null>(null)
   const [actions, setActions] = useState<CharacterAction[]>([])
-  const [initialLayout, setInitialLayout] = useState<LayoutConfig | null>(null)
-  const [initialSidebarItems, setInitialSidebarItems] = useState<ModuleId[]>([])
-  const isMobile = useMediaQuery('(max-width: 767px)')
+  const [initialLayout] = useState<LayoutConfig>(() => generateDefaultLayout())
   const [regenPhase, setRegenPhase] = useState<'idle' | 'fading-out' | 'loading' | 'flashing-in'>('idle')
   const [showFlash, setShowFlash] = useState(false)
   const [showEditor, setShowEditor] = useState(false)
@@ -99,6 +89,7 @@ export default function CharacterPage() {
           subclass: data.subclass,
           level: data.level,
           stats: data.stats,
+          statBonuses: data.statBonuses,
           story: data.story,
           effect: data.effect,
         }),
@@ -164,25 +155,6 @@ export default function CharacterPage() {
   useEffect(() => {
     fetchCharacter()
   }, [fetchCharacter])
-
-  useEffect(() => {
-    const fetchLayout = async () => {
-      try {
-        const res = await fetch(`/api/characters/${slug}/layout`)
-        if (res.ok) {
-          const data = await res.json()
-          setInitialLayout(data.layout || generateDefaultLayout())
-          setInitialSidebarItems(data.sidebarItems || [])
-          return
-        }
-      } catch (err) {
-        console.error('Failed to fetch layout:', err)
-      }
-      setInitialLayout(generateDefaultLayout())
-    }
-
-    fetchLayout()
-  }, [slug])
 
   // Fetch hydrated data when character has an active life
   const fetchHydratedData = useCallback(async () => {
@@ -265,6 +237,26 @@ export default function CharacterPage() {
     }
   }
 
+  const handleHpChange = async (current: number, max: number) => {
+    if (!currentLife) return
+    try {
+      await fetch(`/api/characters/${slug}/lives/${currentLife.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ currentHp: current, maxHp: max }),
+      })
+      if (activeState) {
+        await fetch(`/api/characters/${slug}/active-state`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ currentHp: current }),
+        })
+      }
+      refreshAll()
+    } catch (err) {
+      console.error('Failed to update HP:', err)
+    }
+  }
 
   const handleRegenerate = async () => {
     if (!character) return
@@ -442,6 +434,7 @@ export default function CharacterPage() {
 
   const stats = currentLife?.stats as Stats | undefined
   const baseStats = (currentLife?.baseStats || currentLife?.stats) as Stats | undefined
+  const statBonuses = (currentLife?.statBonuses as Stats | null) ?? null
   const proficiencyBonus = calculateProficiencyBonus(level)
   const skillProficiencies = currentLife?.skillProficiencies || []
   const activeState = hydratedData?.activeState ?? null
@@ -468,6 +461,7 @@ export default function CharacterPage() {
           maxHp: currentLife.maxHp,
           stats,
           baseStats,
+          statBonuses,
           story: currentLife.story,
           effect: currentLife.effect,
           subclassChoice: currentLife.subclassChoice,
@@ -485,10 +479,6 @@ export default function CharacterPage() {
           onRefresh: refreshAll,
         }
       : null
-
-  const renderModule = (moduleId: ModuleId, characterData: CharacterData) => (
-    <ModuleRenderer moduleId={moduleId} characterData={characterData} />
-  )
 
   return (
     <div className={`min-h-screen bg-slate-900 text-white ${isRegenerating ? 'animate-regenerate-glow' : ''}`}>
@@ -528,29 +518,29 @@ export default function CharacterPage() {
           </div>
         )}
 
-        <div className="text-center mb-4">
-          <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent">
-            {character.name}
-          </h1>
-          {currentLife && (
-            <p className="text-slate-300 mt-1">
-              {currentLife.class}
-              {currentLife.subclass ? ` (${currentLife.subclass})` : ''}
-            </p>
-          )}
-          {currentLife && character.isRegenerist && (
-            <p className="text-slate-400 mt-2">
-              Life #{currentLife.lifeNumber}
-            </p>
-          )}
+        {/* Top controls bar */}
+        <LayoutProvider
+          characterSlug={slug}
+          initialLayout={initialLayout}
+        >
+          <div className="space-y-4">
+            {/* Concentration banner */}
+            {activeState?.concentratingOn && (
+              <div className="sticky top-16 z-30">
+                <ConcentrationBanner
+                  spellName={activeState.concentratingOn}
+                  onBreak={handleBreakConcentration}
+                />
+              </div>
+            )}
 
-          {/* Regenerate Button and Controls (owner only) */}
-          {isOwner && (
-            <div className="mt-4 flex flex-col items-center gap-4">
-              {character && character.isRegenerist && (
-                <>
-                  <RegenerateButton onClick={handleRegenerate} isLoading={isRegenerating} />
-                  <div className="flex items-center gap-3">
+            {/* Controls row */}
+            {isOwner && (
+              <div className="flex items-center gap-3 flex-wrap">
+                {/* Regenerist controls */}
+                {character.isRegenerist && (
+                  <>
+                    <RegenerateButton onClick={handleRegenerate} isLoading={isRegenerating} />
                     <label className="flex items-center gap-2 cursor-pointer">
                       <div className="relative">
                         <input
@@ -562,131 +552,87 @@ export default function CharacterPage() {
                         <div className="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-gold-500 transition-colors"></div>
                         <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
                       </div>
-                      <span className="text-sm text-slate-400">
-                        Unique Subclasses
-                      </span>
+                      <span className="text-sm text-slate-400">Unique Subclasses</span>
                     </label>
                     {uniqueSubclasses && (
-                      <span className="text-xs text-slate-500">
-                        ({allLives.length} used)
-                      </span>
+                      <span className="text-xs text-slate-500">({allLives.length} used)</span>
                     )}
-                  </div>
-                </>
-              )}
-            </div>
-          )}
-        </div>
-
-        {/* Main Content */}
-        {initialLayout ? (
-      <LayoutProvider
-        characterSlug={slug}
-        initialLayout={initialLayout}
-        initialSidebarItems={initialSidebarItems}
-      >
-            <div className="space-y-4">
-              {activeState?.concentratingOn && (
-                <div className="sticky top-16 z-30">
-                  <ConcentrationBanner
-                    spellName={activeState.concentratingOn}
-                    onBreak={handleBreakConcentration}
-                  />
-                </div>
-              )}
-              {characterData && (
-                <GlobalHUD
-                  stats={characterData.stats}
-                  baseStats={characterData.baseStats}
-                  currentHp={characterData.currentHp}
-                  maxHp={characterData.maxHp}
-                  tempHp={activeState?.tempHp ?? 0}
-                  ac={characterData.calculatedStats?.ac.total}
-                  initiative={characterData.calculatedStats?.initiative}
-                  speed={characterData.calculatedStats?.speed}
-                  characterId={characterData.characterId}
-                  characterName={characterData.characterName}
-                />
-              )}
-              {isOwner && (
-                <div className="flex items-center justify-between gap-4">
-                  <LayoutControls />
-                  <DiceControls />
-                  {character.isRegenerist && (
                     <button
                       onClick={() => setIsLifeDrawerOpen(true)}
                       className="px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg"
                     >
                       Past Lives
                     </button>
-                  )}
-                  {character && !character.isRegenerist && currentLife && (
-                    <button
-                      onClick={() => setShowEditor(true)}
-                      className="flex items-center gap-2 px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg"
-                    >
-                      ✎ Edit Character
-                    </button>
-                  )}
+                  </>
+                )}
+
+                {/* Edit character button (all character types) */}
+                {currentLife && (
+                  <button
+                    onClick={() => setShowEditor(true)}
+                    className="flex items-center gap-2 px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg"
+                  >
+                    ✎ Edit Character
+                  </button>
+                )}
+
+                {/* Life number badge (Regenerist) */}
+                {character.isRegenerist && currentLife && (
+                  <span className="text-xs text-slate-500 ml-1">
+                    Life #{currentLife.lifeNumber}
+                  </span>
+                )}
+
+                <div className="ml-auto">
+                  <DiceControls />
                 </div>
-              )}
-              {character.isRegenerist && (
-                <LifeHistoryDrawer
-                  lives={allLives}
-                  currentLifeId={currentLife?.id || null}
-                  onSelectLife={handleSelectLife}
-                  onClearHistory={handleClearHistory}
-                  isOpen={isLifeDrawerOpen}
-                  onClose={() => setIsLifeDrawerOpen(false)}
+              </div>
+            )}
+
+            {/* Life History Drawer */}
+            {character.isRegenerist && (
+              <LifeHistoryDrawer
+                lives={allLives}
+                currentLifeId={currentLife?.id || null}
+                onSelectLife={handleSelectLife}
+                onClearHistory={handleClearHistory}
+                isOpen={isLifeDrawerOpen}
+                onClose={() => setIsLifeDrawerOpen(false)}
+              />
+            )}
+
+            {/* Main character sheet */}
+            {currentLife ? (
+              characterData && (
+                <CharacterSheetLayout
+                  characterData={characterData}
+                  slug={slug}
+                  lifeId={currentLife.id}
+                  onHpChange={handleHpChange}
+                  onRefresh={refreshAll}
+                  isOwner={isOwner}
+                  regenPhase={regenPhase}
+                  isRegenerating={isRegenerating}
+                  level={level}
+                  onLevelChange={handleLevelChange}
                 />
-              )}
-
-              {isOwner && isMobile && <MobileLayoutEditor />}
-
-              {currentLife ? (
-                <div
-                  className={`${
-                    regenPhase === 'fading-out'
-                      ? 'animate-regenerate-out'
-                      : regenPhase === 'flashing-in'
-                        ? 'animate-regenerate-in'
-                        : ''
-                  }`}
-                >
-                  {characterData && (
-                    <LayoutGrid
-                      renderModule={(moduleId) => (
-                        <ModuleErrorBoundary moduleName={MODULE_REGISTRY[moduleId].name}>
-                          {renderModule(moduleId, characterData)}
-                        </ModuleErrorBoundary>
-                      )}
-                    />
-                  )}
-                  {characterData && <UtilityDrawerManager characterData={characterData} />}
-                </div>
-              ) : (
-                <div className="bg-slate-800 rounded-lg p-8 border border-slate-700 text-center">
-                  <p className="text-slate-400 text-lg mb-6">
-                    No active life. Begin your journey with a regeneration.
-                  </p>
-                </div>
-              )}
-
-              {characterData && hydratedData?.isSpellcaster && null}
-            </div>
-          </LayoutProvider>
-        ) : (
-          <div className="bg-slate-800 rounded-lg p-6 border border-slate-700 text-center text-slate-400">
-            Loading layout...
+              )
+            ) : (
+              <div className="bg-slate-800 rounded-lg p-8 border border-slate-700 text-center">
+                <p className="text-slate-400 text-lg mb-6">
+                  No active life. Begin your journey with a regeneration.
+                </p>
+              </div>
+            )}
           </div>
-        )}
+        </LayoutProvider>
       </div>
 
       {/* Regeneration flash overlay */}
       {showFlash && <div className="regeneration-flash" />}
 
-      {/* Static Character Editor Modal */}
-      {showEditor && character && !character.isRegenerist && currentLife && (
+      {/* Character Editor Modal */}
+      {showEditor && character && currentLife && (
         <StaticCharacterEditor
           characterName={character.name}
           currentRace={currentLife.race}
@@ -694,11 +640,13 @@ export default function CharacterPage() {
           currentSubclass={currentLife.subclass}
           currentLevel={currentLife.level}
           currentStats={currentLife.stats as Stats}
+          currentStatBonuses={(currentLife.statBonuses as Stats | null) ?? undefined}
           currentStory={currentLife.story}
           currentEffect={currentLife.effect}
           onSave={handleEditCharacter}
           onCancel={() => setShowEditor(false)}
           isLoading={isSavingEdit}
+          isRegenerist={character.isRegenerist}
         />
       )}
     </div>

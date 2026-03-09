@@ -28,6 +28,7 @@ export interface Life {
   level: number
   stats: Stats
   baseStats: Stats | null
+  statBonuses?: Stats | null
   currentHp: number
   maxHp: number
   effect: string

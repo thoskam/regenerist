@@ -18,18 +18,18 @@ interface FeatureDisplayProps {
 export default function FeatureDisplay({ title, features, currentLevel, noContainer = false }: FeatureDisplayProps) {
   const [expandedFeatures, setExpandedFeatures] = useState<Set<string>>(new Set())
 
-  const toggleFeature = (featureName: string) => {
+  const toggleFeature = (key: string) => {
     const newExpanded = new Set(expandedFeatures)
-    if (newExpanded.has(featureName)) {
-      newExpanded.delete(featureName)
+    if (newExpanded.has(key)) {
+      newExpanded.delete(key)
     } else {
-      newExpanded.add(featureName)
+      newExpanded.add(key)
     }
     setExpandedFeatures(newExpanded)
   }
 
   const expandAll = () => {
-    setExpandedFeatures(new Set(features.map((f) => f.name)))
+    setExpandedFeatures(new Set(features.map((f) => `${f.name}-${f.level}`)))
   }
 
   const collapseAll = () => {
@@ -79,12 +79,13 @@ export default function FeatureDisplay({ title, features, currentLevel, noContai
             <div className="text-xs text-slate-500 mb-2">Level {level}</div>
             <div className="space-y-2">
               {featuresByLevel[level].map((feature) => {
-                const isExpanded = expandedFeatures.has(feature.name)
+                const featureKey = `${feature.name}-${feature.level}`
+                const isExpanded = expandedFeatures.has(featureKey)
                 const isAvailable = level <= currentLevel
 
                 return (
                   <div
-                    key={feature.name}
+                    key={featureKey}
                     className={`border rounded-lg overflow-hidden transition-colors ${
                       isAvailable
                         ? 'border-slate-600 bg-slate-700/50'
@@ -92,7 +93,7 @@ export default function FeatureDisplay({ title, features, currentLevel, noContai
                     }`}
                   >
                     <button
-                      onClick={() => toggleFeature(feature.name)}
+                      onClick={() => toggleFeature(featureKey)}
                       className="w-full px-3 py-2 flex items-center justify-between text-left hover:bg-slate-700/50 transition-colors"
                     >
                       <div className="flex items-center gap-2">

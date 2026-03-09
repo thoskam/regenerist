@@ -393,6 +393,27 @@ export async function POST(
       },
     })
 
+    // Carry over inventory from the previous life, but unequip/unattune all items
+    if (currentLife) {
+      const previousInventory = await prisma.characterInventory.findMany({
+        where: { lifeId: currentLife.id },
+      })
+
+      if (previousInventory.length > 0) {
+        await prisma.characterInventory.createMany({
+          data: previousInventory.map(({ id: _id, lifeId: _lifeId, createdAt: _c, updatedAt: _u, customItem, ...item }) => ({
+            ...item,
+            lifeId: newLife.id,
+            equipped: false,
+            attuned: false,
+            equipSlot: null,
+            // Prisma requires JsonNull sentinel for nullable JSON fields
+            customItem: customItem ?? undefined,
+          })),
+        })
+      }
+    }
+
     // Initialize active state for the new life
     await initializeActiveState({
       lifeId: newLife.id,

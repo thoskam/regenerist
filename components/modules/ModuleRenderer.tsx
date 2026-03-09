@@ -36,6 +36,7 @@ export interface CharacterData {
   maxHp: number
   stats: Stats
   baseStats?: Stats | null
+  statBonuses?: Stats | null
   story: string | null
   effect: string
   subclassChoice: string | null

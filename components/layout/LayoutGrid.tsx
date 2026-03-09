@@ -22,8 +22,6 @@ interface LayoutGridProps {
   renderModule: (moduleId: ModuleId) => React.ReactNode
 }
 
-const ACTION_CENTER_MODULES: ModuleId[] = ['story-tabs', 'inventory', 'resources']
-
 export default function LayoutGrid({ renderModule }: LayoutGridProps) {
   const { layout, isEditMode, moveModule } = useLayout()
   const isMobile = useMediaQuery('(max-width: 767px)')
@@ -81,7 +79,7 @@ export default function LayoutGrid({ renderModule }: LayoutGridProps) {
 
   const getSortedModules = () =>
     Object.entries(layout)
-      .filter(([id, pos]) => pos.visible && ACTION_CENTER_MODULES.includes(id as ModuleId))
+      .filter(([, pos]) => pos.visible)
       .sort((a, b) => {
         if (isMobile) {
           const colA = a[1].column
