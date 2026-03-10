@@ -44,7 +44,7 @@ export default function CharacterHub() {
     try {
       const res = await fetch(`/api/characters?filter=${filterType}`)
       const data = await res.json()
-      setCharacters(data)
+      setCharacters(Array.isArray(data) ? data : [])
     } catch (error) {
       console.error('Failed to fetch characters:', error)
     } finally {
