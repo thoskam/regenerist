@@ -74,6 +74,13 @@ export function parseDiceString(diceString: string): {
     modifier += parseInt(match[1], 10)
   }
 
+  // Capture a leading integer with no sign (e.g. the "1" in "1+3" for unarmed strike base damage)
+  // Only applies when the string doesn't start with a dice expression like "1d8"
+  const leadingFlat = diceString.match(/^(\d+)(?=[+-]|$)/)
+  if (leadingFlat && !/^\d+d\d+/i.test(diceString)) {
+    modifier += parseInt(leadingFlat[1], 10)
+  }
+
   return { dice, modifier }
 }
 

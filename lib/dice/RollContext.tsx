@@ -8,6 +8,7 @@ interface RollSettings {
   autoSendToDiscord: boolean
   enableAINarration: boolean
   soundEnabled: boolean
+  autoSendToRoll20: boolean
 }
 
 interface RollContextType {
@@ -22,6 +23,9 @@ interface RollContextType {
   settings: RollSettings
   updateSettings: (settings: Partial<RollSettings>) => void
   sendToDiscord: (roll: RollResult) => Promise<void>
+  sendToRoll20: (roll: RollResult) => void
+  roll20Connected: boolean
+  setRoll20Connected: (connected: boolean) => void
   campaignId: string | null
   setCampaignId: (id: string | null) => void
 }
@@ -31,6 +35,7 @@ const defaultSettings: RollSettings = {
   autoSendToDiscord: false,
   enableAINarration: false,
   soundEnabled: true,
+  autoSendToRoll20: false,
 }
 
 const RollContext = createContext<RollContextType | null>(null)
@@ -43,12 +48,46 @@ export function useRoll() {
   return context
 }
 
+/**
+ * Build a pre-formatted Roll20 chat message showing the actual result
+ * from the app rather than re-rolling in Roll20.
+ *
+ * Format: /me rolled Longsword Attack [d20: 7] +5 = 12 ⚡ CRITICAL!
+ */
+function buildRoll20Message(roll: RollResult): string {
+  const diceStr = roll.dice.map((d) => `${d.count}${d.die}`).join('+')
+
+  // Show dice breakdown with the actual result
+  let rollDetail: string
+  if (!diceStr) {
+    // Flat value — no dice (e.g. unarmed strike base damage)
+    // Skip bracket notation entirely; just show the total at the end
+    const suffix2 = roll.isCriticalSuccess ? ' ⚡ CRITICAL HIT!' : roll.isCriticalFailure ? ' 💀 FUMBLE!' : ''
+    return `/me rolled **${roll.rollName}** = **${roll.total}**${suffix2}`
+  } else if (roll.advantageState !== 'normal' && roll.advantageRolls && roll.advantageRolls.length > 0) {
+    const type = roll.advantageState === 'advantage' ? 'Adv' : 'Dis'
+    rollDetail = `[${diceStr} ${type}: ${roll.advantageRolls.join(', ')} → kept ${roll.naturalRoll}]`
+  } else {
+    rollDetail = `[${diceStr}: ${roll.naturalRoll}]`
+  }
+
+  const modStr =
+    roll.modifier > 0 ? ` +${roll.modifier}` : roll.modifier < 0 ? ` ${roll.modifier}` : ''
+
+  let suffix = ''
+  if (roll.isCriticalSuccess) suffix = ' ⚡ CRITICAL HIT!'
+  else if (roll.isCriticalFailure) suffix = ' 💀 FUMBLE!'
+
+  return `/me rolled **${roll.rollName}** ${rollDetail}${modStr} = **${roll.total}**${suffix}`
+}
+
 export function RollProvider({ children }: { children: React.ReactNode }) {
   const [rollHistory, setRollHistory] = useState<RollResult[]>([])
   const [currentRoll, setCurrentRoll] = useState<RollResult | null>(null)
   const [globalAdvantage, setGlobalAdvantage] = useState<AdvantageState>('normal')
   const [settings, setSettings] = useState<RollSettings>(defaultSettings)
   const [campaignId, setCampaignId] = useState<string | null>(null)
+  const [roll20Connected, setRoll20Connected] = useState(false)
 
   const sendToDiscord = useCallback(
     async (roll: RollResult) => {
@@ -66,6 +105,19 @@ export function RollProvider({ children }: { children: React.ReactNode }) {
     [campaignId, settings.enableAINarration]
   )
 
+  const sendToRoll20 = useCallback((roll: RollResult) => {
+    if (typeof window === 'undefined') return
+    const message = buildRoll20Message(roll)
+    window.postMessage(
+      {
+        source: 'REGENERIST_APP',
+        type: 'SEND_ROLL',
+        roll: { message },
+      },
+      '*'
+    )
+  }, [])
+
   const addRoll = useCallback(
     (roll: RollResult) => {
       setRollHistory((prev) => [roll, ...prev].slice(0, 50))
@@ -73,8 +125,11 @@ export function RollProvider({ children }: { children: React.ReactNode }) {
       if (settings.autoSendToDiscord && campaignId) {
         void sendToDiscord(roll)
       }
+      if (settings.autoSendToRoll20 && roll20Connected) {
+        sendToRoll20(roll)
+      }
     },
-    [campaignId, sendToDiscord, settings.autoSendToDiscord]
+    [campaignId, sendToDiscord, sendToRoll20, settings.autoSendToDiscord, settings.autoSendToRoll20, roll20Connected]
   )
 
   const clearHistory = useCallback(() => {
@@ -107,6 +162,9 @@ export function RollProvider({ children }: { children: React.ReactNode }) {
         settings,
         updateSettings,
         sendToDiscord,
+        sendToRoll20,
+        roll20Connected,
+        setRoll20Connected,
         campaignId,
         setCampaignId,
       }}

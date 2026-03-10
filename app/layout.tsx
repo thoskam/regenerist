@@ -6,6 +6,7 @@ import Header from '@/components/Header'
 import { RollProvider } from '@/lib/dice/RollContext'
 import RollResultModal from '@/components/dice/RollResultModal'
 import RollHistoryPanel from '@/components/dice/RollHistoryPanel'
+import Roll20Provider from '@/components/Roll20Provider'
 
 const inter = Inter({ subsets: ['latin'] })
 
@@ -24,6 +25,7 @@ export default function RootLayout({
       <body className={inter.className}>
         <Providers>
           <RollProvider>
+            <Roll20Provider />
             <Header />
             <main>{children}</main>
             <RollResultModal />

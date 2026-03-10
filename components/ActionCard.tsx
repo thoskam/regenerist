@@ -43,14 +43,13 @@ export default function ActionCard({
         action.attackBonus,
         action.attackBreakdown ?? [{ source: 'Attack Bonus', value: action.attackBonus }]
       )
+      // Attach damage info to the attack roll for the "Roll Damage" button in the modal
+      // but do NOT auto-roll damage — let the player click Roll Damage explicitly
       const damageDice = action.damageDice || extractDamageDice(action.damage)
       if (attackRoll && damageDice) {
         attackRoll.damageDice = damageDice
         attackRoll.damageType = action.damageType
         attackRoll.damageBreakdown = action.damageBreakdown
-      }
-      if (damageDice) {
-        makeFeatureDamageRoll(action.name, damageDice, action.damageType, action.damageBreakdown)
       }
       if (attackRoll) {
         showRollResult(attackRoll)
