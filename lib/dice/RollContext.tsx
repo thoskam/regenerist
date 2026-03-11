@@ -5,7 +5,6 @@ import type { RollResult, AdvantageState } from './types'
 
 interface RollSettings {
   showAnimations: boolean
-  autoSendToDiscord: boolean
   enableAINarration: boolean
   soundEnabled: boolean
   autoSendToRoll20: boolean
@@ -22,7 +21,6 @@ interface RollContextType {
   setGlobalAdvantage: (state: AdvantageState) => void
   settings: RollSettings
   updateSettings: (settings: Partial<RollSettings>) => void
-  sendToDiscord: (roll: RollResult) => Promise<void>
   sendToRoll20: (roll: RollResult) => void
   roll20Connected: boolean
   setRoll20Connected: (connected: boolean) => void
@@ -32,7 +30,6 @@ interface RollContextType {
 
 const defaultSettings: RollSettings = {
   showAnimations: true,
-  autoSendToDiscord: false,
   enableAINarration: false,
   soundEnabled: true,
   autoSendToRoll20: false,
@@ -61,7 +58,6 @@ function buildRoll20Message(roll: RollResult): string {
   let rollDetail: string
   if (!diceStr) {
     // Flat value — no dice (e.g. unarmed strike base damage)
-    // Skip bracket notation entirely; just show the total at the end
     const suffix2 = roll.isCriticalSuccess ? ' ⚡ CRITICAL HIT!' : roll.isCriticalFailure ? ' 💀 FUMBLE!' : ''
     return `/me rolled **${roll.rollName}** = **${roll.total}**${suffix2}`
   } else if (roll.advantageState !== 'normal' && roll.advantageRolls && roll.advantageRolls.length > 0) {
@@ -89,22 +85,6 @@ export function RollProvider({ children }: { children: React.ReactNode }) {
   const [campaignId, setCampaignId] = useState<string | null>(null)
   const [roll20Connected, setRoll20Connected] = useState(false)
 
-  const sendToDiscord = useCallback(
-    async (roll: RollResult) => {
-      if (!campaignId) return
-      await fetch('/api/rolls/discord', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          roll,
-          campaignId,
-          includeNarration: settings.enableAINarration,
-        }),
-      })
-    },
-    [campaignId, settings.enableAINarration]
-  )
-
   const sendToRoll20 = useCallback((roll: RollResult) => {
     if (typeof window === 'undefined') return
     const message = buildRoll20Message(roll)
@@ -122,14 +102,11 @@ export function RollProvider({ children }: { children: React.ReactNode }) {
     (roll: RollResult) => {
       setRollHistory((prev) => [roll, ...prev].slice(0, 50))
       setCurrentRoll(roll)
-      if (settings.autoSendToDiscord && campaignId) {
-        void sendToDiscord(roll)
-      }
       if (settings.autoSendToRoll20 && roll20Connected) {
         sendToRoll20(roll)
       }
     },
-    [campaignId, sendToDiscord, sendToRoll20, settings.autoSendToDiscord, settings.autoSendToRoll20, roll20Connected]
+    [sendToRoll20, settings.autoSendToRoll20, roll20Connected]
   )
 
   const clearHistory = useCallback(() => {
@@ -161,7 +138,6 @@ export function RollProvider({ children }: { children: React.ReactNode }) {
         setGlobalAdvantage,
         settings,
         updateSettings,
-        sendToDiscord,
         sendToRoll20,
         roll20Connected,
         setRoll20Connected,

@@ -14,8 +14,6 @@ model User {
   emailVerified   DateTime?
   name            String?
   image           String?
-  discordId       String?   @unique
-  discordUsername String?
   createdAt       DateTime  @default(now())
   updatedAt       DateTime  @updatedAt
 
@@ -70,9 +68,6 @@ model Campaign {
   dmUserId   String
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
-  discordWebhookUrl   String?
-  discordRollsEnabled Boolean  @default(false)
-
   // Relations
   dm         User              @relation("CampaignDM", fields: [dmUserId], references: [id])
   members    CampaignMember[]

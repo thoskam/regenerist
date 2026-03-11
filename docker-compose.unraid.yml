@@ -17,8 +17,6 @@ services:
       - NEXTAUTH_URL=https://landofdragons.kamnikars.com
       - NEXTAUTH_SECRET=${NEXTAUTH_SECRET}
       - AUTH_TRUST_HOST=true
-      - DISCORD_CLIENT_ID=${DISCORD_CLIENT_ID}
-      - DISCORD_CLIENT_SECRET=${DISCORD_CLIENT_SECRET}
       - GOOGLE_CLIENT_ID=${GOOGLE_CLIENT_ID}
       - GOOGLE_CLIENT_SECRET=${GOOGLE_CLIENT_SECRET}
     depends_on:

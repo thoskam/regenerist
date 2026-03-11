@@ -1,13 +1,13 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import { X, Check, XCircle, Sparkles, Skull, Copy, Send } from 'lucide-react'
+import { X, Check, XCircle, Sparkles, Skull, Copy } from 'lucide-react'
 import { useRoll } from '@/lib/dice/RollContext'
 import { useRoller } from '@/lib/dice/useRoller'
 import RollNarration from './RollNarration'
 
 export default function RollResultModal() {
-  const { currentRoll, dismissRollResult, settings, sendToDiscord } = useRoll()
+  const { currentRoll, dismissRollResult, settings } = useRoll()
   const [isAnimating, setIsAnimating] = useState(false)
   const [showDetails, setShowDetails] = useState(false)
   const [narration, setNarration] = useState<string | null>(null)
@@ -299,14 +299,6 @@ export default function RollResultModal() {
           >
             <Copy className="w-4 h-4" />
             Copy
-          </button>
-          <button
-            onClick={() => sendToDiscord(currentRoll)}
-            className="flex-1 py-2 bg-indigo-600 hover:bg-indigo-500 rounded flex items-center justify-center gap-2 text-sm"
-            type="button"
-          >
-            <Send className="w-4 h-4" />
-            Discord
           </button>
         </div>
       </div>
