@@ -276,6 +276,14 @@ export default function CharacterSheetLayout({
       <div className="bg-slate-800 rounded-xl border border-slate-700 mb-4 overflow-hidden">
         {/* Row 1: Name + rest buttons */}
         <div className="flex items-start justify-between px-6 pt-5 pb-3 border-b border-slate-700">
+          <div className="flex items-start gap-4">
+            {characterData.portrait && (
+              <img
+                src={characterData.portrait}
+                alt="Character portrait"
+                className="w-16 h-16 rounded-xl object-cover border border-slate-600 shrink-0 mt-0.5"
+              />
+            )}
           <div>
             <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent leading-tight">
               {characterName}
@@ -296,6 +304,7 @@ export default function CharacterSheetLayout({
                 </span>
               )}
             </div>
+          </div>
           </div>
           <div className="mt-1 shrink-0 flex items-center gap-2">
             {hasChronicle && (

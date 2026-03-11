@@ -11,6 +11,7 @@ import { getSpellSlotInfo, getSpellcastingAbilityForClass } from '@/lib/spellSlo
 import { initializeActiveState } from '@/lib/activeState'
 import { generateSmartSpellbook } from '@/lib/spellbookGenerator'
 import { getAvailableSpellNames, getCasterType, getSavingThrowProficiencies } from '@/lib/dndApi'
+import { generatePortrait } from '@/lib/portraitGenerator'
 
 const bedrockClient = new BedrockRuntimeClient({
   region: process.env.AWS_REGION || 'us-east-1',
@@ -340,22 +341,25 @@ export async function POST(
     const conMod = getStatModifier(stats.con)
     const maxHp = calculateMaxHp(className, level, conMod)
 
-    // Generate story with Bedrock
-    const story = await generateStory(
-      name,
-      race,
-      className,
-      subclass,
-      effect,
-      newLifeNumber,
-      currentLife ? {
-        name: currentLife.name,
-        race: currentLife.race,
-        class: currentLife.class,
-        subclass: currentLife.subclass,
-      } : null,
-      subclassChoice
-    )
+    // Generate story and portrait in parallel
+    const [story, portrait] = await Promise.all([
+      generateStory(
+        name,
+        race,
+        className,
+        subclass,
+        effect,
+        newLifeNumber,
+        currentLife ? {
+          name: currentLife.name,
+          race: currentLife.race,
+          class: currentLife.class,
+          subclass: currentLife.subclass,
+        } : null,
+        subclassChoice
+      ),
+      generatePortrait(race, className, subclass),
+    ])
 
     // Generate spellbook for spellcasters
     let spellbook = null
@@ -403,6 +407,7 @@ export async function POST(
         savingThrowProficiencies,
         subclassChoice,
         alignment: getRandomAlignment(),
+        ...(portrait && { portrait }),
         ...(spellbook && { spellbook: spellbook as { spellNames: string[]; archivistNote: string } }),
         isActive: true,
       },

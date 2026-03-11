@@ -138,6 +138,7 @@ model Life {
   skillProficiencies       String[] @default([])
   savingThrowProficiencies String[] @default([])
   subclassChoice           String?
+  portrait                 String?  @db.Text  // base64 data URL from Imagen 3
   spellbook                Json?    // {spellNames: string[], archivistNote: string}
   createdAt                DateTime @default(now())
   isActive                 Boolean  @default(false)

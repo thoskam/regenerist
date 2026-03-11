@@ -57,6 +57,8 @@ export default function CharacterPage() {
   const [showFlash, setShowFlash] = useState(false)
   const [showEditor, setShowEditor] = useState(false)
   const [isLifeDrawerOpen, setIsLifeDrawerOpen] = useState(false)
+  const [isGeneratingPortrait, setIsGeneratingPortrait] = useState(false)
+  const [portraitLightbox, setPortraitLightbox] = useState(false)
   const [statsRefresh, setStatsRefresh] = useState(0)
   const { stats: calculatedStats } = useCharacterStats({
     characterSlug: slug,
@@ -396,6 +398,22 @@ export default function CharacterPage() {
     }
   }
 
+  const handleGeneratePortrait = async () => {
+    if (!currentLife || !character) return
+    setIsGeneratingPortrait(true)
+    try {
+      const res = await fetch(`/api/characters/${slug}/lives/${currentLife.id}/portrait`, { method: 'POST' })
+      if (res.ok) {
+        const data = await res.json()
+        setCurrentLife({ ...currentLife, portrait: data.portrait })
+      }
+    } catch (err) {
+      console.error('Failed to generate portrait:', err)
+    } finally {
+      setIsGeneratingPortrait(false)
+    }
+  }
+
   const handleVisibilityChange = async (visibility: string) => {
     if (!character) return
     try {
@@ -467,6 +485,7 @@ export default function CharacterPage() {
           story: currentLife.story,
           effect: currentLife.effect,
           subclassChoice: currentLife.subclassChoice,
+          portrait: currentLife.portrait,
           isOwner,
           isRegenerist: character.isRegenerist,
           proficiencyBonus,
@@ -578,6 +597,30 @@ export default function CharacterPage() {
                   </button>
                 )}
 
+                {/* Portrait controls */}
+                {currentLife && (
+                  <>
+                    {currentLife.portrait ? (
+                      <button
+                        onClick={() => setPortraitLightbox(true)}
+                        className="w-8 h-8 rounded-full overflow-hidden border-2 border-gold-500/50 hover:border-gold-400 transition-colors shrink-0"
+                        title="View portrait"
+                      >
+                        <img src={currentLife.portrait} alt="Character portrait" className="w-full h-full object-cover" />
+                      </button>
+                    ) : (
+                      <button
+                        onClick={handleGeneratePortrait}
+                        disabled={isGeneratingPortrait}
+                        className="flex items-center gap-1.5 px-3 py-1.5 text-sm bg-slate-700 hover:bg-slate-600 rounded-lg disabled:opacity-50"
+                        title="Generate AI portrait"
+                      >
+                        {isGeneratingPortrait ? '⏳' : '🎨'} <span className="hidden sm:inline">{isGeneratingPortrait ? 'Generating…' : 'Portrait'}</span>
+                      </button>
+                    )}
+                  </>
+                )}
+
                 {/* Life number badge (Regenerist) */}
                 {character.isRegenerist && currentLife && (
                   <span className="text-xs text-slate-500 ml-1">
@@ -587,6 +630,39 @@ export default function CharacterPage() {
 
                 <div className="ml-auto">
                   <DiceControls />
+                </div>
+              </div>
+            )}
+
+            {/* Portrait lightbox */}
+            {portraitLightbox && currentLife?.portrait && (
+              <div
+                className="fixed inset-0 z-50 bg-black/80 flex items-center justify-center p-4"
+                onClick={() => setPortraitLightbox(false)}
+              >
+                <div className="relative max-w-lg w-full" onClick={e => e.stopPropagation()}>
+                  <img
+                    src={currentLife.portrait}
+                    alt="Character portrait"
+                    className="w-full rounded-xl shadow-2xl"
+                  />
+                  <div className="absolute top-2 right-2 flex gap-2">
+                    {isOwner && (
+                      <button
+                        onClick={async () => { await handleGeneratePortrait(); setPortraitLightbox(false) }}
+                        disabled={isGeneratingPortrait}
+                        className="px-3 py-1.5 text-sm bg-slate-800/90 hover:bg-slate-700 rounded-lg text-slate-300 disabled:opacity-50"
+                      >
+                        {isGeneratingPortrait ? 'Generating…' : '🎨 Regenerate'}
+                      </button>
+                    )}
+                    <button
+                      onClick={() => setPortraitLightbox(false)}
+                      className="px-3 py-1.5 text-sm bg-slate-800/90 hover:bg-slate-700 rounded-lg text-slate-300"
+                    >
+                      ✕ Close
+                    </button>
+                  </div>
                 </div>
               </div>
             )}

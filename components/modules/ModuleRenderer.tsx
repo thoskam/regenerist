@@ -49,6 +49,7 @@ export interface CharacterData {
   actions: CharacterAction[]
   activeState: HydratedActiveState | null
   calculatedStats?: CalculatedStats | null
+  portrait?: string | null
   regenPhase: 'idle' | 'fading-out' | 'loading' | 'flashing-in'
   isRegenerating: boolean
   onUseAction: (action: CharacterAction) => void

@@ -257,7 +257,15 @@ export default function CharacterHub() {
 
                     {/* Current Life Preview */}
                     {currentLife ? (
-                      <div className="bg-slate-900/50 rounded-lg p-4">
+                      <div className="bg-slate-900/50 rounded-lg p-4 flex gap-3">
+                        {currentLife.portrait && (
+                          <img
+                            src={currentLife.portrait}
+                            alt="Portrait"
+                            className="w-14 h-14 rounded-lg object-cover shrink-0 border border-slate-600"
+                          />
+                        )}
+                        <div className="min-w-0">
                         <p className="text-gold-400 font-medium mb-1">{currentLife.name}</p>
                         <p className="text-sm text-slate-400">{currentLife.race}</p>
                         <p className="text-sm text-slate-500">
@@ -266,6 +274,7 @@ export default function CharacterHub() {
                         <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
                           <span>HP: {currentLife.currentHp}/{currentLife.maxHp}</span>
                           <span>Life #{currentLife.lifeNumber}</span>
+                        </div>
                         </div>
                       </div>
                     ) : (

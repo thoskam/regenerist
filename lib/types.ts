@@ -37,6 +37,7 @@ export interface Life {
   skillProficiencies: string[]
   subclassChoice: string | null
   spellbook?: Record<string, unknown> | null
+  portrait?: string | null
   createdAt: Date
   isActive: boolean
   characterId: number
