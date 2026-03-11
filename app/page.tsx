@@ -8,6 +8,25 @@ import CharacterTypeBadge from '@/components/CharacterTypeBadge'
 import UserAvatar from '@/components/UserAvatar'
 import CharacterCreationWizard from '@/components/CharacterCreationWizard'
 
+function getClassAccent(className?: string): string {
+  const c = (className ?? '').toLowerCase()
+  if (c.includes('barbarian')) return 'bg-orange-500'
+  if (c.includes('bard')) return 'bg-pink-400'
+  if (c.includes('blood hunter')) return 'bg-rose-700'
+  if (c.includes('cleric')) return 'bg-yellow-300'
+  if (c.includes('druid')) return 'bg-green-500'
+  if (c.includes('fighter')) return 'bg-red-500'
+  if (c.includes('monk')) return 'bg-teal-400'
+  if (c.includes('paladin')) return 'bg-amber-300'
+  if (c.includes('ranger')) return 'bg-emerald-500'
+  if (c.includes('rogue')) return 'bg-slate-400'
+  if (c.includes('sorcerer')) return 'bg-violet-500'
+  if (c.includes('warlock')) return 'bg-purple-600'
+  if (c.includes('wizard')) return 'bg-blue-400'
+  if (c.includes('artificer')) return 'bg-cyan-400'
+  return 'bg-amber-500'
+}
+
 interface Owner {
   id: string
   name: string | null
@@ -126,50 +145,43 @@ export default function CharacterHub() {
   return (
     <div className="min-h-screen bg-slate-900 text-white">
       <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent mb-4">
-            THE LAND OF DRAGONS
+        {/* Compact header + Filter Tabs + Action Bar */}
+        <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-8">
+          <h1 className="text-2xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent shrink-0">
+            Land of Dragons
           </h1>
-          <p className="text-slate-400 text-lg">
-            D&D 5e Character Management 
-          </p>
-        </div>
-
-        {/* Filter Tabs + Action Bar */}
-        <div className="flex justify-between items-center mb-8">
-          <div className="flex items-center gap-2">
-            <button
-              onClick={() => setFilter('mine')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === 'mine'
-                  ? 'bg-gold-500 text-slate-900'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              My Characters
-            </button>
-            <button
-              onClick={() => setFilter('public')}
-              className={`px-4 py-2 rounded-lg font-medium transition-colors ${
-                filter === 'public'
-                  ? 'bg-gold-500 text-slate-900'
-                  : 'bg-slate-700 text-slate-300 hover:bg-slate-600'
-              }`}
-            >
-              Public
-            </button>
-          </div>
-          <div className="flex gap-4">
+          <div className="flex items-center gap-3 flex-wrap">
+            <div className="flex items-center gap-1 bg-slate-800 rounded-lg p-1 border border-slate-700">
+              <button
+                onClick={() => setFilter('mine')}
+                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  filter === 'mine'
+                    ? 'bg-gold-500 text-slate-900'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                My Characters
+              </button>
+              <button
+                onClick={() => setFilter('public')}
+                className={`px-3 py-1.5 rounded text-sm font-medium transition-colors ${
+                  filter === 'public'
+                    ? 'bg-gold-500 text-slate-900'
+                    : 'text-slate-400 hover:text-white'
+                }`}
+              >
+                Public
+              </button>
+            </div>
             <Link
               href="/admin"
-              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors"
+              className="px-3 py-1.5 bg-slate-700 hover:bg-slate-600 rounded-lg text-sm text-slate-300 transition-colors"
             >
               Admin
             </Link>
             <button
               onClick={() => { setShowCreateModal(true) }}
-              className="px-4 py-2 bg-gold-500 hover:bg-gold-400 rounded-lg text-slate-900 font-semibold transition-colors"
+              className="px-4 py-1.5 bg-gold-500 hover:bg-gold-400 rounded-lg text-slate-900 text-sm font-semibold transition-colors"
             >
               + New Character
             </button>
@@ -210,8 +222,9 @@ export default function CharacterHub() {
                 <Link
                   key={character.id}
                   href={`/character/${character.slug}`}
-                  className="group bg-slate-800 rounded-lg border border-slate-700 hover:border-gold-500/50 transition-all hover:shadow-lg hover:shadow-gold-500/10"
+                  className="group bg-slate-800 rounded-lg border border-slate-700 hover:border-gold-500/50 transition-all hover:shadow-lg hover:shadow-gold-500/10 overflow-hidden"
                 >
+                  <div className={`h-1 ${getClassAccent(currentLife?.class)}`} />
                   <div className="p-6">
                     {/* Character Header */}
                     <div className="flex justify-between items-start mb-4">

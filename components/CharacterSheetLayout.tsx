@@ -275,13 +275,20 @@ export default function CharacterSheetLayout({
         {/* Row 1: Name + rest buttons */}
         <div className="flex items-start justify-between px-6 pt-5 pb-3 border-b border-slate-700">
           <div>
-            <h1 className="text-3xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent leading-tight">
+            <h1 className="text-4xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent leading-tight">
               {characterName}
             </h1>
-            <p className="text-slate-400 text-sm mt-0.5">
-              {race} &middot; {className}
-              {subclass ? ` (${subclass})` : ''} &middot; Level {level}
-            </p>
+            <div className="flex items-center gap-2 mt-1.5 flex-wrap">
+              <span className="text-sm text-slate-300">{race}</span>
+              <span className="text-slate-600 text-xs">&middot;</span>
+              <span className="text-sm text-amber-400/80 font-medium">
+                {className}{subclass ? ` · ${subclass}` : ''}
+              </span>
+              <span className="text-slate-600 text-xs">&middot;</span>
+              <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-700 text-xs text-slate-300 font-semibold border border-slate-600">
+                Level {level}
+              </span>
+            </div>
           </div>
           <div className="mt-1 shrink-0 flex items-center gap-2">
             {hasChronicle && (
@@ -308,7 +315,8 @@ export default function CharacterSheetLayout({
         {/* Row 2: Ability scores | Prof+Speed | HP */}
         <div className="grid grid-cols-12 gap-0 divide-x divide-slate-700">
           {/* Ability scores */}
-          <div className="col-span-7 px-4 py-4">
+          <div className="col-span-7 px-3 py-3">
+            <div className="bg-slate-900/50 rounded-xl p-2 border border-slate-700/40">
             <div className="grid grid-cols-6 gap-2">
               {ABILITY_DEFS.map(({ key, abbr, name }) => {
                 const score = effectiveStats[key]
@@ -336,6 +344,7 @@ export default function CharacterSheetLayout({
                   />
                 )
               })}
+            </div>
             </div>
           </div>
 
@@ -513,15 +522,15 @@ export default function CharacterSheetLayout({
           {/* Tabbed content panel */}
           <div className="bg-slate-800 rounded-xl border border-slate-700 overflow-hidden">
             {/* Tab nav */}
-            <div className="flex border-b border-slate-700 overflow-x-auto">
+            <div className="flex items-center gap-1 p-2 border-b border-slate-700 bg-slate-900/40 overflow-x-auto">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
-                  className={`px-4 py-3 text-sm font-medium whitespace-nowrap transition-colors ${
+                  className={`px-3 py-1.5 rounded-lg text-sm font-medium whitespace-nowrap transition-all ${
                     activeTab === tab.id
-                      ? 'text-amber-400 border-b-2 border-amber-400 bg-slate-700/30'
-                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/20'
+                      ? 'bg-slate-700 text-amber-400 shadow-sm shadow-amber-500/20'
+                      : 'text-slate-400 hover:text-slate-200 hover:bg-slate-700/50'
                   }`}
                 >
                   {tab.label}
