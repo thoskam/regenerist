@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import PointBuyCalculator from './PointBuyCalculator'
+import AlignmentPicker from './AlignmentPicker'
 import { Stats } from '@/lib/statMapper'
 import races from '@/lib/data/races.json'
 import classes from '@/lib/data/classes.json'
@@ -16,6 +17,7 @@ interface StaticCharacterEditorProps {
   currentStatBonuses?: Stats
   currentStory: string
   currentEffect: string
+  currentAlignment?: string
   onSave: (data: EditorData) => Promise<void>
   onCancel: () => void
   isLoading?: boolean
@@ -29,6 +31,7 @@ export interface EditorData {
   level: number
   stats: Stats
   statBonuses: Stats
+  alignment: string
   story: string
   effect: string
 }
@@ -55,6 +58,7 @@ export default function StaticCharacterEditor({
   currentStatBonuses,
   currentStory,
   currentEffect,
+  currentAlignment = '',
   onSave,
   onCancel,
   isLoading = false,
@@ -65,6 +69,7 @@ export default function StaticCharacterEditor({
   const [level, setLevel] = useState(currentLevel)
   const [stats, setStats] = useState<Stats>(currentStats)
   const [statBonuses, setStatBonuses] = useState<Stats>(currentStatBonuses ?? ZERO_BONUSES)
+  const [alignment, setAlignment] = useState(currentAlignment)
   const [story, setStory] = useState(currentStory)
   const [effect, setEffect] = useState(currentEffect)
   const [activeTab, setActiveTab] = useState<'basic' | 'stats' | 'story'>('basic')
@@ -78,6 +83,7 @@ export default function StaticCharacterEditor({
       level,
       stats,
       statBonuses,
+      alignment,
       story,
       effect,
     })
@@ -191,6 +197,10 @@ export default function StaticCharacterEditor({
                   </div>
                 </>
               )}
+              <div>
+                <label className="block text-sm font-semibold text-slate-400 mb-2">Alignment</label>
+                <AlignmentPicker value={alignment} onChange={setAlignment} />
+              </div>
             </div>
           )}
 

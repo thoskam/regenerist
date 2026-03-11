@@ -37,6 +37,7 @@ export interface CharacterData {
   stats: Stats
   baseStats?: Stats | null
   statBonuses?: Stats | null
+  alignment?: string
   story: string | null
   effect: string
   subclassChoice: string | null

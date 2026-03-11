@@ -22,6 +22,7 @@ import SpellList from '@/components/SpellList'
 import type { HydratedRaceInfo } from '@/lib/types/5etools'
 import type { Stats } from '@/lib/types'
 import { stripTags } from '@/lib/entryParser'
+import { ALIGNMENT_SHORT } from '@/components/AlignmentPicker'
 import {
   isPreparedCaster,
   calculateMaxPreparedSpells,
@@ -139,6 +140,7 @@ export default function CharacterSheetLayout({
     stats,
     baseStats,
     statBonuses,
+    alignment,
     story,
     effect,
     subclassChoice,
@@ -288,6 +290,11 @@ export default function CharacterSheetLayout({
               <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-700 text-xs text-slate-300 font-semibold border border-slate-600">
                 Level {level}
               </span>
+              {alignment && (
+                <span className="inline-flex items-center px-2 py-0.5 rounded-full bg-slate-700/80 text-xs text-slate-400 border border-slate-600" title={alignment}>
+                  {ALIGNMENT_SHORT[alignment] ?? alignment}
+                </span>
+              )}
             </div>
           </div>
           <div className="mt-1 shrink-0 flex items-center gap-2">

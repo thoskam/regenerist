@@ -119,7 +119,7 @@ export async function POST(request: Request) {
 
     // For static characters, create an initial life record and active state
     if (!isRegenerist) {
-      const { race = 'Human (Standard)', className = 'Fighter', subclass = 'Champion', stats: bodyStats, story = '' } = body
+      const { race = 'Human (Standard)', className = 'Fighter', subclass = 'Champion', stats: bodyStats, story = '', alignment = '' } = body
       const stats = bodyStats || {
         str: 15,
         dex: 14,
@@ -146,6 +146,7 @@ export async function POST(request: Request) {
           baseStats: stats,
           currentHp: maxHp,
           maxHp,
+          alignment,
           effect: '',
           story,
           skillProficiencies: [],

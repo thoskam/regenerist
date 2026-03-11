@@ -137,6 +137,7 @@ model Life {
   statBonuses              Json?    // {str, dex, con, int, wis, cha} - campaign bonuses (paid/granted on top of base)
   currentHp                Int
   maxHp                    Int
+  alignment                String   @default("")
   effect                   String
   story                    String   @db.Text
   skillProficiencies       String[] @default([])

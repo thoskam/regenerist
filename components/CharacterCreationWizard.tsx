@@ -3,6 +3,7 @@
 import { useState, useMemo } from 'react'
 import { X, ChevronRight, ChevronLeft, Dices, Pencil, Check } from 'lucide-react'
 import PointBuyCalculator from '@/components/PointBuyCalculator'
+import AlignmentPicker from '@/components/AlignmentPicker'
 import races from '@/lib/data/races.json'
 import classData from '@/lib/data/classes.json'
 import { Stats } from '@/lib/statMapper'
@@ -24,6 +25,7 @@ interface FormData {
   scoreMethod: 'standard' | 'pointbuy'
   stats: Stats
   standardArray: Record<keyof Stats, number | null>
+  alignment: string
   story: string
 }
 
@@ -385,20 +387,34 @@ function StatsStep({
   )
 }
 
-function StoryStep({ value, onChange }: { value: string; onChange: (v: string) => void }) {
+function StoryStep({
+  story,
+  alignment,
+  onStoryChange,
+  onAlignmentChange,
+}: {
+  story: string
+  alignment: string
+  onStoryChange: (v: string) => void
+  onAlignmentChange: (v: string) => void
+}) {
   return (
-    <div className="space-y-3">
-      <p className="text-slate-400 text-sm text-center">
-        Write your character&apos;s backstory — or leave blank and fill it in later.
-      </p>
-      <textarea
-        value={value}
-        onChange={e => onChange(e.target.value)}
-        rows={8}
-        className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-amber-500 resize-none"
-        placeholder="Born in a small village on the edge of the Whispering Wood…"
-        autoFocus
-      />
+    <div className="space-y-5">
+      <div>
+        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Alignment</label>
+        <AlignmentPicker value={alignment} onChange={onAlignmentChange} />
+      </div>
+      <div>
+        <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wide mb-2">Backstory</label>
+        <p className="text-slate-500 text-xs mb-2">Optional — leave blank and fill it in later.</p>
+        <textarea
+          value={story}
+          onChange={e => onStoryChange(e.target.value)}
+          rows={6}
+          className="w-full px-4 py-3 bg-slate-900 border border-slate-600 rounded-xl text-sm text-slate-200 focus:outline-none focus:border-amber-500 resize-none"
+          placeholder="Born in a small village on the edge of the Whispering Wood…"
+        />
+      </div>
     </div>
   )
 }
@@ -415,6 +431,7 @@ function ReviewStep({ data }: { data: FormData }) {
         ['Race', data.race],
         ['Class', `${data.baseClass}${data.subclass ? ` — ${data.subclass}` : ''}`],
         ['Level', String(data.level)],
+        ['Alignment', data.alignment || '(none)'],
         ['STR / DEX / CON', `${data.stats.str} / ${data.stats.dex} / ${data.stats.con}`],
         ['INT / WIS / CHA', `${data.stats.int} / ${data.stats.wis} / ${data.stats.cha}`],
         ['Backstory', data.story ? `${data.story.slice(0, 80)}${data.story.length > 80 ? '…' : ''}` : '(none)'],
@@ -477,6 +494,7 @@ export default function CharacterCreationWizard({ onClose, onCreated }: WizardPr
     scoreMethod: 'standard',
     stats: DEFAULT_STATS,
     standardArray: EMPTY_ARRAY,
+    alignment: '',
     story: '',
   })
   const [stepIndex, setStepIndex] = useState(0)
@@ -556,6 +574,7 @@ export default function CharacterCreationWizard({ onClose, onCreated }: WizardPr
       const payload: Record<string, unknown> = {
         name: data.name.trim(),
         isRegenerist: data.isRegenerist,
+        alignment: data.alignment,
         story: data.story,
       }
       if (!data.isRegenerist) {
@@ -671,7 +690,12 @@ export default function CharacterCreationWizard({ onClose, onCreated }: WizardPr
             />
           )}
           {currentStep === 'story' && (
-            <StoryStep value={data.story} onChange={story => set({ story })} />
+            <StoryStep
+              story={data.story}
+              alignment={data.alignment}
+              onStoryChange={story => set({ story })}
+              onAlignmentChange={alignment => set({ alignment })}
+            />
           )}
           {currentStep === 'review' && <ReviewStep data={data} />}
 

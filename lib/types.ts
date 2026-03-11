@@ -31,6 +31,7 @@ export interface Life {
   statBonuses?: Stats | null
   currentHp: number
   maxHp: number
+  alignment?: string
   effect: string
   story: string
   skillProficiencies: string[]

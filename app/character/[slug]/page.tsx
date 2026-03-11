@@ -90,6 +90,7 @@ export default function CharacterPage() {
           level: data.level,
           stats: data.stats,
           statBonuses: data.statBonuses,
+          alignment: data.alignment,
           story: data.story,
           effect: data.effect,
         }),
@@ -462,6 +463,7 @@ export default function CharacterPage() {
           stats,
           baseStats,
           statBonuses,
+          alignment: currentLife.alignment,
           story: currentLife.story,
           effect: currentLife.effect,
           subclassChoice: currentLife.subclassChoice,
@@ -643,6 +645,7 @@ export default function CharacterPage() {
           currentStatBonuses={(currentLife.statBonuses as Stats | null) ?? undefined}
           currentStory={currentLife.story}
           currentEffect={currentLife.effect}
+          currentAlignment={currentLife.alignment ?? ''}
           onSave={handleEditCharacter}
           onCancel={() => setShowEditor(false)}
           isLoading={isSavingEdit}
