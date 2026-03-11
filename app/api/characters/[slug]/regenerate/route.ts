@@ -219,6 +219,20 @@ function rollD4(): number {
   return Math.floor(Math.random() * 4) + 1
 }
 
+const ALLOWED_ALIGNMENTS = [
+  'Lawful Good',
+  'Neutral Good',
+  'Chaotic Good',
+  'Lawful Neutral',
+  'True Neutral',
+  'Chaotic Neutral',
+  'Neutral Evil',
+]
+
+function getRandomAlignment(): string {
+  return ALLOWED_ALIGNMENTS[Math.floor(Math.random() * ALLOWED_ALIGNMENTS.length)]
+}
+
 export async function POST(
   request: Request,
   { params }: { params: { slug: string } }
@@ -388,6 +402,7 @@ export async function POST(
         skillProficiencies,
         savingThrowProficiencies,
         subclassChoice,
+        alignment: getRandomAlignment(),
         ...(spellbook && { spellbook: spellbook as { spellNames: string[]; archivistNote: string } }),
         isActive: true,
       },
