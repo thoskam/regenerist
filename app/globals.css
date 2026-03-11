@@ -54,10 +54,45 @@ body {
 [data-theme="papyrus"] .bg-black\/50 { background-color: rgb(80 50 20 / 0.55); }
 [data-theme="papyrus"] .bg-black\/30 { background-color: rgb(80 50 20 / 0.35); }
 
+/* Opacity bg variants used in modals/overlays */
+[data-theme="papyrus"] .bg-black\/20 { background-color: rgb(160 130 80 / 0.2); }
+[data-theme="papyrus"] .bg-black\/10 { background-color: rgb(160 130 80 / 0.1); }
+[data-theme="papyrus"] .bg-white\/10 { background-color: rgb(255 255 255 / 0.2); }
+
 /* Hover backgrounds */
 [data-theme="papyrus"] .hover\:bg-slate-800:hover { background-color: #fdf9f2; }
 [data-theme="papyrus"] .hover\:bg-slate-700:hover { background-color: #f0e8d5; }
 [data-theme="papyrus"] .hover\:bg-slate-600:hover { background-color: #d4c49a; }
+
+/* --- Gradient from/to overrides (used by RollResultModal and other modals) --- */
+/* Neutral roll / default modal: dark slate gradient → parchment */
+[data-theme="papyrus"] .from-slate-700 {
+  --tw-gradient-from: #fdf9f2 var(--tw-gradient-from-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(253 249 242 / 0));
+}
+[data-theme="papyrus"] .from-slate-800 {
+  --tw-gradient-from: #fdf9f2 var(--tw-gradient-from-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(253 249 242 / 0));
+}
+[data-theme="papyrus"] .from-slate-900 {
+  --tw-gradient-from: #e0cfa8 var(--tw-gradient-from-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(224 207 168 / 0));
+}
+[data-theme="papyrus"] .to-slate-800 {
+  --tw-gradient-to: #f0e8d5 var(--tw-gradient-to-position);
+}
+[data-theme="papyrus"] .to-slate-900 {
+  --tw-gradient-to: #e0cfa8 var(--tw-gradient-to-position);
+}
+/* Crit success: yellow/amber gradient → crimson */
+[data-theme="papyrus"] .from-yellow-600 {
+  --tw-gradient-from: #991b1b var(--tw-gradient-from-position);
+  --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(153 27 27 / 0));
+}
+[data-theme="papyrus"] .to-amber-600 {
+  --tw-gradient-to: #7f1d1d var(--tw-gradient-to-position);
+}
+[data-theme="papyrus"] .border-yellow-400 { border-color: #ef4444; }
 
 /* --- Text --- */
 [data-theme="papyrus"] .text-white { color: #2c1810; }
