@@ -17,42 +17,47 @@ body {
    Tan parchment backgrounds with crimson red accents
    ============================================================ */
 
-/* Root/body */
+/* Root/body — warm tan page background */
 [data-theme="papyrus"] {
-  background-color: #f0e6c8;
+  background-color: #e0cfa8;
   color: #2c1810;
 }
 [data-theme="papyrus"] body {
-  background-color: #f0e6c8;
+  background-color: #e0cfa8;
   color: #2c1810;
 }
 
 /* Scrollbar */
-[data-theme="papyrus"] ::-webkit-scrollbar-track { background: #e8d9b5; }
+[data-theme="papyrus"] ::-webkit-scrollbar-track { background: #f0e8d5; }
 [data-theme="papyrus"] ::-webkit-scrollbar-thumb { background: #c4b080; border-radius: 4px; }
 [data-theme="papyrus"] ::-webkit-scrollbar-thumb:hover { background: #b09060; }
 
-/* --- Backgrounds --- */
+/* --- Backgrounds ---
+   900 = page/outer bg (tan)
+   800 = card/panel bg (near off-white)
+   700 = input/inner surface (light warm white)
+   600 = hover/interactive surface
+*/
 [data-theme="papyrus"] .bg-slate-950 { background-color: #c8b890; }
-[data-theme="papyrus"] .bg-slate-900 { background-color: #f0e6c8; }
-[data-theme="papyrus"] .bg-slate-800 { background-color: #e8d9b5; }
-[data-theme="papyrus"] .bg-slate-700 { background-color: #d4c49a; }
-[data-theme="papyrus"] .bg-slate-600 { background-color: #c0aa80; }
+[data-theme="papyrus"] .bg-slate-900 { background-color: #e0cfa8; }
+[data-theme="papyrus"] .bg-slate-800 { background-color: #fdf9f2; }
+[data-theme="papyrus"] .bg-slate-700 { background-color: #f0e8d5; }
+[data-theme="papyrus"] .bg-slate-600 { background-color: #d4c49a; }
 [data-theme="papyrus"] .bg-slate-500 { background-color: #8a7054; }
 [data-theme="papyrus"] .bg-slate-400 { background-color: #6b5440; }
 [data-theme="papyrus"] .bg-slate-300 { background-color: #503c2c; }
 
 /* Opacity variants */
-[data-theme="papyrus"] .bg-slate-900\/50 { background-color: rgb(240 230 200 / 0.5); }
-[data-theme="papyrus"] .bg-slate-900\/30 { background-color: rgb(240 230 200 / 0.3); }
-[data-theme="papyrus"] .bg-slate-800\/50 { background-color: rgb(232 217 181 / 0.5); }
+[data-theme="papyrus"] .bg-slate-900\/50 { background-color: rgb(224 207 168 / 0.5); }
+[data-theme="papyrus"] .bg-slate-900\/30 { background-color: rgb(224 207 168 / 0.3); }
+[data-theme="papyrus"] .bg-slate-800\/50 { background-color: rgb(253 249 242 / 0.5); }
 [data-theme="papyrus"] .bg-black\/50 { background-color: rgb(80 50 20 / 0.55); }
 [data-theme="papyrus"] .bg-black\/30 { background-color: rgb(80 50 20 / 0.35); }
 
 /* Hover backgrounds */
-[data-theme="papyrus"] .hover\:bg-slate-800:hover { background-color: #e8d9b5; }
-[data-theme="papyrus"] .hover\:bg-slate-700:hover { background-color: #d4c49a; }
-[data-theme="papyrus"] .hover\:bg-slate-600:hover { background-color: #c0aa80; }
+[data-theme="papyrus"] .hover\:bg-slate-800:hover { background-color: #fdf9f2; }
+[data-theme="papyrus"] .hover\:bg-slate-700:hover { background-color: #f0e8d5; }
+[data-theme="papyrus"] .hover\:bg-slate-600:hover { background-color: #d4c49a; }
 
 /* --- Text --- */
 [data-theme="papyrus"] .text-white { color: #2c1810; }
