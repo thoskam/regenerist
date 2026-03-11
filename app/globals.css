@@ -12,6 +12,122 @@ body {
   background: rgb(var(--background-rgb));
 }
 
+/* ============================================================
+   PAPYRUS THEME
+   Tan parchment backgrounds with crimson red accents
+   ============================================================ */
+
+/* Root/body */
+[data-theme="papyrus"] {
+  background-color: #f0e6c8;
+  color: #2c1810;
+}
+[data-theme="papyrus"] body {
+  background-color: #f0e6c8;
+  color: #2c1810;
+}
+
+/* Scrollbar */
+[data-theme="papyrus"] ::-webkit-scrollbar-track { background: #e8d9b5; }
+[data-theme="papyrus"] ::-webkit-scrollbar-thumb { background: #c4b080; border-radius: 4px; }
+[data-theme="papyrus"] ::-webkit-scrollbar-thumb:hover { background: #b09060; }
+
+/* --- Backgrounds --- */
+[data-theme="papyrus"] .bg-slate-950 { background-color: #c8b890; }
+[data-theme="papyrus"] .bg-slate-900 { background-color: #f0e6c8; }
+[data-theme="papyrus"] .bg-slate-800 { background-color: #e8d9b5; }
+[data-theme="papyrus"] .bg-slate-700 { background-color: #d4c49a; }
+[data-theme="papyrus"] .bg-slate-600 { background-color: #c0aa80; }
+[data-theme="papyrus"] .bg-slate-500 { background-color: #8a7054; }
+[data-theme="papyrus"] .bg-slate-400 { background-color: #6b5440; }
+[data-theme="papyrus"] .bg-slate-300 { background-color: #503c2c; }
+
+/* Opacity variants */
+[data-theme="papyrus"] .bg-slate-900\/50 { background-color: rgb(240 230 200 / 0.5); }
+[data-theme="papyrus"] .bg-slate-900\/30 { background-color: rgb(240 230 200 / 0.3); }
+[data-theme="papyrus"] .bg-slate-800\/50 { background-color: rgb(232 217 181 / 0.5); }
+[data-theme="papyrus"] .bg-black\/50 { background-color: rgb(80 50 20 / 0.55); }
+[data-theme="papyrus"] .bg-black\/30 { background-color: rgb(80 50 20 / 0.35); }
+
+/* Hover backgrounds */
+[data-theme="papyrus"] .hover\:bg-slate-800:hover { background-color: #e8d9b5; }
+[data-theme="papyrus"] .hover\:bg-slate-700:hover { background-color: #d4c49a; }
+[data-theme="papyrus"] .hover\:bg-slate-600:hover { background-color: #c0aa80; }
+
+/* --- Text --- */
+[data-theme="papyrus"] .text-white { color: #2c1810; }
+[data-theme="papyrus"] .text-slate-100 { color: #2c1810; }
+[data-theme="papyrus"] .text-slate-200 { color: #3d2418; }
+[data-theme="papyrus"] .text-slate-300 { color: #4a2c18; }
+[data-theme="papyrus"] .text-slate-400 { color: #6b4030; }
+[data-theme="papyrus"] .text-slate-500 { color: #8a6050; }
+[data-theme="papyrus"] .text-slate-600 { color: #a07860; }
+
+/* Hover text */
+[data-theme="papyrus"] .hover\:text-white:hover { color: #1a0a00; }
+[data-theme="papyrus"] .hover\:text-slate-200:hover { color: #3d2418; }
+[data-theme="papyrus"] .hover\:text-slate-300:hover { color: #4a2c18; }
+
+/* --- Borders --- */
+[data-theme="papyrus"] .border-slate-900 { border-color: #c8b890; }
+[data-theme="papyrus"] .border-slate-800 { border-color: #d4c49a; }
+[data-theme="papyrus"] .border-slate-700 { border-color: #c4b080; }
+[data-theme="papyrus"] .border-slate-600 { border-color: #b09060; }
+[data-theme="papyrus"] .border-slate-500 { border-color: #8a7054; }
+
+/* Divide */
+[data-theme="papyrus"] .divide-slate-700 > * + * { border-color: #c4b080; }
+
+/* --- Accent: gold → crimson --- */
+[data-theme="papyrus"] .text-gold-400 { color: #9b1c1c; }
+[data-theme="papyrus"] .text-gold-500 { color: #7f1d1d; }
+[data-theme="papyrus"] .bg-gold-400 { background-color: #dc2626; }
+[data-theme="papyrus"] .bg-gold-500 { background-color: #b91c1c; }
+[data-theme="papyrus"] .bg-gold-600 { background-color: #991b1b; }
+[data-theme="papyrus"] .border-gold-400 { border-color: #dc2626; }
+[data-theme="papyrus"] .border-gold-500 { border-color: #b91c1c; }
+[data-theme="papyrus"] .border-gold-500\/50 { border-color: rgb(185 28 28 / 0.5); }
+
+/* Hover accents */
+[data-theme="papyrus"] .hover\:bg-gold-400:hover { background-color: #dc2626; }
+[data-theme="papyrus"] .hover\:bg-gold-500:hover { background-color: #b91c1c; }
+[data-theme="papyrus"] .hover\:border-gold-500:hover { border-color: #b91c1c; }
+[data-theme="papyrus"] .hover\:border-gold-500\/50:hover { border-color: rgb(185 28 28 / 0.5); }
+[data-theme="papyrus"] .hover\:text-gold-400:hover { color: #9b1c1c; }
+[data-theme="papyrus"] .focus\:border-gold-500:focus { border-color: #b91c1c; }
+
+/* Amber/yellow → crimson */
+[data-theme="papyrus"] .text-amber-400 { color: #9b1c1c; }
+[data-theme="papyrus"] .text-amber-300 { color: #b91c1c; }
+[data-theme="papyrus"] .text-yellow-300 { color: #9b1c1c; }
+[data-theme="papyrus"] .text-yellow-400 { color: #9b1c1c; }
+[data-theme="papyrus"] .bg-amber-300 { background-color: #e05050; }
+[data-theme="papyrus"] .bg-amber-400 { background-color: #c0392b; }
+[data-theme="papyrus"] .border-amber-700\/50 { border-color: rgb(153 27 27 / 0.5); }
+[data-theme="papyrus"] .border-amber-900\/40 { border-color: rgb(120 20 20 / 0.4); }
+[data-theme="papyrus"] .focus\:border-amber-500:focus { border-color: #b91c1c; }
+
+/* Group hover accent */
+[data-theme="papyrus"] .group:hover .group-hover\:text-gold-400 { color: #9b1c1c; }
+
+/* Page title gradient: amber→yellow → dark red→bright red */
+[data-theme="papyrus"] .from-amber-400 { --tw-gradient-from: #7f1d1d var(--tw-gradient-from-position); --tw-gradient-stops: var(--tw-gradient-from), var(--tw-gradient-to, rgb(127 29 29 / 0)); }
+[data-theme="papyrus"] .to-yellow-300 { --tw-gradient-to: #dc2626 var(--tw-gradient-to-position); }
+
+/* --- Indigo button (sign-in) → crimson --- */
+[data-theme="papyrus"] .bg-indigo-600 { background-color: #9b1c1c; }
+[data-theme="papyrus"] .hover\:bg-indigo-700:hover { background-color: #7f1d1d; }
+
+/* --- HP / health text colors (darken for legibility on tan) --- */
+[data-theme="papyrus"] .text-green-400 { color: #15803d; }
+[data-theme="papyrus"] .text-green-500 { color: #166534; }
+[data-theme="papyrus"] .text-red-400 { color: #b91c1c; }
+[data-theme="papyrus"] .text-red-500 { color: #991b1b; }
+
+/* Shadow accent */
+[data-theme="papyrus"] .shadow-gold-500\/10 { --tw-shadow-color: rgb(185 28 28 / 0.1); }
+[data-theme="papyrus"] .hover\:shadow-gold-500\/10:hover { --tw-shadow-color: rgb(185 28 28 / 0.1); }
+
 /* Custom scrollbar */
 ::-webkit-scrollbar {
   width: 8px;

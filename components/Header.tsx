@@ -4,6 +4,7 @@ import { useSession, signIn, signOut } from 'next-auth/react'
 import Link from 'next/link'
 import { useState } from 'react'
 import UserAvatar from './UserAvatar'
+import ThemeSwitcher from './ThemeSwitcher'
 
 export default function Header() {
   const { data: session, status } = useSession()
@@ -16,7 +17,8 @@ export default function Header() {
           <span className="text-xl font-bold text-gold-400">The Land of Dragons</span>
         </Link>
 
-        <nav className="flex items-center gap-4">
+        <nav className="flex items-center gap-2">
+          <ThemeSwitcher />
           {status === 'loading' ? (
             <div className="h-8 w-8 rounded-full bg-slate-700 animate-pulse" />
           ) : session?.user ? (
