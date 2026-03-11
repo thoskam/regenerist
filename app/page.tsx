@@ -6,6 +6,7 @@ import { useSession, signIn } from 'next-auth/react'
 import { Character, Life } from '@/lib/types'
 import CharacterTypeBadge from '@/components/CharacterTypeBadge'
 import UserAvatar from '@/components/UserAvatar'
+import CharacterCreationWizard from '@/components/CharacterCreationWizard'
 
 interface Owner {
   id: string
@@ -27,9 +28,6 @@ export default function CharacterHub() {
   const [isLoading, setIsLoading] = useState(true)
   const [filter, setFilter] = useState<'mine' | 'public'>('mine')
   const [showCreateModal, setShowCreateModal] = useState(false)
-  const [newCharacterName, setNewCharacterName] = useState('')
-  const [isCreating, setIsCreating] = useState(false)
-  const [createError, setCreateError] = useState<string | null>(null)
 
   useEffect(() => {
     if (session) {
@@ -52,39 +50,10 @@ export default function CharacterHub() {
     }
   }
 
-  const handleCreateCharacter = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newCharacterName.trim()) return
-
-    setIsCreating(true)
-    setCreateError(null)
-    try {
-      const res = await fetch('/api/characters', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          name: newCharacterName.trim(),
-          isRegenerist: false,
-        }),
-      })
-      if (res.ok) {
-        const newCharacter = await res.json()
-        if (filter === 'mine') {
-          setCharacters(prev => [{ ...newCharacter, currentLife: null, totalLives: 0, isRegenerist: false }, ...prev])
-        }
-        setNewCharacterName('')
-        setCreateError(null)
-        setShowCreateModal(false)
-      } else {
-        const data = await res.json()
-        setCreateError(data.error || 'Failed to create character')
-      }
-    } catch (error) {
-      console.error('Failed to create character:', error)
-      setCreateError('Failed to create character')
-    } finally {
-      setIsCreating(false)
-    }
+  const handleCreated = (slug: string) => {
+    setShowCreateModal(false)
+    fetchCharacters(filter)
+    window.location.href = `/character/${slug}`
   }
 
   const getVisibilityIcon = (visibility?: string) => {
@@ -199,7 +168,7 @@ export default function CharacterHub() {
               Admin
             </Link>
             <button
-              onClick={() => { setShowCreateModal(true); setCreateError(null) }}
+              onClick={() => { setShowCreateModal(true) }}
               className="px-4 py-2 bg-gold-500 hover:bg-gold-400 rounded-lg text-slate-900 font-semibold transition-colors"
             >
               + New Character
@@ -220,7 +189,7 @@ export default function CharacterHub() {
                   No characters yet. Create your first regenerating soul!
                 </p>
                 <button
-                  onClick={() => { setShowCreateModal(true); setCreateError(null) }}
+                  onClick={() => { setShowCreateModal(true) }}
                   className="px-6 py-3 bg-gold-500 hover:bg-gold-400 rounded-lg text-slate-900 font-semibold transition-colors"
                 >
                   Create Character
@@ -305,53 +274,12 @@ export default function CharacterHub() {
           </div>
         )}
 
-        {/* Create Modal */}
+        {/* Create Wizard */}
         {showCreateModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md border border-slate-700">
-              <h3 className="text-xl font-bold text-white mb-4">Create New Character</h3>
-              {createError && (
-                <div className="mb-4 p-3 bg-red-900/50 border border-red-700 rounded-lg text-red-200 text-sm">
-                  {createError}
-                </div>
-              )}
-              <form onSubmit={handleCreateCharacter}>
-                <div className="mb-4">
-                  <label className="block text-sm text-slate-400 mb-2">
-                    Character Name
-                  </label>
-                  <input
-                    type="text"
-                    value={newCharacterName}
-                    onChange={(e) => setNewCharacterName(e.target.value)}
-                    className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-gold-500"
-                    placeholder="Enter character name..."
-                    autoFocus
-                  />
-                </div>
-
-                <div className="flex gap-3 justify-end">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCreateModal(false)
-                      setCreateError(null)
-                    }}
-                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isCreating || !newCharacterName.trim()}
-                    className="px-4 py-2 bg-gold-500 hover:bg-gold-400 disabled:bg-slate-600 disabled:text-slate-400 rounded-lg text-slate-900 font-semibold transition-colors"
-                  >
-                    {isCreating ? 'Creating...' : 'Create'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+          <CharacterCreationWizard
+            onClose={() => setShowCreateModal(false)}
+            onCreated={handleCreated}
+          />
         )}
       </div>
     </div>
