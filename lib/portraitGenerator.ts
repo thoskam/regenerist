@@ -1,5 +1,5 @@
 const IMAGEN_API_URL =
-  'https://generativelanguage.googleapis.com/v1beta/models/imagen-3.0-generate-002:predict'
+  'https://generativelanguage.googleapis.com/v1beta/models/imagen-4.0-generate-001:predict'
 
 function buildPrompt(race: string, className: string, subclass: string): string {
   return (
@@ -29,10 +29,7 @@ export async function generatePortrait(
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         instances: [{ prompt }],
-        parameters: {
-          sampleCount: 1,
-          aspectRatio: '1:1',
-        },
+        parameters: { sampleCount: 1, aspectRatio: '1:1' },
       }),
     })
 
