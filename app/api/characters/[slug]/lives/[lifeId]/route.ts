@@ -3,6 +3,7 @@ import { prisma } from '@/lib/prisma'
 import { calculateMaxHp } from '@/lib/calculations'
 import { getStatModifier, Stats } from '@/lib/statMapper'
 import { initializeActiveState } from '@/lib/activeState'
+import { applyRacialBonuses } from '@/lib/racialBonuses'
 
 // PUT update a specific life
 export async function PUT(
@@ -30,15 +31,27 @@ export async function PUT(
     }
 
     const body = await request.json()
-    const { class: className, level, stats: newStats } = body
+    const { class: className, level, stats: newStats, race } = body
 
     // For static characters, use stats as-is (user controls all stat allocation)
     // No auto-ASI application - user handles this via point buy
     let updateData = { ...body }
 
+    // If race and base stats are provided, apply racial bonuses and store baseStats
+    // This keeps stats = final (point-buy + racial) and baseStats = pure point-buy
+    if (race && newStats && !character.isRegenerist) {
+      const withRacial = applyRacialBonuses(newStats as Stats, race)
+      updateData.stats = withRacial
+      updateData.baseStats = newStats // preserve pure point-buy
+    }
+
     // If level is being changed and we have class info, recalculate HP
+    // Use the final stats (post-racial) + campaign bonuses for CON
     if (level !== undefined && className && newStats) {
-      const conMod = getStatModifier((newStats as Stats).con)
+      const finalStats = updateData.stats as Stats
+      const statBonuses = body.statBonuses as { con?: number } | null | undefined
+      const finalCon = finalStats.con + (statBonuses?.con ?? 0)
+      const conMod = getStatModifier(finalCon)
       const newMaxHp = calculateMaxHp(className, level, conMod)
       updateData.maxHp = newMaxHp
       // Ensure current HP doesn't exceed new max

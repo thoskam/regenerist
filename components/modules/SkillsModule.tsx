@@ -9,6 +9,7 @@ import type { Stats } from '@/lib/types'
 interface SkillsModuleProps {
   stats: Stats
   proficiencies: string[]
+  expertiseProficiencies?: string[]
   proficiencyBonus: number
   characterId: string
   characterName: string
@@ -19,6 +20,7 @@ interface SkillsModuleProps {
 export default function SkillsModule({
   stats,
   proficiencies,
+  expertiseProficiencies,
   proficiencyBonus,
   characterId,
   characterName,
@@ -35,6 +37,7 @@ export default function SkillsModule({
         <ProficiencyList
           stats={stats}
           proficiencies={proficiencies}
+          expertiseProficiencies={expertiseProficiencies}
           proficiencyBonus={proficiencyBonus}
           characterId={characterId}
           characterName={characterName}

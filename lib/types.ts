@@ -35,6 +35,7 @@ export interface Life {
   effect: string
   story: string
   skillProficiencies: string[]
+  expertiseProficiencies: string[]
   subclassChoice: string | null
   spellbook?: Record<string, unknown> | null
   portrait?: string | null

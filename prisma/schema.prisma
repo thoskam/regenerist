@@ -136,6 +136,7 @@ model Life {
   effect                   String
   story                    String   @db.Text
   skillProficiencies       String[] @default([])
+  expertiseProficiencies   String[] @default([])
   savingThrowProficiencies String[] @default([])
   subclassChoice           String?
   portrait                 String?  @db.Text  // base64 data URL from Imagen 3

@@ -95,6 +95,8 @@ export default function CharacterPage() {
           alignment: data.alignment,
           story: data.story,
           effect: data.effect,
+          skillProficiencies: data.skillProficiencies,
+          expertiseProficiencies: data.expertiseProficiencies,
         }),
       })
 
@@ -323,7 +325,9 @@ export default function CharacterPage() {
       newStats = currentLife.stats as Stats
     }
 
-    const conMod = getStatModifier(newStats.con)
+    const currentStatBonuses = (currentLife.statBonuses as Stats | null) ?? null
+    const effectiveCon = newStats.con + (currentStatBonuses?.con ?? 0)
+    const conMod = getStatModifier(effectiveCon)
     const newMaxHp = calculateMaxHp(currentLife.class, newLevel, conMod)
     const newCurrentHp = Math.min(currentLife.currentHp, newMaxHp)
 
@@ -456,6 +460,7 @@ export default function CharacterPage() {
   const statBonuses = (currentLife?.statBonuses as Stats | null) ?? null
   const proficiencyBonus = calculateProficiencyBonus(level)
   const skillProficiencies = currentLife?.skillProficiencies || []
+  const expertiseProficiencies = currentLife?.expertiseProficiencies || []
   const activeState = hydratedData?.activeState ?? null
 
   const refreshAll = async () => {
@@ -490,6 +495,7 @@ export default function CharacterPage() {
           isRegenerist: character.isRegenerist,
           proficiencyBonus,
           skillProficiencies,
+          expertiseProficiencies,
           hydratedData,
           actions,
           activeState,
@@ -717,8 +723,10 @@ export default function CharacterPage() {
           currentClass={currentLife.class}
           currentSubclass={currentLife.subclass}
           currentLevel={currentLife.level}
-          currentStats={currentLife.stats as Stats}
+          currentStats={(currentLife.baseStats ?? currentLife.stats) as Stats}
           currentStatBonuses={(currentLife.statBonuses as Stats | null) ?? undefined}
+          currentSkillProficiencies={currentLife.skillProficiencies}
+          currentExpertiseProficiencies={currentLife.expertiseProficiencies || []}
           currentStory={currentLife.story}
           currentEffect={currentLife.effect}
           currentAlignment={currentLife.alignment ?? ''}

@@ -1,0 +1,10 @@
+{
+  "Rogue": [
+    { "level": 1, "count": 2 },
+    { "level": 6, "count": 2 }
+  ],
+  "Bard": [
+    { "level": 3, "count": 2 },
+    { "level": 10, "count": 2 }
+  ]
+}

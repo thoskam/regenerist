@@ -60,7 +60,8 @@ export function calculateSkillModifier(
   skillName: string,
   stats: Stats,
   proficiencies: string[],
-  proficiencyBonus: number
+  proficiencyBonus: number,
+  expertiseProficiencies: string[] = []
 ): number {
   const ability = SKILL_ABILITIES[skillName]
   if (!ability) {
@@ -70,7 +71,11 @@ export function calculateSkillModifier(
   const statValue = stats[ability]
   const statMod = Math.floor((statValue - 10) / 2)
   const isProficient = proficiencies.includes(skillName)
+  const hasExpertise = expertiseProficiencies.includes(skillName)
 
+  if (hasExpertise) {
+    return statMod + proficiencyBonus * 2
+  }
   return statMod + (isProficient ? proficiencyBonus : 0)
 }
 

@@ -11,6 +11,7 @@ import { getStatModifier } from '@/lib/statMapper'
 interface ProficiencyListProps {
   stats: Stats
   proficiencies: string[]
+  expertiseProficiencies?: string[]
   proficiencyBonus: number
   characterId: string
   characterName: string
@@ -40,6 +41,7 @@ const ABILITY_ORDER: StatName[] = ['str', 'dex', 'int', 'wis', 'cha']
 export default function ProficiencyList({
   stats,
   proficiencies,
+  expertiseProficiencies,
   proficiencyBonus,
   characterId,
   characterName,
@@ -62,21 +64,22 @@ export default function ProficiencyList({
               <div className="space-y-1">
                 {skills.map((skill) => {
                   const isProficient = proficiencies.includes(skill)
+                  const isExpert = (expertiseProficiencies ?? []).includes(skill)
                   const calculated = calculatedSkills?.[skill]
                   const modifier =
                     typeof calculated?.total === 'number'
                       ? calculated.total
-                      : calculateSkillModifier(skill, stats, proficiencies, proficiencyBonus)
+                      : calculateSkillModifier(skill, stats, proficiencies, proficiencyBonus, expertiseProficiencies ?? [])
                   const abilityModifier = getStatModifier(stats[ability])
 
                   return (
-                    <div key={skill} className={`${isProficient ? 'bg-gold-500/10 rounded' : ''}`}>
+                    <div key={skill} className={`${isExpert ? 'bg-amber-500/20 rounded' : isProficient ? 'bg-gold-500/10 rounded' : ''}`}>
                       <RollableSkill
                         skillName={skill}
                         abilityName={ABILITY_NAMES[ability]}
                         modifier={modifier}
                         isProficient={isProficient}
-                        hasExpertise={false}
+                        hasExpertise={isExpert}
                         proficiencyBonus={proficiencyBonus}
                         abilityModifier={abilityModifier}
                         characterId={characterId}
@@ -86,7 +89,7 @@ export default function ProficiencyList({
                           <SkillTooltip skillName={skill}>
                             <span
                               className={`text-sm ${
-                                isProficient ? 'text-gold-400 font-medium' : 'text-slate-400'
+                                isExpert ? 'text-amber-400 font-medium' : isProficient ? 'text-gold-400 font-medium' : 'text-slate-400'
                               }`}
                             >
                               {skill}
@@ -109,6 +112,9 @@ export default function ProficiencyList({
         </div>
         <div className="text-xs text-slate-500 mt-1">
           Proficient: <span className="text-slate-400">{proficiencies.length} skills</span>
+        </div>
+        <div className="text-xs text-slate-500 mt-1">
+          Expertise: <span className="text-amber-400">{(expertiseProficiencies ?? []).length} skills</span>
         </div>
       </div>
     </div>

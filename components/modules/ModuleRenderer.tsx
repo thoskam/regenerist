@@ -45,6 +45,7 @@ export interface CharacterData {
   isRegenerist: boolean
   proficiencyBonus: number
   skillProficiencies: string[]
+  expertiseProficiencies: string[]
   hydratedData: HydratedCharacterData | null
   actions: CharacterAction[]
   activeState: HydratedActiveState | null
@@ -80,6 +81,7 @@ export default function ModuleRenderer({ moduleId, characterData }: ModuleRender
     isOwner,
     proficiencyBonus,
     skillProficiencies,
+    expertiseProficiencies,
     hydratedData,
     actions,
     activeState,
@@ -96,6 +98,7 @@ export default function ModuleRenderer({ moduleId, characterData }: ModuleRender
         <SkillsModule
           stats={stats}
           proficiencies={skillProficiencies}
+          expertiseProficiencies={expertiseProficiencies}
           proficiencyBonus={proficiencyBonus}
           characterId={characterId}
           characterName={characterName}
