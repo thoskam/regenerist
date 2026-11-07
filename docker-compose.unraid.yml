@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: regenerist-app
     ports:
-      - "3080:3000"  # Using 3080 to avoid conflicts
+      - "3001:3000"  # zeuss serves landofdragons.kamnikars.com from 3001
     environment:
       - DATABASE_URL=postgresql://postgres:regenerist_password@regenerist-db:5432/regenerist
       - AWS_REGION=${AWS_REGION:-us-east-1}
