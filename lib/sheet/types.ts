@@ -264,7 +264,7 @@ export interface CharacterDoc {
     /** Basic actions list follows this edition. */
     combatActions: Edition
   }
-  theme: { name: ThemeName; accent?: string | null }
+  theme: { name: ThemeName; accent?: string | null; /** Scenic art behind the top of the sheet; on unless false. */ backdrop?: boolean }
   import?: { source: 'ddb'; id: string; url: string; importedAt: string } | null
   /** Set when an imported character was converted to a builder character (a backup of the import is kept). */
   convertedFrom?: { source: 'ddb'; id: string; url: string; convertedAt: string } | null

@@ -127,10 +127,10 @@ export function useSheet(slug: string, initial: { doc: CharacterDoc; state: Play
     return res.ok
   }, [slug])
 
-  const saveTheme = useCallback(async (name: ThemeName, accent: string | null) => {
-    setDoc(d => ({ ...d, theme: { name, accent } }))
+  const saveTheme = useCallback(async (name: ThemeName, accent: string | null, backdrop = true) => {
+    setDoc(d => ({ ...d, theme: { name, accent, backdrop } }))
     if (readOnly) return
-    const res = await fetch(`/api/sheets/${slug}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ theme: { name, accent } }) })
+    const res = await fetch(`/api/sheets/${slug}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ theme: { name, accent, backdrop } }) })
     if (res.ok) { const data = await res.json(); revision.current = data.revision }
   }, [slug, readOnly])
 

@@ -33,7 +33,7 @@ export default function PartyView({ id }: { id: string }) {
 
   if (!data) return <main className="v2 min-h-screen p-6 font-ui text-muted" data-theme="ember">Loading party…</main>
   return (
-    <main className="v2 min-h-screen font-ui text-sm" data-theme="ember">
+    <main className="v2 v2-scene min-h-screen font-ui text-sm" data-theme="ember">
       <div className="mx-auto flex max-w-[1280px] flex-col gap-4 px-3 py-6 sm:px-6">
         <header className="flex flex-wrap items-end justify-between gap-3">
           <div>

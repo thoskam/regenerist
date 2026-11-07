@@ -41,8 +41,8 @@ export default function SheetApp({ slug, initial, readOnly, campaigns = [] }: Sh
   const style = doc.theme?.accent ? ({ '--accent': doc.theme.accent } as CSSProperties) : undefined
 
   return (
-    <div className="v2 min-h-screen font-ui text-sm" data-theme={doc.theme?.name ?? 'ember'} style={style}>
-      <div className="mx-auto flex max-w-[1392px] flex-col gap-4 px-3 pb-36 pt-3 sm:px-6 sm:pt-6">
+    <div className="v2 v2-scene min-h-screen font-ui text-sm" data-theme={doc.theme?.name ?? 'ember'} data-backdrop={doc.theme?.backdrop === false ? 'off' : undefined} style={style}>
+      <div className={cx('mx-auto flex max-w-[1392px] flex-col gap-4 px-3 pb-36 sm:px-6', doc.theme?.backdrop === false ? 'pt-3 sm:pt-6' : 'pt-12 sm:pt-28')}>
         {readOnly && <div role="status" className="rounded-xl border border-line bg-panel px-4 py-2.5 text-[13px] text-muted">View only — this is another player’s character. You can roll, but changes aren’t saved.</div>}
         <Header api={api} slug={slug} hasAvatar={initial.hasAvatar} campaigns={campaigns} />
         <VitalsRow api={api} onDetail={setDetail} />
@@ -140,7 +140,7 @@ function Header({ api, slug, hasAvatar, campaigns }: { api: SheetApi; slug: stri
   }
 
   return (
-    <header className="flex flex-wrap items-center gap-x-6 gap-y-4 rounded-2xl border border-line bg-panel px-4 py-4 sm:px-5">
+    <header className="glass flex flex-wrap items-center gap-x-6 gap-y-4 rounded-2xl border border-line px-4 py-4 shadow-tray sm:px-5">
       <div className="flex min-w-0 flex-[1_1_380px] items-center gap-4">
         <div className="group relative shrink-0">
           <button
@@ -238,32 +238,37 @@ const ACCENTS = ['#f0913f', '#e05d5d', '#d4a72c', '#5fb878', '#4fb3bf', '#a3b5ff
 function ThemePicker({ api }: { api: SheetApi }) {
   const current = api.doc.theme?.name ?? 'ember'
   const accent = api.doc.theme?.accent ?? null
+  const backdrop = api.doc.theme?.backdrop !== false
   return (
     <div className="flex flex-col gap-2">
       <Label>Theme</Label>
       <div className="grid grid-cols-3 gap-2">
         {THEME_SWATCHES.map(t => (
-          <button key={t.name} type="button" aria-pressed={current === t.name} onClick={() => api.saveTheme(t.name, accent)}
+          <button key={t.name} type="button" aria-pressed={current === t.name} onClick={() => api.saveTheme(t.name, accent, backdrop)}
             className={cx('flex flex-col items-center gap-1 rounded-xl border p-2 text-xs font-semibold', current === t.name ? 'border-accent' : 'border-line')}>
-            <span className="flex h-7 w-full items-center justify-center rounded-lg" style={{ background: t.bg }}><span className="h-3 w-3 rounded-full" style={{ background: t.accent }} /></span>
+            <span className="flex h-9 w-full items-center justify-center rounded-lg bg-cover bg-bottom" style={{ backgroundColor: t.bg, backgroundImage: `url(/backdrops/${t.name}.svg)` }}><span className="h-3 w-3 rounded-full ring-2 ring-black/30" style={{ background: t.accent }} /></span>
             {t.label}
           </button>
         ))}
       </div>
       <Label>Accent</Label>
       <div className="flex flex-wrap gap-2">
-        <button type="button" aria-pressed={!accent} onClick={() => api.saveTheme(current, null)} className={cx('h-7 rounded-full border px-2 text-xs font-semibold', !accent ? 'border-accent' : 'border-line')}>Default</button>
+        <button type="button" aria-pressed={!accent} onClick={() => api.saveTheme(current, null, backdrop)} className={cx('h-7 rounded-full border px-2 text-xs font-semibold', !accent ? 'border-accent' : 'border-line')}>Default</button>
         {ACCENTS.map(c => (
-          <button key={c} type="button" aria-label={`Accent ${c}`} aria-pressed={accent === c} onClick={() => api.saveTheme(current, c)}
+          <button key={c} type="button" aria-label={`Accent ${c}`} aria-pressed={accent === c} onClick={() => api.saveTheme(current, c, backdrop)}
             className={cx('h-7 w-7 rounded-full border-2', accent === c ? 'border-ink' : 'border-transparent')} style={{ background: c }} />
         ))}
       </div>
+      <label className="flex items-center gap-2 text-xs font-semibold">
+        <input type="checkbox" checked={backdrop} onChange={e => api.saveTheme(current, accent, e.target.checked)} className="h-4 w-4 accent-[var(--accent)]" />
+        Background art
+      </label>
     </div>
   )
 }
 
 function StatTile({ label, children, onClick, highlight, ariaLabel, title }: { label: string; children: React.ReactNode; onClick?: () => void; highlight?: boolean; ariaLabel?: string; title?: string }) {
-  const cls = cx('flex flex-[1_1_88px] flex-col items-center justify-center gap-0.5 rounded-2xl border px-1.5 py-3 text-ink', highlight ? 'border-accent bg-accent-soft' : 'border-line bg-panel', onClick && 'cursor-pointer hover:border-accent')
+  const cls = cx('flex flex-[1_1_88px] flex-col items-center justify-center gap-0.5 rounded-2xl border px-1.5 py-3 text-ink', highlight ? 'tint border-accent' : 'border-line bg-panel', onClick && 'cursor-pointer hover:border-accent')
   const inner = <><Label>{label}</Label>{children}</>
   return onClick ? <button type="button" className={cls} onClick={onClick} aria-label={ariaLabel} title={title}>{inner}</button> : <div className={cls} title={title}>{inner}</div>
 }

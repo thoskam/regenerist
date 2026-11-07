@@ -233,7 +233,20 @@ body {
   --shadow: 0 12px 32px rgba(60, 40, 20, 0.18);
   color-scheme: light;
 }
-.v2 { --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent); }
+.v2 { --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent); --backdrop: url(/backdrops/ember.svg); }
+.v2[data-theme="arcane"] { --backdrop: url(/backdrops/arcane.svg); }
+.v2[data-theme="parchment"] { --backdrop: url(/backdrops/parchment.svg); }
+/* Scenic art behind the top of a page (original SVGs from scripts/backdrops.cjs), fading into --bg. */
+.v2-scene { position: relative; isolation: isolate; }
+.v2-scene::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 600px; z-index: -1; pointer-events: none;
+  background: var(--backdrop) center bottom / cover no-repeat;
+  -webkit-mask-image: linear-gradient(to bottom, #000 40%, transparent); mask-image: linear-gradient(to bottom, #000 40%, transparent);
+}
+.v2-scene[data-backdrop="off"]::before { display: none; }
+@media (max-width: 640px) { .v2-scene::before { height: 380px; } }
+.v2 .tint { background: linear-gradient(var(--accent-soft), var(--accent-soft)), var(--panel); }
+.v2 .glass { background: color-mix(in srgb, var(--panel) 82%, transparent); -webkit-backdrop-filter: blur(10px); backdrop-filter: blur(10px); }
 .v2 ::selection { background: var(--accent); color: var(--on-accent); }
 .v2 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 .v2 .rich p { margin: 0 0 0.6em; }

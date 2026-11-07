@@ -10,7 +10,7 @@ export default async function Home() {
   const viewer = await requirePageViewer('/')
   const characters = await listSheets(viewer)
   return (
-    <main className="v2 min-h-screen font-ui text-sm" data-theme="ember">
+    <main className="v2 v2-scene min-h-screen font-ui text-sm" data-theme="ember">
       <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
         <header className="flex flex-wrap items-end justify-between gap-4">
           <div>

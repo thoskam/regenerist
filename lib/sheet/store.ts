@@ -153,7 +153,7 @@ const THEMES: ThemeName[] = ['ember', 'arcane', 'parchment']
 export interface SheetPatch {
   revision?: number
   state?: unknown
-  theme?: { name?: unknown; accent?: unknown }
+  theme?: { name?: unknown; accent?: unknown; backdrop?: unknown }
   notes?: unknown
   regenerist?: { enabled?: unknown }
 }
@@ -173,7 +173,8 @@ export async function updateSheet(slug: string, patch: SheetPatch): Promise<{ re
     if (patch.theme) {
       const name = THEMES.includes(patch.theme.name as ThemeName) ? (patch.theme.name as ThemeName) : doc.theme?.name ?? 'ember'
       const accent = typeof patch.theme.accent === 'string' && /^#[0-9a-f]{6}$/i.test(patch.theme.accent) ? patch.theme.accent : null
-      doc.theme = { name, accent }
+      const backdrop = typeof patch.theme.backdrop === 'boolean' ? patch.theme.backdrop : doc.theme?.backdrop ?? true
+      doc.theme = { name, accent, backdrop }
       docChanged = true
     }
     if (patch.regenerist && typeof patch.regenerist.enabled === 'boolean') {

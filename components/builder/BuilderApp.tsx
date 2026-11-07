@@ -67,7 +67,7 @@ export default function BuilderApp({ initial, slug, levelUp, conversion, current
 
   const idx = STEPS.findIndex(s => s.id === step)
   return (
-    <div className="v2 min-h-screen font-ui text-sm" data-theme="ember">
+    <div className="v2 v2-scene min-h-screen font-ui text-sm" data-theme="ember">
       <div className="mx-auto flex max-w-[1280px] flex-col gap-4 px-3 py-4 sm:px-6 sm:py-6">
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>

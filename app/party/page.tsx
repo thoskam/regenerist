@@ -9,7 +9,7 @@ export default async function PartiesPage() {
   const v = await requirePageViewer('/party')
   const campaigns = await listCampaigns(v)
   return (
-    <main className="v2 min-h-screen font-ui text-sm" data-theme="ember">
+    <main className="v2 v2-scene min-h-screen font-ui text-sm" data-theme="ember">
       <div className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-8">
         <Link href="/" className="text-xs text-muted underline">All characters</Link>
         <h1 className="m-0 font-display text-4xl font-semibold">Parties</h1>
