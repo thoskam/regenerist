@@ -1,5 +1,7 @@
 # The Regenerist
 
+> **v2 (branch `v2`):** a full D&D Beyond–style character sheet with import, builder, rolling, inventory, parties, and optional Regenerist mode. Start with [docs/V2.md](docs/V2.md). The original app below is still available at `/regenerist`.
+
 A D&D 5e character manager built around an enduring soul and its changing incarnations. Regenerist characters gain a new race/class/body and story; static characters can be edited manually. The current rules baseline is **2014, single class, levels 1–20**, with selected supplements. See [rules coverage](docs/RULES-COVERAGE.md) for exact support and [review](docs/REVIEW.md) for findings and priorities.
 
 ## Start locally
