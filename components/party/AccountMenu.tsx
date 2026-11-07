@@ -9,7 +9,7 @@ export default function AccountMenu({ name, isAdmin, authEnabled }: { name: stri
       <Link href="/party" className="rounded-xl border border-line bg-panel px-3 py-2 font-semibold">Parties</Link>
       {authEnabled ? (
         <>
-          {isAdmin && <Link href="/account" className="rounded-xl border border-line bg-panel px-3 py-2 font-semibold">Accounts</Link>}
+          <Link href="/account" className="rounded-xl border border-line bg-panel px-3 py-2 font-semibold" title={isAdmin ? 'Your password and player accounts' : 'Change your password'}>{isAdmin ? 'Accounts' : 'Account'}</Link>
           <span className="text-muted">{name}</span>
           <button type="button" onClick={signOut} className="rounded-xl border border-line bg-panel px-3 py-2 font-semibold">Sign out</button>
         </>

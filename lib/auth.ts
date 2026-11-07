@@ -41,12 +41,16 @@ export async function authEnabled(): Promise<boolean> {
   return value
 }
 
+export function validatePassword(password: unknown): string {
+  const p = typeof password === 'string' ? password : ''
+  if (p.length < 8 || p.length > 200) throw new AuthError('Passwords must be at least 8 characters.', 400)
+  return p
+}
+
 export function validateCredentials(username: unknown, password: unknown): { username: string; password: string } {
   const u = typeof username === 'string' ? username.trim().toLowerCase() : ''
-  const p = typeof password === 'string' ? password : ''
   if (!/^[a-z0-9_.-]{3,32}$/.test(u)) throw new AuthError('Usernames are 3–32 letters, numbers, dots, dashes, or underscores.', 400)
-  if (p.length < 8 || p.length > 200) throw new AuthError('Passwords must be at least 8 characters.', 400)
-  return { username: u, password: p }
+  return { username: u, password: validatePassword(password) }
 }
 
 async function isHttps(): Promise<boolean> {
@@ -121,6 +125,31 @@ export async function login(usernameIn: unknown, passwordIn: unknown): Promise<v
   const ok = user ? await verifyPassword(password, user.passwordHash) : (await hashPassword(password), false)
   if (!user || !ok) throw new AuthError('Wrong username or password.', 401)
   await startSession(user.id)
+}
+
+/** Change your own password (needs the current one). Signs out your other devices. */
+export async function changePassword(v: Viewer, currentIn: unknown, nextIn: unknown): Promise<void> {
+  if (!v.user) throw new AuthError('Sign in to continue.', 401)
+  const next = validatePassword(nextIn)
+  const user = await prisma.user.findUnique({ where: { id: v.user.id } })
+  if (!user || !(await verifyPassword(typeof currentIn === 'string' ? currentIn : '', user.passwordHash))) throw new AuthError('Your current password is wrong.', 403)
+  if (await verifyPassword(next, user.passwordHash)) throw new AuthError('Choose a password different from your current one.', 400)
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(next) } })
+  const token = (await cookies()).get(SESSION_COOKIE)?.value
+  await prisma.session.deleteMany({ where: { userId: user.id, ...(token ? { id: { not: tokenHash(token) } } : {}) } })
+}
+
+/** Admins: set another account's password (e.g. a player who forgot theirs). Signs that account out everywhere. */
+export async function resetPassword(v: Viewer, userIdIn: unknown, nextIn: unknown): Promise<string> {
+  if (!v.user?.isAdmin) throw new AuthError('Admins only.', 403)
+  const userId = typeof userIdIn === 'string' ? userIdIn : ''
+  if (userId === v.user.id) throw new AuthError('Change your own password above.', 400)
+  const next = validatePassword(nextIn)
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, username: true } })
+  if (!user) throw new AuthError('Account not found.', 404)
+  await prisma.user.update({ where: { id: user.id }, data: { passwordHash: await hashPassword(next) } })
+  await prisma.session.deleteMany({ where: { userId: user.id } })
+  return user.username
 }
 
 export function inviteCode(): string {
