@@ -163,6 +163,8 @@ function Header({ api, slug, hasAvatar }: { api: SheetApi; slug: string; hasAvat
                   {syncing ? 'Syncing…' : 'Re-sync from D&D Beyond'}
                 </button>
               )}
+              {doc.build && <Link href={`/c/${slug}/build?levelup=1`} className="min-h-[40px] rounded-xl bg-accent px-3 py-2.5 text-[13px] font-semibold text-on-accent">Level up</Link>}
+              {doc.build && <Link href={`/c/${slug}/build`} className="min-h-[40px] rounded-xl border border-line bg-raised px-3 py-2.5 text-[13px] font-semibold">Edit build</Link>}
               {avatarVersion ? <button type="button" onClick={removeAvatar} className="min-h-[40px] rounded-xl border border-line bg-raised px-3 text-left text-[13px] font-semibold">Remove portrait</button> : null}
               <Link href="/" className="min-h-[40px] rounded-xl border border-line bg-raised px-3 py-2.5 text-[13px] font-semibold">All characters</Link>
               <div className="text-xs text-muted">{status === 'saved' ? 'All changes saved' : status === 'saving' ? 'Saving…' : status === 'conflict' ? 'Changed elsewhere — reload' : 'Not saved — retrying'}</div>

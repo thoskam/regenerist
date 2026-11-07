@@ -8,6 +8,8 @@
 // grammar deliberately follows D&D Beyond's modifier vocabulary (type + subType), so imports are
 // lossless and the in-app builder can emit the same records.
 
+import type { Build } from '../rules/build'
+
 export type Ability = 'str' | 'dex' | 'con' | 'int' | 'wis' | 'cha'
 export const ABILITIES: Ability[] = ['str', 'dex', 'con', 'int', 'wis', 'cha']
 
@@ -264,6 +266,8 @@ export interface CharacterDoc {
   }
   theme: { name: ThemeName; accent?: string | null }
   import?: { source: 'ddb'; id: string; url: string; importedAt: string } | null
+  /** Builder choices; present for characters made in the app (the doc is regenerated from it). */
+  build?: Build | null
 }
 
 export interface PlayState {

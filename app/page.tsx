@@ -14,13 +14,16 @@ export default async function Home() {
             <h1 className="m-0 font-display text-4xl font-semibold">Characters</h1>
             <p className="m-0 mt-1 text-muted">Your sheets, rules, and rolls in one place.</p>
           </div>
-          <Link href="/regenerist" className="rounded-xl border border-line bg-panel px-4 py-2.5 text-[13px] font-semibold">Regenerist lives →</Link>
+          <div className="flex flex-wrap gap-2">
+            <Link href="/new" className="rounded-xl bg-accent px-4 py-2.5 text-[13px] font-semibold text-on-accent">+ New character</Link>
+            <Link href="/regenerist" className="rounded-xl border border-line bg-panel px-4 py-2.5 text-[13px] font-semibold">Regenerist lives →</Link>
+          </div>
         </header>
 
         <ImportForm />
 
         {characters.length === 0 ? (
-          <p className="m-0 rounded-2xl border border-dashed border-line p-8 text-center text-muted">No characters yet. Import one from D&amp;D Beyond above.</p>
+          <p className="m-0 rounded-2xl border border-dashed border-line p-8 text-center text-muted">No characters yet. Create one or import from D&amp;D Beyond.</p>
         ) : (
           <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-0">
             {characters.map(c => {

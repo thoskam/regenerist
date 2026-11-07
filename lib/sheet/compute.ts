@@ -157,7 +157,7 @@ const title = (s: string) => s.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUppe
 const XP_TABLE = [0, 300, 900, 2700, 6500, 14000, 23000, 34000, 48000, 64000, 85000, 100000, 120000, 140000, 165000, 195000, 225000, 265000, 305000, 355000]
 
 const ARMOR_PROF_NAMES: Record<string, string> = { 'light-armor': 'Light Armor', 'medium-armor': 'Medium Armor', 'heavy-armor': 'Heavy Armor', shields: 'Shields' }
-const WEAPON_GROUPS: Record<string, string> = { 'simple-weapons': 'Simple Weapons', 'martial-weapons': 'Martial Weapons' }
+const WEAPON_GROUPS: Record<string, string> = { 'simple-weapons': 'Simple Weapons', 'martial-weapons': 'Martial Weapons', 'martial-weapons-finesse-or-light': 'Martial Weapons (Finesse or Light)' }
 const TOOL_HINT = /(tools|kit|supplies|set|instrument|utensils|vehicles|bagpipes|drum|dulcimer|flute|lute|lyre|horn|pan-flute|shawm|viol)/
 const SKILL_KEYS = new Set(SKILLS.map(s => s.key))
 const SAVE_KEYS = new Set(ABILITIES.map(a => `${ABILITY_SLUG[a]}-saving-throws`))
@@ -318,7 +318,9 @@ export function computeSheet(doc: CharacterDoc, state: PlayState): Sheet {
     const finesse = w.properties.includes('Finesse')
     const thrown = w.properties.includes('Thrown')
     const ability: Ability = finesse ? (mods.dex >= mods.str ? 'dex' : 'str') : w.kind === 'ranged' ? 'dex' : 'str'
-    const proficient = item.custom?.proficient ?? (weaponProfSlugs.has(`${w.category}-weapons`) || weaponProfSlugs.has(w.base) || weaponProfSlugs.has(`${w.base}s`))
+    const finesseOrLight = w.properties.includes('Finesse') || w.properties.includes('Light')
+    const proficient = item.custom?.proficient ?? (weaponProfSlugs.has(`${w.category}-weapons`) || weaponProfSlugs.has(w.base) || weaponProfSlugs.has(`${w.base}s`)
+      || (w.category === 'martial' && finesseOrLight && weaponProfSlugs.has('martial-weapons-finesse-or-light')))
     const magic = item.magicBonus ?? 0
     const toHit = mods[ability] + (proficient ? pb : 0) + magic + (item.custom?.hitBonus ?? 0) + atkBonus(w.kind)
     const dmgMod = mods[ability] + magic + (item.custom?.damageBonus ?? 0) + dmgBonus(w.kind)

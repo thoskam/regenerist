@@ -7,6 +7,9 @@ import { normalizeState } from './state'
 import type { CharacterDoc, PlayState, ThemeName } from './types'
 import { applyDocOp, DocOpError, type DocOp } from './docOps'
 import { catalogToItem } from '../catalog/items'
+import { generateDoc, normalizeBuild, validateBuild } from '../rules/build'
+import { loadPack } from '../rules/pack'
+import { emptyPlayState } from './types'
 
 export class StoreError extends Error {
   constructor(message: string, public status: number, public extra?: Record<string, unknown>) { super(message) }
@@ -218,4 +221,31 @@ export async function editDoc(slug: string, body: unknown): Promise<CharacterDoc
     await tx.playerCharacter.update({ where: { id: row.id }, data: { doc: next as unknown as Prisma.InputJsonValue } })
     return next
   })
+}
+
+/** Create a character from builder choices. */
+export async function createFromBuild(input: unknown): Promise<{ slug: string }> {
+  const build = normalizeBuild(input)
+  const pack = loadPack(build.edition)
+  const errors = validateBuild(pack, build).filter(i => i.level === 'error')
+  if (errors.length) throw new StoreError(errors.map(e => e.message).join(' '), 400)
+  const doc = generateDoc(pack, build)
+  const slug = await uniqueSlug(doc.name)
+  await prisma.playerCharacter.create({ data: { slug, name: doc.name, doc: doc as unknown as Prisma.InputJsonValue, state: emptyPlayState() as unknown as Prisma.InputJsonValue } })
+  return { slug }
+}
+
+/** Re-generate a builder character after level-up or edits; inventory, notes, and table state are kept. */
+export async function updateBuild(slug: string, input: unknown): Promise<{ slug: string }> {
+  const build = normalizeBuild(input)
+  const pack = loadPack(build.edition)
+  const errors = validateBuild(pack, build).filter(i => i.level === 'error')
+  if (errors.length) throw new StoreError(errors.map(e => e.message).join(' '), 400)
+  const row = await prisma.playerCharacter.findUnique({ where: { slug }, select: { id: true, doc: true } })
+  if (!row) throw new StoreError('Character not found.', 404)
+  const prev = row.doc as unknown as CharacterDoc
+  if (prev.import) throw new StoreError('Imported characters are edited on D&D Beyond and re-synced.', 400)
+  const doc = generateDoc(pack, build, prev)
+  await prisma.playerCharacter.update({ where: { id: row.id }, data: { name: doc.name, doc: doc as unknown as Prisma.InputJsonValue } })
+  return { slug }
 }
