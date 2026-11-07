@@ -4,6 +4,9 @@
  */
 
 export interface SpellSlotInfo {
+  slots: number[] // Index 0 is first-level slots; pact slots appear at their actual level.
+  pactMagic: boolean
+  mysticArcanum: number[]
   cantripsKnown: number
   spellsKnown: number | null      // Bard, Sorcerer, Ranger, Warlock
   spellsPrepared: number | null   // Cleric, Druid, Paladin, Wizard
@@ -23,7 +26,7 @@ const CANTRIP_PROGRESSION: Record<string, number[]> = {
 }
 
 // Third-caster cantrip progression (Eldritch Knight, Arcane Trickster)
-const THIRD_CASTER_CANTRIPS = [0, 0, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 4]
+const THIRD_CASTER_CANTRIPS = [0, 0, 2, 2, 2, 2, 2, 2, 2, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3, 3]
 
 // Spells known progression for known-spell casters
 const SPELLS_KNOWN_PROGRESSION: Record<string, number[]> = {
@@ -90,7 +93,7 @@ function getMaxSpellLevel(
 /**
  * Determine caster type for a class/subclass combination
  */
-function getCasterType(
+export function getCasterType(
   className: string,
   subclassName: string
 ): 'full' | 'half' | 'third' | 'pact' | null {
@@ -134,12 +137,16 @@ export function getSpellSlotInfo(
   level: number,
   spellcastingMod: number
 ): SpellSlotInfo {
+  level = Math.max(1, Math.min(20, Math.floor(level) || 1))
   const casterType = getCasterType(className, subclassName)
   const normalizedClass = className.toLowerCase()
 
   // Non-casters
   if (!casterType) {
     return {
+      slots: [],
+      pactMagic: false,
+      mysticArcanum: [],
       cantripsKnown: 0,
       spellsKnown: null,
       spellsPrepared: null,
@@ -147,12 +154,12 @@ export function getSpellSlotInfo(
     }
   }
 
-  const maxSpellLevel = getMaxSpellLevel(casterType, level)
+  const maxSpellLevel = normalizedClass === 'artificer' && level === 1 ? 1 : getMaxSpellLevel(casterType, level)
 
   // Calculate cantrips known
   let cantripsKnown = 0
   if (casterType === 'third') {
-    cantripsKnown = THIRD_CASTER_CANTRIPS[level - 1] || 0
+    cantripsKnown = (THIRD_CASTER_CANTRIPS[level - 1] || 0) + (normalizedClass === 'rogue' && level >= 3 ? 1 : 0)
   } else if (CANTRIP_PROGRESSION[normalizedClass]) {
     cantripsKnown = CANTRIP_PROGRESSION[normalizedClass][level - 1] || 0
   }
@@ -180,9 +187,12 @@ export function getSpellSlotInfo(
   }
 
   return {
+    slots: getSpellSlots(className, subclassName, level),
+    pactMagic: casterType === 'pact',
+    mysticArcanum: casterType === 'pact' ? [6, 7, 8, 9].filter((_, i) => level >= 11 + i * 2) : [],
     cantripsKnown,
     spellsKnown,
-    spellsPrepared,
+    spellsPrepared: maxSpellLevel === 0 && spellsPrepared !== null ? 0 : spellsPrepared,
     maxSpellLevel,
   }
 }
@@ -213,4 +223,41 @@ export function getSpellcastingAbilityForClass(
   }
 
   return abilities[className.toLowerCase()] || null
+}
+
+// 2014 PHB/SRD class tables. Single-class progression, not multiclass rounding.
+const FULL_SLOTS = [
+  [2], [3], [4,2], [4,3], [4,3,2], [4,3,3], [4,3,3,1], [4,3,3,2],
+  [4,3,3,3,1], [4,3,3,3,2], [4,3,3,3,2,1], [4,3,3,3,2,1],
+  [4,3,3,3,2,1,1], [4,3,3,3,2,1,1], [4,3,3,3,2,1,1,1],
+  [4,3,3,3,2,1,1,1], [4,3,3,3,2,1,1,1,1], [4,3,3,3,3,1,1,1,1],
+  [4,3,3,3,3,2,1,1,1], [4,3,3,3,3,2,2,1,1],
+]
+export function getSpellSlots(className: string, subclassName: string, level: number): number[] {
+  level = Math.max(1, Math.min(20, Math.floor(level) || 1))
+  const type = getCasterType(className, subclassName)
+  if (!type) return []
+  if (type === 'pact') {
+    const slots = Array(Math.min(5, Math.ceil(level / 2))).fill(0)
+    slots[slots.length - 1] = level === 1 ? 1 : level < 11 ? 2 : level < 17 ? 3 : 4
+    return slots
+  }
+  if (type === 'full') return [...FULL_SLOTS[level - 1]]
+  if (type === 'half') {
+    if (level === 1) return className.toLowerCase() === 'artificer' ? [2] : []
+    return [...FULL_SLOTS[Math.ceil(level / 2) - 1]]
+  }
+  if (level < 3) return []
+  // Third casters delay their second first-level slot increase until level 4.
+  const effective = level === 3 ? 1 : Math.ceil(level / 3)
+  return [...FULL_SLOTS[effective - 1]]
+}
+
+/** Ordinary selections, excluding automatically granted subclass spells. */
+export function getSpellSelectionLimits(className: string, subclassName: string, level: number, spellcastingMod: number): { cantrips: number; spells: number } {
+  const info = getSpellSlotInfo(className, subclassName, level, spellcastingMod)
+  // The Arcane Trickster table includes its mandatory Mage Hand; origin/domain
+  // bonus spells such as Mind Sliver are in addition to their class tables.
+  const mandatoryCantrip = className === 'Rogue' && subclassName === 'Arcane Trickster' && level >= 3 ? 1 : 0
+  return { cantrips: Math.max(0, info.cantripsKnown - mandatoryCantrip), spells: info.spellsKnown ?? info.spellsPrepared ?? 0 }
 }

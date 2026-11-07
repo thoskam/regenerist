@@ -307,6 +307,7 @@ export interface HydratedRaceInfo {
 }
 
 export interface HydratedSpell {
+  grantedBySubclass?: 'prepared' | 'known'
   name: string
   level: number
   school: string

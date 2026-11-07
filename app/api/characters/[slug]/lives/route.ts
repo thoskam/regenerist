@@ -1,14 +1,17 @@
+export const dynamic = 'force-dynamic'
+
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 
 // GET all lives for a character
 export async function GET(
   request: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
+  const routeParams = await params
   try {
     const character = await prisma.character.findUnique({
-      where: { slug: params.slug },
+      where: { slug: routeParams.slug },
     })
 
     if (!character) {
@@ -36,11 +39,12 @@ export async function GET(
 // DELETE all lives for a character (clear history)
 export async function DELETE(
   request: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
+  const routeParams = await params
   try {
     const character = await prisma.character.findUnique({
-      where: { slug: params.slug },
+      where: { slug: routeParams.slug },
     })
 
     if (!character) {
@@ -51,7 +55,7 @@ export async function DELETE(
     }
 
     await prisma.life.deleteMany({
-      where: { characterId: character.id },
+      where: { characterId: character.id, isActive: false },
     })
 
     return NextResponse.json({ success: true })

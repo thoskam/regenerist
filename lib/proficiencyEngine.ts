@@ -1,4 +1,4 @@
-import proficiencyData from '@/lib/data/skillProficiency.json'
+import proficiencyData from './data/skillProficiency.json'
 import { Stats, StatName } from './statMapper'
 
 type ProficiencyMap = Record<string, { count: number; options: string[] }>
@@ -52,7 +52,11 @@ export function selectSkillProficiencies(className: string): string[] {
   }
 
   // Shuffle the options array and select the required count
-  const shuffled = [...classData.options].sort(() => Math.random() - 0.5)
+  const shuffled = [...classData.options]
+  for (let i = shuffled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1))
+    ;[shuffled[i], shuffled[j]] = [shuffled[j], shuffled[i]]
+  }
   return shuffled.slice(0, classData.count)
 }
 
@@ -60,7 +64,8 @@ export function calculateSkillModifier(
   skillName: string,
   stats: Stats,
   proficiencies: string[],
-  proficiencyBonus: number
+  proficiencyBonus: number,
+  options: { expertise?: string[]; jackOfAllTrades?: boolean } = {}
 ): number {
   const ability = SKILL_ABILITIES[skillName]
   if (!ability) {
@@ -71,7 +76,7 @@ export function calculateSkillModifier(
   const statMod = Math.floor((statValue - 10) / 2)
   const isProficient = proficiencies.includes(skillName)
 
-  return statMod + (isProficient ? proficiencyBonus : 0)
+  return statMod + (isProficient ? proficiencyBonus * (options.expertise?.includes(skillName) ? 2 : 1) : options.jackOfAllTrades ? Math.floor(proficiencyBonus / 2) : 0)
 }
 
 export function getSkillAbility(skillName: string): StatName | undefined {

@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { Stats } from '@/lib/statMapper'
 
 interface PointBuyCalculatorProps {
@@ -52,6 +52,7 @@ export default function PointBuyCalculator({ onStatsChange, initialStats }: Poin
   const remainingPoints = MAX_POINTS - calculateTotalPoints(stats)
 
   const handleStatChange = (statName: keyof Stats, newValue: number) => {
+    if (!Number.isInteger(newValue)) return
     const clampedValue = Math.max(MIN_STAT, Math.min(MAX_STAT, newValue))
     const newStats = { ...stats, [statName]: clampedValue }
     
@@ -102,7 +103,6 @@ export default function PointBuyCalculator({ onStatsChange, initialStats }: Poin
         <div className="grid grid-cols-3 gap-3">
           {(['str', 'dex', 'con', 'int', 'wis', 'cha'] as const).map((statName) => {
             const value = stats[statName]
-            const cost = calculateTotalPoints({ ...stats, [statName]: value })
             const costForThisStat = calculateTotalPoints({ ...stats, [statName]: value }) - 
                                      calculateTotalPoints({ ...stats, [statName]: MIN_STAT })
             
@@ -114,6 +114,7 @@ export default function PointBuyCalculator({ onStatsChange, initialStats }: Poin
                 
                 <div className="mb-3">
                   <input
+                    aria-label={`${statName} point-buy score`}
                     type="number"
                     min={MIN_STAT}
                     max={MAX_STAT}

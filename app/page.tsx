@@ -17,6 +17,7 @@ export default function CharacterHub() {
   const [showCreateModal, setShowCreateModal] = useState(false)
   const [newCharacterName, setNewCharacterName] = useState('')
   const [isCreating, setIsCreating] = useState(false)
+  const [error, setError] = useState<string | null>(null)
   const [isRegeneristMode, setIsRegeneristMode] = useState(true)
 
   useEffect(() => {
@@ -24,12 +25,16 @@ export default function CharacterHub() {
   }, [])
 
   const fetchCharacters = async () => {
+    setError(null)
+    setIsLoading(true)
     try {
       const res = await fetch('/api/characters')
       const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not load characters')
+      if (!Array.isArray(data)) throw new Error('Invalid character response')
       setCharacters(data)
     } catch (error) {
-      console.error('Failed to fetch characters:', error)
+      setError(error instanceof Error ? error.message : 'Could not load characters')
     } finally {
       setIsLoading(false)
     }
@@ -39,6 +44,7 @@ export default function CharacterHub() {
     e.preventDefault()
     if (!newCharacterName.trim()) return
 
+    setError(null)
     setIsCreating(true)
     try {
       const res = await fetch('/api/characters', {
@@ -49,15 +55,16 @@ export default function CharacterHub() {
           isRegenerist: isRegeneristMode,
         }),
       })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Could not create character')
       if (res.ok) {
-        const newCharacter = await res.json()
-        setCharacters(prev => [...prev, { ...newCharacter, currentLife: null, totalLives: 0, isRegenerist: isRegeneristMode }])
+        await fetchCharacters()
         setNewCharacterName('')
         setIsRegeneristMode(true)
         setShowCreateModal(false)
       }
     } catch (error) {
-      console.error('Failed to create character:', error)
+      setError(error instanceof Error ? error.message : 'Could not create character')
     } finally {
       setIsCreating(false)
     }
@@ -103,6 +110,8 @@ export default function CharacterHub() {
             </button>
           </div>
         </div>
+
+        {error && <div role="alert" className="mb-6 rounded-lg border border-red-500/50 bg-red-950/30 p-4 text-red-200">{error} <button onClick={fetchCharacters} className="ml-3 underline">Retry loading</button></div>}
 
         {/* Character Grid */}
         {characters.length === 0 ? (
@@ -181,6 +190,7 @@ export default function CharacterHub() {
             <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md border border-slate-700">
               <h3 className="text-xl font-bold text-white mb-4">Create New Character</h3>
               <form onSubmit={handleCreateCharacter}>
+                {error && <p role="alert" className="mb-4 text-red-300">{error}</p>}
                 <div className="mb-4">
                   <label className="block text-sm text-slate-400 mb-2">
                     Character Name
@@ -191,6 +201,7 @@ export default function CharacterHub() {
                     onChange={(e) => setNewCharacterName(e.target.value)}
                     className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-gold-500"
                     placeholder="Enter character name..."
+                    maxLength={100}
                     autoFocus
                   />
                 </div>

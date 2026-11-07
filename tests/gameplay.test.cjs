@@ -1,0 +1,41 @@
+const test = require('node:test')
+const assert = require('node:assert/strict')
+const { adjustHitPoints } = require('../lib/gameplay')
+
+test('temporary HP absorbs raw damage before current HP clamps to zero', () => {
+  const result = adjustHitPoints(5, 20, -12, { tempHp: 10 })
+  assert.equal(result.currentHp, 3)
+  assert.equal(result.gameplayState.tempHp, 0)
+})
+test('healing preserves temporary HP and resets death saves', () => {
+  const result = adjustHitPoints(0, 20, 30, { tempHp: 4, deathFailures: 2, deathSuccesses: 1 })
+  assert.equal(result.currentHp, 20)
+  assert.equal(result.gameplayState.tempHp, 4)
+  assert.equal(result.gameplayState.deathFailures, 0)
+  assert.equal(result.gameplayState.deathSuccesses, 0)
+})
+test('damage ends concentration on unconsciousness and detects massive damage', () => {
+  const result = adjustHitPoints(5, 20, -25, { concentration: 'Bless' })
+  assert.equal(result.currentHp, 0)
+  assert.equal(result.massiveDamage, true)
+  assert.equal(result.gameplayState.concentration, null)
+  assert.equal(result.gameplayState.deathFailures, 3)
+  assert.equal(result.concentrationDC, 12)
+})
+test('damage at zero adds a failure and breaks stabilization', () => {
+  const result = adjustHitPoints(0, 20, -1, { deathSuccesses: 3, deathFailures: 1 })
+  assert.equal(result.gameplayState.deathFailures, 2)
+  assert.equal(result.gameplayState.deathSuccesses, 0)
+})
+
+test('death saves handle natural one, natural twenty, stabilization and terminal states', () => {
+  const { resolveDeathSave } = require('../lib/gameplay')
+  assert.equal(resolveDeathSave(0, { deathFailures: 1 }, 1).gameplayState.deathFailures, 3)
+  assert.equal(resolveDeathSave(0, { deathSuccesses: 2 }, 10).gameplayState.deathSuccesses, 3)
+  const recovered = resolveDeathSave(0, { deathFailures: 2 }, 20)
+  assert.equal(recovered.currentHp, 1)
+  assert.equal(recovered.gameplayState.deathFailures, 0)
+  assert.throws(() => resolveDeathSave(0, { deathSuccesses: 3 }, 20))
+  assert.throws(() => resolveDeathSave(0, { deathFailures: 3 }, 20))
+  assert.throws(() => resolveDeathSave(1, {}, 1))
+})

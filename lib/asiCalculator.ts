@@ -32,29 +32,11 @@ export function applyASIs(
   const stats = { ...baseStats }
   const statPriority = STAT_PRIORITY[className] || STAT_PRIORITY.Fighter
 
-  // Each ASI gives +2 to one stat (capped at 20)
-  // Apply to highest priority stat that's under 20
-  for (let i = 0; i < asiCount; i++) {
-    let applied = false
-
-    // Try to apply +2 to highest priority stat under 20
-    for (const stat of statPriority) {
-      if (stats[stat] <= 18) {
-        stats[stat] = Math.min(20, stats[stat] + 2)
-        applied = true
-        break
-      }
-    }
-
-    // If all primary stats are 19+, try to bump any stat under 20
-    if (!applied) {
-      for (const stat of statPriority) {
-        if (stats[stat] < 20) {
-          stats[stat] = Math.min(20, stats[stat] + 2)
-          break
-        }
-      }
-    }
+  // Spend both points, including a split when the primary score is 19.
+  for (let i = 0; i < asiCount * 2; i++) {
+    const stat = statPriority.find(stat => stats[stat] < 20)
+    if (!stat) break
+    stats[stat] += 1
   }
 
   return stats

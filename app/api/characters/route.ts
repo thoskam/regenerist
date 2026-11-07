@@ -1,5 +1,11 @@
+export const dynamic = 'force-dynamic'
+
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { InputError, integer, scores, validateIdentity, textValue } from '@/lib/lifeUpdates'
+import { calculateMaxHp } from '@/lib/calculations'
+import { selectSkillProficiencies } from '@/lib/proficiencyEngine'
+import { applyASIs } from '@/lib/asiCalculator'
 
 // GET all characters with their current life
 export async function GET() {
@@ -40,6 +46,7 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new InputError('Expected an object')
     const { name, level = 1, isRegenerist = true } = body
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
@@ -49,6 +56,8 @@ export async function POST(request: Request) {
       )
     }
 
+    integer(level, 1, 20, 'Level')
+    if (typeof isRegenerist !== 'boolean') throw new InputError('Invalid character type')
     // Generate slug from name
     const slug = name
       .toLowerCase()
@@ -56,6 +65,7 @@ export async function POST(request: Request) {
       .replace(/[^a-z0-9]+/g, '-')
       .replace(/^-|-$/g, '')
 
+    if (!slug) throw new InputError('Name must contain at least one letter or number')
     // Check if slug already exists
     const existing = await prisma.character.findUnique({
       where: { slug },
@@ -68,48 +78,26 @@ export async function POST(request: Request) {
       )
     }
 
-    const character = await prisma.character.create({
-      data: {
-        name: name.trim(),
-        slug,
-        level: Math.max(1, Math.min(20, level)),
-        isRegenerist: typeof isRegenerist === 'boolean' ? isRegenerist : true,
-      },
-    })
-
-    // For static characters, create an initial life record
+    let initialLife
     if (!isRegenerist) {
-      // Extract initial life data from body if provided
-      const { race = 'Human (Standard)', className = 'Fighter', subclass = 'Champion', stats, story = '' } = body
-
-      await prisma.life.create({
-        data: {
-          characterId: character.id,
-          lifeNumber: 1,
-          name: name.trim(),
-          race,
-          class: className,
-          subclass,
-          level: Math.max(1, Math.min(20, level)),
-          stats: stats || {
-            str: 15,
-            dex: 14,
-            con: 13,
-            int: 12,
-            wis: 10,
-            cha: 8,
-          },
-          currentHp: 10,
-          maxHp: 10,
-          effect: '',
-          story,
-          isActive: true,
-        },
-      })
+      const { race = 'Human (Standard)', className = 'Fighter', subclass = 'Champion', story = '' } = body
+      validateIdentity(race, className, subclass)
+      const baseStats = scores(body.stats || { str: 15, dex: 14, con: 13, int: 12, wis: 10, cha: 8 })
+      const finalStats = applyASIs(baseStats, className, level)
+      const maxHp = calculateMaxHp(className, level, Math.floor((finalStats.con - 10) / 2), { race, subclass })
+      initialLife = { lifeNumber: 1, name: name.trim(), race, class: className, subclass, level,
+        stats: { ...finalStats }, baseStats: { ...baseStats }, currentHp: maxHp, maxHp,
+        effect: '', story: textValue(story, 'story'), skillProficiencies: selectSkillProficiencies(className), isActive: true }
     }
+    // Nested creation is atomic: a failed life cannot leave an empty static character.
+    const character = await prisma.character.create({ data: {
+      name: name.trim(), slug, level, isRegenerist,
+      ...(initialLife ? { lives: { create: initialLife } } : {}),
+    } })
 
     return NextResponse.json(character, { status: 201 })
   } catch (error) {
+    if (error instanceof InputError || error instanceof SyntaxError) return NextResponse.json({ error: error.message }, { status: 400 })
     console.error('Error creating character:', error)
     return NextResponse.json(
       { error: 'Failed to create character' },

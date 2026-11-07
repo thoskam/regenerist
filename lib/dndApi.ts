@@ -1,3 +1,7 @@
+import { getSpellSlotInfo, getCasterType, getSpellcastingAbilityForClass } from './spellSlots'
+export { getCasterType } from './spellSlots'
+import spellLists from './data/spellLists2014.json'
+import { STAT_PRIORITY, type Stats, type StatName } from './statMapper'
 import fs from 'fs'
 import path from 'path'
 import type {
@@ -112,6 +116,7 @@ export async function getSubclasses(className: string): Promise<SubclassData[]> 
  */
 export async function getSubclass(className: string, subclassName: string): Promise<SubclassData | null> {
   const subclasses = await getSubclasses(className)
+  if (className === 'Fighter' && subclassName === 'Purple Dragon Knight') subclassName = 'Purple Dragon Knight (Banneret)'
   return subclasses.find(
     (sc) => matchSubclassName(subclassName, sc.name, sc.shortName)
   ) || null
@@ -124,11 +129,15 @@ export async function getClassFeatures(className: string, level: number): Promis
   const fileData = await loadClassFile(className)
   if (!fileData) return []
 
-  return fileData.classFeature.filter(
-    (f) =>
-      normalizeName(f.className) === normalizeName(className) &&
-      f.level <= level
-  )
+  const classData = await getClassData(className)
+  if (!classData) return []
+  const refs = classData.classFeatures.map(ref => parseFeatureRef(typeof ref === 'string' ? ref : ref.classFeature))
+  return refs.flatMap(ref => {
+    if (!ref || ref.level > level) return []
+    const feature = fileData.classFeature.find(f => normalizeName(f.name) === normalizeName(ref.name)
+      && f.level === ref.level && f.classSource === classData.source)
+    return feature ? [feature] : []
+  })
 }
 
 /**
@@ -145,12 +154,32 @@ export async function getSubclassFeatures(
   const subclass = await getSubclass(className, subclassName)
   if (!subclass) return []
 
-  return fileData.subclassFeature.filter(
-    (f) =>
-      normalizeName(f.className) === normalizeName(className) &&
-      normalizeName(f.subclassShortName) === normalizeName(subclass.shortName) &&
-      f.level <= level
-  )
+  const refs = subclass.subclassFeatures.map(ref => typeof ref === 'string' ? ref : ref.subclassFeature)
+  const result: SubclassFeature[] = []
+  const seen = new Set<string>()
+  const visit = (ref: string) => {
+    if (seen.has(ref)) return
+    seen.add(ref)
+    const parsed = parseSubclassFeatureRef(ref)
+    if (parsed.level > level) return
+    const feature = fileData.subclassFeature.find(f => normalizeName(f.name) === normalizeName(parsed.name)
+      && f.level === parsed.level && f.subclassSource === subclass.source
+      && normalizeName(f.subclassShortName) === normalizeName(subclass.shortName))
+    if (!feature) return
+    result.push(feature)
+    const nested = (entries: unknown[]) => {
+      for (const entry of entries) {
+        if (!entry || typeof entry !== 'object') continue
+        const value = entry as {type?: string; subclassFeature?: string; entries?: unknown[]}
+        if (value.type === 'refSubclassFeature' && value.subclassFeature) visit(value.subclassFeature)
+        // Choices are not automatically granted features.
+        if (value.entries && value.type !== 'options') nested(value.entries)
+      }
+    }
+    nested(feature.entries)
+  }
+  refs.forEach(visit)
+  return result
 }
 
 /**
@@ -209,10 +238,21 @@ export async function getRaceData(raceName: string): Promise<RaceData | null> {
   const races = await loadRaces()
   if (!races) return null
 
+  const parts = raceName.match(/^(.+?) \((.+)\)$/)
+  if (parts) {
+    const subraces = (races as RaceFileData & { subrace?: (Partial<RaceData> & {raceName: string; raceSource: string})[] }).subrace || []
+    const subrace = subraces.find(r => normalizeName(r.raceName) === normalizeName(parts[1]) && normalizeName(r.name || 'Standard') === normalizeName(parts[2]) && r.raceSource !== 'XPHB')
+    if (subrace) {
+      const base = races.race.find(r => r.name === subrace.raceName && r.source === subrace.raceSource)
+      if (base) return { ...base, ...subrace, name: raceName,
+        ability: [{ ...(base.ability?.[0] || {}), ...(subrace.ability?.[0] || {}) }],
+        entries: [...(base.entries || []), ...(subrace.entries || [])] } as RaceData
+    }
+  }
   const normalized = normalizeName(raceName)
 
   // First try to find PHB or basic rules version with exact match
-  const preferredSources = ['PHB', 'MPMM', 'EEPC', 'VGM', 'XGE']
+  const preferredSources = ['PHB', 'EEPC', 'VGM', 'XGE', 'MPMM']
   for (const source of preferredSources) {
     const race = races.race.find(
       (r) => normalizeName(r.name) === normalized && r.source === source
@@ -267,100 +307,41 @@ export async function loadSpells(): Promise<SpellData[]> {
   }
 }
 
-/**
- * Determine max spell level based on caster type and level
- */
-function getMaxSpellLevel(
-  casterType: 'full' | 'half' | 'third' | 'pact' | null,
-  level: number
-): number {
-  if (!casterType) return 0
+// Class membership comes from the official 2014 spell lists, never school theme.
+// https://www.dndbeyond.com/sources/dnd/basic-rules-2014/spells
+const canonicalSpellName = (name: string) => name.toLowerCase().replace(/[’']/g, "'").trim()
+const ARTIFICER_SPELLS = `Acid Splash|Dancing Lights|Fire Bolt|Guidance|Light|Mage Hand|Mending|Message|Poison Spray|Prestidigitation|Ray of Frost|Resistance|Shocking Grasp|Spare the Dying|Thorn Whip|Alarm|Cure Wounds|Detect Magic|Disguise Self|Expeditious Retreat|Faerie Fire|False Life|Feather Fall|Grease|Identify|Jump|Longstrider|Purify Food and Drink|Sanctuary|Aid|Alter Self|Arcane Lock|Blur|Continual Flame|Darkvision|Enhance Ability|Enlarge/Reduce|Heat Metal|Invisibility|Lesser Restoration|Levitate|Magic Mouth|Magic Weapon|Protection from Poison|Rope Trick|See Invisibility|Spider Climb|Web|Blink|Create Food and Water|Dispel Magic|Elemental Weapon|Fly|Glyph of Warding|Haste|Protection from Energy|Revivify|Water Breathing|Water Walk|Arcane Eye|Elemental Bane|Fabricate|Freedom of Movement|Leomund's Secret Chest|Mordenkainen's Faithful Hound|Mordenkainen's Private Sanctum|Otiluke's Resilient Sphere|Stone Shape|Stoneskin|Animate Objects|Bigby's Hand|Creation|Greater Restoration|Skill Empowerment|Transmute Rock|Wall of Stone`.split('|')
 
-  switch (casterType) {
-    case 'full':
-      // Full casters get spell levels at: 1->1st, 3->2nd, 5->3rd, 7->4th, 9->5th, 11->6th, 13->7th, 15->8th, 17->9th
-      if (level >= 17) return 9
-      if (level >= 15) return 8
-      if (level >= 13) return 7
-      if (level >= 11) return 6
-      if (level >= 9) return 5
-      if (level >= 7) return 4
-      if (level >= 5) return 3
-      if (level >= 3) return 2
-      return 1
-
-    case 'half':
-      // Half casters get spell levels at: 2->1st, 5->2nd, 9->3rd, 13->4th, 17->5th
-      if (level < 2) return 0
-      if (level >= 17) return 5
-      if (level >= 13) return 4
-      if (level >= 9) return 3
-      if (level >= 5) return 2
-      return 1
-
-    case 'third':
-      // Third casters get spell levels at: 3->1st, 7->2nd, 13->3rd, 19->4th
-      if (level < 3) return 0
-      if (level >= 19) return 4
-      if (level >= 13) return 3
-      if (level >= 7) return 2
-      return 1
-
-    case 'pact':
-      // Warlock pact magic: 1->1st, 3->2nd, 5->3rd, 7->4th, 9->5th (stays at 5th)
-      if (level >= 9) return 5
-      if (level >= 7) return 4
-      if (level >= 5) return 3
-      if (level >= 3) return 2
-      return 1
-
-    default:
-      return 0
+export interface SubclassSpellGrants { prepared: string[]; known: string[]; expanded: string[] }
+/** Resolve explicit earned grants. Choice expressions and free-cast resources remain manual. */
+export async function getSubclassSpellGrants(className: string, subclassName: string, level: number, choice?: string | null): Promise<SubclassSpellGrants> {
+  const subclass = await getSubclass(className, subclassName)
+  const result: SubclassSpellGrants = { prepared: [], known: [], expanded: [] }
+  const allSpells = await loadSpells()
+  const maxLevel = getSpellSlotInfo(className, subclassName, level, 0).maxSpellLevel
+  type Group = { name?: string; prepared?: Record<string, unknown>; known?: Record<string, unknown>; expanded?: Record<string, unknown> }
+  const groups = (subclass?.additionalSpells || []) as Group[]
+  for (const group of groups) {
+    if (group.name && canonicalSpellName(group.name) !== canonicalSpellName(choice || '')) continue
+    for (const kind of ['prepared', 'known', 'expanded'] as const) {
+      for (const [threshold, grants] of Object.entries(group[kind] || {})) {
+        const available = threshold.startsWith('s') ? Number(threshold.slice(1)) <= maxLevel : Number(threshold) <= level
+        if (!available || !Array.isArray(grants)) continue
+        for (const grant of grants) {
+          if (typeof grant !== 'string') continue
+          const [name, source = 'PHB'] = grant.split('#')[0].split('|')
+          const spell = allSpells.find(s => canonicalSpellName(s.name) === canonicalSpellName(name) && s.source.toLowerCase() === source.toLowerCase())
+          if (spell && !result[kind].includes(spell.name)) result[kind].push(spell.name)
+        }
+      }
+    }
   }
-}
-
-/**
- * Determine caster type for a class/subclass combination
- */
-export function getCasterType(
-  className: string,
-  subclassName: string
-): 'full' | 'half' | 'third' | 'pact' | null {
-  const fullCasters = ['bard', 'cleric', 'druid', 'sorcerer', 'wizard']
-  const halfCasters = ['paladin', 'ranger', 'artificer']
-  const thirdCasterSubclasses: Record<string, string[]> = {
-    fighter: ['eldritch knight'],
-    rogue: ['arcane trickster'],
+  // Divine Magic expands the cleric list regardless of the affinity choice.
+  if (className === 'Sorcerer' && subclassName === 'Divine Soul') {
+    const clericNames = new Set(spellLists.cleric.map(canonicalSpellName))
+    result.expanded.push(...allSpells.filter(s => s.source === 'PHB' && s.level <= maxLevel && clericNames.has(canonicalSpellName(s.name))).map(s => s.name))
   }
-
-  const normalizedClass = normalizeName(className)
-  const normalizedSubclass = normalizeName(subclassName)
-
-  if (normalizedClass === 'warlock') return 'pact'
-  if (fullCasters.includes(normalizedClass)) return 'full'
-  if (halfCasters.includes(normalizedClass)) return 'half'
-
-  // Check for third-caster subclasses
-  const thirdSubclasses = thirdCasterSubclasses[normalizedClass]
-  if (thirdSubclasses && thirdSubclasses.includes(normalizedSubclass)) {
-    return 'third'
-  }
-
-  return null
-}
-
-// Basic class spell schools - used to filter spells by class theme
-// This is a simplified approach since 5eTools data doesn't include class spell lists
-const CLASS_SPELL_SCHOOLS: Record<string, string[]> = {
-  wizard: ['A', 'C', 'D', 'E', 'V', 'I', 'N', 'T'], // All schools
-  sorcerer: ['A', 'C', 'D', 'E', 'V', 'I', 'N', 'T'], // All schools
-  warlock: ['C', 'D', 'E', 'V', 'I', 'N'], // No abjuration/transmutation focus
-  cleric: ['A', 'C', 'D', 'E', 'V', 'N'], // Divine magic
-  druid: ['C', 'D', 'E', 'V', 'N', 'T'], // Nature magic
-  bard: ['D', 'E', 'I', 'T'], // Enchantment/Illusion focus
-  paladin: ['A', 'C', 'D', 'E', 'V'], // Divine smite magic
-  ranger: ['A', 'C', 'D', 'V', 'T'], // Nature/hunting magic
-  artificer: ['A', 'C', 'D', 'T'], // Item/construct magic
+  return result
 }
 
 /**
@@ -369,33 +350,25 @@ const CLASS_SPELL_SCHOOLS: Record<string, string[]> = {
 export async function getSpellsForClass(
   className: string,
   subclassName: string,
-  level: number
+  level: number,
+  choice?: string | null
 ): Promise<HydratedSpell[]> {
-  const casterType = getCasterType(className, subclassName)
-  if (!casterType) return []
-
-  const maxSpellLevel = getMaxSpellLevel(casterType, level)
-  if (maxSpellLevel === 0) return []
-
+  const info = getSpellSlotInfo(className, subclassName, level, 0)
+  if (info.maxSpellLevel === 0) return []
   const allSpells = await loadSpells()
-  const normalizedClass = normalizeName(className)
-
-  // Get allowed schools for this class (or all schools if not defined)
-  const allowedSchools = CLASS_SPELL_SCHOOLS[normalizedClass] || ['A', 'C', 'D', 'E', 'V', 'I', 'N', 'T']
-
-  // Filter spells by level and school
-  const classSpells = allSpells.filter((spell) => {
-    if (spell.level > maxSpellLevel) return false
-    // Only include spells from PHB for now (to keep list manageable)
-    if (spell.source !== 'PHB') return false
-    // Filter by class-appropriate schools
-    if (!allowedSchools.includes(spell.school)) return false
-    return true
-  })
+  const listClass = getCasterType(className, subclassName) === 'third' ? 'wizard' : className.toLowerCase()
+  const names = listClass === 'artificer' ? ARTIFICER_SPELLS : (spellLists as Record<string, string[]>)[listClass] || []
+  const allowed = new Set(names.map(canonicalSpellName))
+  const grants = await getSubclassSpellGrants(className, subclassName, level, choice)
+  const granted = new Set([...grants.prepared, ...grants.known, ...grants.expanded].map(canonicalSpellName))
+  const classSpells = allSpells.filter(spell => spell.level <= info.maxSpellLevel
+    && ((spell.source === 'PHB' && (spell.level > 0 || info.cantripsKnown > 0) && allowed.has(canonicalSpellName(spell.name)))
+      || granted.has(canonicalSpellName(spell.name))))
 
   // Convert to hydrated format
   return classSpells.map((spell) => ({
     name: spell.name,
+    grantedBySubclass: grants.prepared.includes(spell.name) ? 'prepared' as const : grants.known.includes(spell.name) ? 'known' as const : undefined,
     level: spell.level,
     school: getSpellSchool(spell.school),
     castingTime: formatCastingTime(spell.time),
@@ -467,7 +440,7 @@ export async function getHydratedRaceInfo(raceName: string): Promise<HydratedRac
 
   // Extract traits from entries
   const traits: { name: string; description: string }[] = []
-  for (const entry of race.entries) {
+  for (const entry of race.entries || []) {
     if (typeof entry === 'object' && 'type' in entry && entry.type === 'entries' && entry.name) {
       traits.push({
         name: entry.name,
@@ -485,12 +458,12 @@ export async function getHydratedRaceInfo(raceName: string): Promise<HydratedRac
     H: 'Huge',
     G: 'Gargantuan',
   }
-  const size = race.size.map((s) => sizeMap[s] || s).join(' or ')
+  const size = (race.size || ['M']).map((s) => sizeMap[s] || s).join(' or ')
 
   return {
     name: race.name,
     size,
-    speed: race.speed,
+    speed: race.speed || 30,
     traits,
   }
 }
@@ -502,80 +475,13 @@ export async function getHydratedRaceInfo(raceName: string): Promise<HydratedRac
 export async function getAvailableSpellNames(
   className: string,
   subclassName: string,
-  level: number
+  level: number,
+  choice?: string | null
 ): Promise<{ cantrips: string[]; spells: string[] }> {
-  const casterType = getCasterType(className, subclassName)
-  if (!casterType) return { cantrips: [], spells: [] }
-
-  const maxSpellLevel = getMaxSpellLevelInternal(casterType, level)
-  if (maxSpellLevel === 0 && casterType !== 'full') {
-    // Non-casters or casters below spell-granting level
-    return { cantrips: [], spells: [] }
-  }
-
-  const allSpells = await loadSpells()
-  const normalizedClass = normalizeName(className)
-
-  // Get allowed schools for this class (or all schools if not defined)
-  const allowedSchools = CLASS_SPELL_SCHOOLS[normalizedClass] || ['A', 'C', 'D', 'E', 'V', 'I', 'N', 'T']
-
-  const cantrips: string[] = []
-  const spells: string[] = []
-
-  for (const spell of allSpells) {
-    // Only include spells from PHB for now
-    if (spell.source !== 'PHB') continue
-    // Filter by class-appropriate schools
-    if (!allowedSchools.includes(spell.school)) continue
-
-    if (spell.level === 0) {
-      cantrips.push(spell.name)
-    } else if (spell.level <= maxSpellLevel) {
-      spells.push(spell.name)
-    }
-  }
-
-  return { cantrips, spells }
-}
-
-// Internal helper for max spell level (to avoid duplicating logic)
-function getMaxSpellLevelInternal(
-  casterType: 'full' | 'half' | 'third' | 'pact',
-  level: number
-): number {
-  switch (casterType) {
-    case 'full':
-      if (level >= 17) return 9
-      if (level >= 15) return 8
-      if (level >= 13) return 7
-      if (level >= 11) return 6
-      if (level >= 9) return 5
-      if (level >= 7) return 4
-      if (level >= 5) return 3
-      if (level >= 3) return 2
-      return 1
-
-    case 'half':
-      if (level < 2) return 0
-      if (level >= 17) return 5
-      if (level >= 13) return 4
-      if (level >= 9) return 3
-      if (level >= 5) return 2
-      return 1
-
-    case 'third':
-      if (level < 3) return 0
-      if (level >= 19) return 4
-      if (level >= 13) return 3
-      if (level >= 7) return 2
-      return 1
-
-    case 'pact':
-      if (level >= 9) return 5
-      if (level >= 7) return 4
-      if (level >= 5) return 3
-      if (level >= 3) return 2
-      return 1
+  const spells = await getSpellsForClass(className, subclassName, level, choice)
+  return {
+    cantrips: spells.filter(spell => spell.level === 0).map(spell => spell.name),
+    spells: spells.filter(spell => spell.level > 0).map(spell => spell.name),
   }
 }
 
@@ -586,32 +492,25 @@ export async function getSpellcastingAbility(
   className: string,
   subclassName: string
 ): Promise<string | null> {
-  const casterType = getCasterType(className, subclassName)
-  if (!casterType) return null
+  return getSpellcastingAbilityForClass(className, subclassName)
+}
 
-  // Standard spellcasting abilities by class
-  const abilities: Record<string, string> = {
-    bard: 'cha',
-    cleric: 'wis',
-    druid: 'wis',
-    paladin: 'cha',
-    ranger: 'wis',
-    sorcerer: 'cha',
-    warlock: 'cha',
-    wizard: 'int',
-    artificer: 'int',
+/** Deterministic racial increases; choice races follow class priorities. */
+export async function getRacialAbilityBonuses(raceName: string, className: string): Promise<Partial<Stats>> {
+  const race = await getRaceData(raceName)
+  const ability = race?.ability?.[0] as Record<string, unknown> | undefined
+  const result: Partial<Stats> = {}
+  const priorities = STAT_PRIORITY[className] || STAT_PRIORITY.Fighter
+  for (const stat of priorities) if (typeof ability?.[stat] === 'number') result[stat] = ability[stat] as number
+  const choose = ability?.choose as { from?: StatName[]; count?: number; amount?: number; weighted?: {from: StatName[]; weights: number[]} } | undefined
+  if (choose?.weighted) {
+    const choices = priorities.filter(stat => choose.weighted!.from.includes(stat))
+    choose.weighted.weights.forEach((amount, index) => { if (choices[index]) result[choices[index]] = (result[choices[index]] || 0) + amount })
+  } else if (choose?.from) {
+    priorities.filter(stat => choose.from!.includes(stat)).slice(0, choose.count || 1).forEach(stat => { result[stat] = (result[stat] || 0) + (choose.amount || 1) })
+  } else if (!ability && race?.lineage) {
+    result[priorities[0]] = 2
+    result[priorities[1]] = 1
   }
-
-  const normalizedClass = normalizeName(className)
-  if (abilities[normalizedClass]) {
-    return abilities[normalizedClass]
-  }
-
-  // Check subclass for third casters
-  const subclass = await getSubclass(className, subclassName)
-  if (subclass?.spellcastingAbility) {
-    return subclass.spellcastingAbility
-  }
-
-  return null
+  return result
 }

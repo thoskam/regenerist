@@ -1,0 +1,411 @@
+[
+  {
+    "name": "Battleaxe",
+    "type": "M",
+    "weaponCategory": "martial",
+    "property": [
+      "V"
+    ],
+    "dmg1": "1d8",
+    "dmg2": "1d10",
+    "dmgType": "S"
+  },
+  {
+    "name": "Blowgun",
+    "type": "R",
+    "weaponCategory": "martial",
+    "property": [
+      "A",
+      "LD"
+    ],
+    "range": "25/100",
+    "dmg1": "1",
+    "dmgType": "P"
+  },
+  {
+    "name": "Club",
+    "type": "M",
+    "weaponCategory": "simple",
+    "property": [
+      "L"
+    ],
+    "dmg1": "1d4",
+    "dmgType": "B"
+  },
+  {
+    "name": "Dagger",
+    "type": "M",
+    "weaponCategory": "simple",
+    "property": [
+      "F",
+      "L",
+      "T"
+    ],
+    "range": "20/60",
+    "dmg1": "1d4",
+    "dmgType": "P"
+  },
+  {
+    "name": "Dart",
+    "type": "R",
+    "weaponCategory": "simple",
+    "property": [
+      "F",
+      "T"
+    ],
+    "range": "20/60",
+    "dmg1": "1d4",
+    "dmgType": "P"
+  },
+  {
+    "name": "Flail",
+    "type": "M",
+    "weaponCategory": "martial",
+    "dmg1": "1d8",
+    "dmgType": "B"
+  },
+  {
+    "name": "Glaive",
+    "type": "M",
+    "weaponCategory": "martial",
+    "property": [
+      "H",
+      "R",
+      "2H"
+    ],
+    "dmg1": "1d10",
+    "dmgType": "S"
+  },
+  {
+    "name": "Greataxe",
+    "type": "M",
+    "weaponCategory": "martial",
+    "property": [
+      "H",
+      "2H"
+    ],
+    "dmg1": "1d12",
+    "dmgType": "S"
+  },
+  {
+    "name": "Greatclub",
+    "type": "M",
+    "weaponCategory": "simple",
+    "property": [
+      "2H"
+    ],
+    "dmg1": "1d8",
+    "dmgType": "B"
+  },
+  {
+    "name": "Greatsword",
+    "type": "M",
+    "weaponCategory": "martial",
+    "property": [
+      "H",
+      "2H"
+    ],
+    "dmg1": "2d6",
+    "dmgType": "S"
+  },
+  {
+    "name": "Halberd",
+    "type": "M",
+    "weaponCategory": "martial",
+    "property": [
+      "H",
+      "R",
+      "2H"
+    ],
+    "dmg1": "1d10",
+    "dmgType": "S"
+  },
+  {
+    "name": "Hand Crossbow",
+    "type": "R",
+    "weaponCategory": "martial",
+    "property": [
+      "A",
+      "L",
+      "LD"
+    ],
+    "range": "30/120",
+    "dmg1": "1d6",
+    "dmgType": "P"
+  },
+  {
+    "name": "Handaxe",
+    "type": "M",
+    "weaponCategory": "simple",
+    "property": [
+      "L",
+      "T"
+    ],
+    "range": "20/60",
+    "dmg1": "1d6",
+    "dmgType": "S"
+  },
+  {
+    "name": "Heavy Crossbow",
+    "type": "R",
+    "weaponCategory": "martial",
+    "property": [
+      "A",
+      "H",
+      "LD",
+      "2H"
+    ],
+    "range": "100/400",
+    "dmg1": "1d10",
+    "dmgType": "P"
+  },
+  {
+    "name": "Javelin",
+    "type": "M",
+    "weaponCategory": "simple",
+    "property": [
+      "T"
+    ],
+    "range": "30/120",
+    "dmg1": "1d6",
+    "dmgType": "P"
+  },
+  {
+    "name": "Lance",
+    "type": "M",
+    "weaponCategory": "martial",
+    "property": [
+      "R",
+      "S"
+    ],
+    "dmg1": "1d12",
+    "dmgType": "P"
+  },
+  {
+    "name": "Light Crossbow",
+    "type": "R",
+    "weaponCategory": "simple",
+    "property": [
+      "A",
+      "LD",
+      "2H"
+    ],
+    "range": "80/320",
+    "dmg1": "1d8",
+    "dmgType": "P"
+  },
+  {
+    "name": "Light Hammer",
+    "type": "M",
+    "weaponCategory": "simple",
+    "property": [
+      "L",
+      "T"
+    ],
+    "range": "20/60",
+    "dmg1": "1d4",
+    "dmgType": "B"
+  },
+  {
+    "name": "Longbow",
+    "type": "R",
+    "weaponCategory": "martial",
+    "property": [
+      "A",
+      "H",
+      "2H"
+    ],
+    "range": "150/600",
+    "dmg1": "1d8",
+    "dmgType": "P"
+  },
+  {
+    "name": "Longsword",
+    "type": "M",
+    "weaponCategory": "martial",
+    "property": [
+      "V"
+    ],
+    "dmg1": "1d8",
+    "dmg2": "1d10",
+    "dmgType": "S"
+  },
+  {
+    "name": "Mace",
+    "type": "M",
+    "weaponCategory": "simple",
+    "dmg1": "1d6",
+    "dmgType": "B"
+  },
+  {
+    "name": "Maul",
+    "type": "M",
+    "weaponCategory": "martial",
+    "property": [
+      "H",
+      "2H"
+    ],
+    "dmg1": "2d6",
+    "dmgType": "B"
+  },
+  {
+    "name": "Morningstar",
+    "type": "M",
+    "weaponCategory": "martial",
+    "dmg1": "1d8",
+    "dmgType": "P"
+  },
+  {
+    "name": "Net",
+    "type": "R",
+    "weaponCategory": "martial",
+    "property": [
+      "S",
+      "T"
+    ],
+    "range": "5/15"
+  },
+  {
+    "name": "Pike",
+    "type": "M",
+    "weaponCategory": "martial",
+    "property": [
+      "H",
+      "R",
+      "2H"
+    ],
+    "dmg1": "1d10",
+    "dmgType": "P"
+  },
+  {
+    "name": "Quarterstaff",
+    "type": "M",
+    "weaponCategory": "simple",
+    "property": [
+      "V"
+    ],
+    "dmg1": "1d6",
+    "dmg2": "1d8",
+    "dmgType": "B"
+  },
+  {
+    "name": "Rapier",
+    "type": "M",
+    "weaponCategory": "martial",
+    "property": [
+      "F"
+    ],
+    "dmg1": "1d8",
+    "dmgType": "P"
+  },
+  {
+    "name": "Scimitar",
+    "type": "M",
+    "weaponCategory": "martial",
+    "property": [
+      "F",
+      "L"
+    ],
+    "dmg1": "1d6",
+    "dmgType": "S"
+  },
+  {
+    "name": "Shortbow",
+    "type": "R",
+    "weaponCategory": "simple",
+    "property": [
+      "A",
+      "2H"
+    ],
+    "range": "80/320",
+    "dmg1": "1d6",
+    "dmgType": "P"
+  },
+  {
+    "name": "Shortsword",
+    "type": "M",
+    "weaponCategory": "martial",
+    "property": [
+      "F",
+      "L"
+    ],
+    "dmg1": "1d6",
+    "dmgType": "P"
+  },
+  {
+    "name": "Sickle",
+    "type": "M",
+    "weaponCategory": "simple",
+    "property": [
+      "L"
+    ],
+    "dmg1": "1d4",
+    "dmgType": "S"
+  },
+  {
+    "name": "Sling",
+    "type": "R",
+    "weaponCategory": "simple",
+    "property": [
+      "A"
+    ],
+    "range": "30/120",
+    "dmg1": "1d4",
+    "dmgType": "B"
+  },
+  {
+    "name": "Spear",
+    "type": "M",
+    "weaponCategory": "simple",
+    "property": [
+      "T",
+      "V"
+    ],
+    "range": "20/60",
+    "dmg1": "1d6",
+    "dmg2": "1d8",
+    "dmgType": "P"
+  },
+  {
+    "name": "Trident",
+    "type": "M",
+    "weaponCategory": "martial",
+    "property": [
+      "T",
+      "V"
+    ],
+    "range": "20/60",
+    "dmg1": "1d6",
+    "dmg2": "1d8",
+    "dmgType": "P"
+  },
+  {
+    "name": "War Pick",
+    "type": "M",
+    "weaponCategory": "martial",
+    "dmg1": "1d8",
+    "dmgType": "P"
+  },
+  {
+    "name": "Warhammer",
+    "type": "M",
+    "weaponCategory": "martial",
+    "property": [
+      "V"
+    ],
+    "dmg1": "1d8",
+    "dmg2": "1d10",
+    "dmgType": "B"
+  },
+  {
+    "name": "Whip",
+    "type": "M",
+    "weaponCategory": "martial",
+    "property": [
+      "F",
+      "R"
+    ],
+    "dmg1": "1d4",
+    "dmgType": "S"
+  }
+]

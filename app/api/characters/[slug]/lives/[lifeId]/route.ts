@@ -1,75 +1,40 @@
+export const dynamic = 'force-dynamic'
+
+import { Prisma } from '@prisma/client'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
-import { applyASIs } from '@/lib/asiCalculator'
-import { calculateMaxHp, getHitDie } from '@/lib/calculations'
-import { getStatModifier, Stats } from '@/lib/statMapper'
+import { InputError, prepareLifeUpdate } from '@/lib/lifeUpdates'
 
-// PUT update a specific life
-export async function PUT(
-  request: Request,
-  { params }: { params: { slug: string; lifeId: string } }
-) {
+export async function GET(request: Request, { params }: { params: Promise<{ slug: string; lifeId: string }> }) {
+  const routeParams = await params
+  const id = Number(routeParams.lifeId)
+  if (!Number.isSafeInteger(id) || id < 1) return NextResponse.json({ error: 'Invalid life ID' }, { status: 400 })
   try {
-    const lifeId = parseInt(params.lifeId)
-    if (isNaN(lifeId)) {
-      return NextResponse.json(
-        { error: 'Invalid life ID' },
-        { status: 400 }
-      )
-    }
+    const life = await prisma.life.findFirst({ where: { id, character: { slug: routeParams.slug } } })
+    return life ? NextResponse.json(life) : NextResponse.json({ error: 'Life not found' }, { status: 404 })
+  } catch { return NextResponse.json({ error: 'Failed to fetch life' }, { status: 500 }) }
+}
 
-    const character = await prisma.character.findUnique({
-      where: { slug: params.slug },
-    })
-
-    if (!character) {
-      return NextResponse.json(
-        { error: 'Character not found' },
-        { status: 404 }
-      )
-    }
-
+export async function PUT(request: Request, { params }: { params: Promise<{ slug: string; lifeId: string }> }) {
+  const routeParams = await params
+  const id = Number(routeParams.lifeId)
+  if (!Number.isSafeInteger(id) || id < 1) return NextResponse.json({ error: 'Invalid life ID' }, { status: 400 })
+  try {
     const body = await request.json()
-    const { race, class: className, level, stats: newStats } = body
-
-    // If stats were manually provided, validate and apply ASIs
-    let finalStats = newStats
-    if (newStats && className && level) {
-      // Apply ASIs based on level and class
-      finalStats = applyASIs(newStats as Stats, className, level)
-    }
-
-    // If level is being changed and we have class info, recalculate HP
-    let updateData = { ...body }
-    if (level !== undefined && className) {
-      const conMod = finalStats ? getStatModifier((finalStats as Stats).con) : 0
-      const newMaxHp = calculateMaxHp(className, level, conMod)
-      updateData.maxHp = newMaxHp
-      // Ensure current HP doesn't exceed new max
-      if (updateData.currentHp && updateData.currentHp > newMaxHp) {
-        updateData.currentHp = newMaxHp
-      }
-    }
-
-    // Apply final stats if we calculated them
-    if (finalStats && newStats) {
-      updateData.stats = finalStats
-    }
-
-    const life = await prisma.life.update({
-      where: {
-        id: lifeId,
-        characterId: character.id,
-      },
-      data: updateData,
-    })
-
-    return NextResponse.json(life)
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new InputError('Expected an object')
+    const result = await prisma.$transaction(async tx => {
+      const existing = await tx.life.findFirst({ where: { id, character: { slug: routeParams.slug } } })
+      if (!existing) return null
+      const data = await prepareLifeUpdate(existing, body)
+      const life = await tx.life.update({ where: { id }, data })
+      if (existing.isActive) await tx.character.update({ where: { id: existing.characterId }, data: { level: life.level, updatedAt: new Date() } })
+      return life
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+    return result ? NextResponse.json(result) : NextResponse.json({ error: 'Life not found' }, { status: 404 })
   } catch (error) {
+    if (error instanceof InputError || error instanceof SyntaxError) return NextResponse.json({ error: error.message }, { status: 400 })
+    if (error instanceof Prisma.PrismaClientKnownRequestError && error.code === 'P2034') return NextResponse.json({ error: 'This life changed while saving. Refresh and try again.' }, { status: 409 })
     console.error('Error updating life:', error)
-    return NextResponse.json(
-      { error: 'Failed to update life' },
-      { status: 500 }
-    )
+    return NextResponse.json({ error: 'Failed to update life' }, { status: 500 })
   }
 }

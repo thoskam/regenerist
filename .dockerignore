@@ -21,3 +21,8 @@ docker-compose.yml
 
 # json data folder (data is copied to lib/data)
 /json
+
+# local test artifacts
+test-results
+playwright-report
+coverage

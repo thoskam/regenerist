@@ -1,0 +1,8 @@
+const { readdirSync } = require('node:fs')
+const { spawnSync } = require('node:child_process')
+const { resolve } = require('node:path')
+const root = resolve(__dirname, '..')
+const tests = readdirSync(resolve(root, 'tests')).filter(name => name.endsWith('.test.cjs')).sort().map(name => `tests/${name}`)
+if (!tests.length) throw new Error('No regression tests found')
+const result = spawnSync(process.execPath, ['--require', './scripts/register-ts.cjs', '--test', ...tests], { cwd: root, stdio: 'inherit' })
+process.exit(result.status ?? 1)

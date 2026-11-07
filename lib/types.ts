@@ -34,6 +34,7 @@ export interface Life {
   story: string
   skillProficiencies: string[]
   subclassChoice: string | null
+  gameplayState?: Record<string, unknown> | null
   spellbook?: Record<string, unknown> | null
   createdAt: Date
   isActive: boolean

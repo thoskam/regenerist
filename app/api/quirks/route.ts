@@ -1,5 +1,8 @@
+export const dynamic = 'force-dynamic'
+
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { InputError, textValue } from '@/lib/lifeUpdates'
 
 // GET all quirks
 export async function GET() {
@@ -22,7 +25,11 @@ export async function GET() {
 export async function POST(request: Request) {
   try {
     const body = await request.json()
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new InputError('Expected an object')
     const { name, description, isActive = true } = body
+    if (typeof isActive !== 'boolean') throw new InputError('isActive must be a boolean')
+    textValue(name, 'name', 200)
+    textValue(description, 'description', 50000)
 
     if (!name || typeof name !== 'string' || name.trim().length === 0) {
       return NextResponse.json(
@@ -42,12 +49,13 @@ export async function POST(request: Request) {
       data: {
         name: name.trim(),
         description: description.trim(),
-        isActive: Boolean(isActive),
+        isActive,
       },
     })
 
     return NextResponse.json(quirk, { status: 201 })
   } catch (error) {
+    if (error instanceof InputError || error instanceof SyntaxError) return NextResponse.json({ error: error.message }, { status: 400 })
     console.error('Error creating quirk:', error)
     return NextResponse.json(
       { error: 'Failed to create quirk' },

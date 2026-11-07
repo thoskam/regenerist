@@ -1,10 +1,13 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useRef } from 'react'
 import Link from 'next/link'
 import { useParams, useRouter } from 'next/navigation'
 import StatBlock from '@/components/StatBlock'
 import HPTracker from '@/components/HPTracker'
+import GameplayTracker from '@/components/GameplayTracker'
+import AttackPanel from '@/components/AttackPanel'
+import { adjustHitPoints, GameplayState } from '@/lib/gameplay'
 import LevelSelector from '@/components/LevelSelector'
 import RegenerateButton from '@/components/RegenerateButton'
 import StoryDisplay from '@/components/StoryDisplay'
@@ -16,9 +19,7 @@ import SpellList from '@/components/SpellList'
 import StaticCharacterEditor, { EditorData } from '@/components/StaticCharacterEditor'
 import { Character, Life, Stats } from '@/lib/types'
 import { HydratedCharacterData } from '@/lib/types/5etools'
-import { calculateProficiencyBonus, calculateAC, calculateInitiative, calculateSpeed, formatModifier, calculateMaxHp } from '@/lib/calculations'
-import { getStatModifier } from '@/lib/statMapper'
-import { applyASIs } from '@/lib/asiCalculator'
+import { calculateProficiencyBonus, calculateAC, calculateInitiative, calculateSpeed, formatModifier } from '@/lib/calculations'
 
 interface CharacterWithLives extends Character {
   lives: Life[]
@@ -45,49 +46,64 @@ export default function CharacterPage() {
   const [showFlash, setShowFlash] = useState(false)
   const [showEditor, setShowEditor] = useState(false)
   const [isSavingEdit, setIsSavingEdit] = useState(false)
+  const [combatNotice, setCombatNotice] = useState<string | null>(null)
+  const [saveError, setSaveError] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
+  const [hydrationError, setHydrationError] = useState<string | null>(null)
+  const savingLock = useRef(false)
+  const saveQueue = useRef<Promise<unknown>>(Promise.resolve())
+  const hydrationRequest = useRef(0)
+
+  const saveLife = (patch: Record<string, unknown>) => {
+    if (!currentLife || savingLock.current) return Promise.resolve(false)
+    savingLock.current = true
+    const lifeId = currentLife.id
+    if (patch.gameplayState && typeof patch.gameplayState === 'object') {
+      const previous = currentLife.gameplayState || {}
+      patch = { ...patch, gameplayState: Object.fromEntries(Object.entries(patch.gameplayState).filter(([key, value]) => JSON.stringify(value) !== JSON.stringify(previous[key]))) }
+    }
+    setSaveError(null)
+    setIsSaving(true)
+    const operation = saveQueue.current.then(async () => {
+      const res = await fetch(`/api/characters/${slug}/lives/${lifeId}`, {
+        method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(patch),
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Changes could not be saved. Try again.')
+      setAllLives(prev => prev.map(life => life.id === lifeId ? data : life))
+      setCurrentLife(prev => prev?.id === lifeId ? data : prev)
+      if (data.isActive) setCharacter(prev => prev ? { ...prev, level: data.level } : prev)
+
+      return true
+    }).catch(err => { setSaveError(err instanceof Error ? err.message : 'Save failed'); return false })
+    saveQueue.current = operation
+    void operation.finally(() => { if (saveQueue.current === operation) { savingLock.current = false; setIsSaving(false) } })
+    return operation
+  }
+
+  const selectedLifeId = currentLife?.id
+  const selectedLifeLevel = currentLife?.level
+  const selectedLifeClass = currentLife?.class
+  const selectedLifeSubclass = currentLife?.subclass
+  const selectedLifeRace = currentLife?.race
+  // Resource/HP saves return fresh JSON objects but do not change these rule inputs.
+  const hydrationKey = JSON.stringify([selectedLifeLevel, selectedLifeClass, selectedLifeSubclass,
+    selectedLifeRace, currentLife?.subclassChoice, currentLife?.spellbook])
+
+  useEffect(() => { if (selectedLifeLevel !== undefined) setLevel(selectedLifeLevel) }, [selectedLifeLevel])
+  useEffect(() => {
+    setActiveTab(previous => previous === 'spells' ? 'features' : previous)
+    setFormTab('summary')
+  }, [selectedLifeId, selectedLifeClass, selectedLifeSubclass, selectedLifeRace])
 
   const handleEditCharacter = async (data: EditorData) => {
     if (!currentLife || !character) return
 
     setIsSavingEdit(true)
-    try {
-      const response = await fetch(`/api/characters/${slug}/lives/${currentLife.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          race: data.race,
-          class: data.class,
-          subclass: data.subclass,
-          level: data.level,
-          stats: data.stats,
-          story: data.story,
-        }),
-      })
-
-      if (response.ok) {
-        const updatedLife = await response.json()
-        setCurrentLife(updatedLife)
-        setLevel(data.level)
-        
-        // Update character level if needed
-        if (data.level !== character.level) {
-          await fetch(`/api/characters/${slug}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ level: data.level }),
-          })
-          setCharacter({ ...character, level: data.level })
-        }
-
-        setShowEditor(false)
-      } else {
-        console.error('Failed to save character')
-      }
-    } catch (err) {
-      console.error('Failed to save character:', err)
-    } finally {
-      setIsSavingEdit(false)
-    }
+    const saved = await saveLife({ ...data })
+    setIsSavingEdit(false)
+    if (saved) setShowEditor(false)
+    else throw new Error('Character could not be saved. Check the sheet error and retry.')
   }
 
   const fetchCharacter = useCallback(async () => {
@@ -104,7 +120,7 @@ export default function CharacterPage() {
       const data: CharacterWithLives = await res.json()
       setCharacter(data)
       setAllLives(data.lives || [])
-      setLevel(data.level)
+      setLevel(data.lives?.find((l: Life) => l.isActive)?.level || data.level)
 
       const active = data.lives?.find((l: Life) => l.isActive)
       if (active) {
@@ -124,25 +140,30 @@ export default function CharacterPage() {
 
   // Fetch hydrated data when character has an active life
   const fetchHydratedData = useCallback(async () => {
-    if (!character || !currentLife) {
+    const requestId = ++hydrationRequest.current
+    if (!selectedLifeId) {
       setHydratedData(null)
+      setHydrationError(null)
       return
     }
 
+    setHydratedData(null)
+    setHydrationError(null)
     try {
-      const res = await fetch(`/api/characters/${slug}/hydrate`)
+      const res = await fetch(`/api/characters/${slug}/hydrate?lifeId=${selectedLifeId}`)
+      if (!res.ok) throw new Error('Features and spells could not be loaded.')
       if (res.ok) {
         const data = await res.json()
-        setHydratedData(data)
+        if (requestId === hydrationRequest.current) setHydratedData(data)
       }
     } catch (err) {
-      console.error('Failed to fetch hydrated data:', err)
+      if (requestId === hydrationRequest.current) setHydrationError('Features and spells could not be loaded.')
     }
-  }, [slug, character, currentLife])
+  }, [slug, selectedLifeId])
 
   useEffect(() => {
     fetchHydratedData()
-  }, [fetchHydratedData])
+  }, [fetchHydratedData, hydrationKey])
 
   const handleRegenerate = async () => {
     if (!character) return
@@ -167,6 +188,7 @@ export default function CharacterPage() {
         new Promise(resolve => setTimeout(resolve, 1500)) // Minimum 1.5s loading animation
       ])
       const newLife = await res.json()
+      if (!res.ok) throw new Error(newLife.error || 'Regeneration failed')
 
       // Trigger the flash effect
       setShowFlash(true)
@@ -186,73 +208,31 @@ export default function CharacterPage() {
         setIsRegenerating(false)
       }, 1200)
     } catch (err) {
-      console.error('Failed to regenerate:', err)
+      setSaveError(err instanceof Error ? err.message : 'Regeneration failed')
       setRegenPhase('idle')
       setIsRegenerating(false)
     }
   }
 
-  const handleHpChange = async (current: number, max: number) => {
-    if (!currentLife || !character) return
-    setCurrentLife({ ...currentLife, currentHp: current, maxHp: max })
-    try {
-      await fetch(`/api/characters/${slug}/lives/${currentLife.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ currentHp: current, maxHp: max }),
-      })
-    } catch (err) {
-      console.error('Failed to update HP:', err)
-    }
+  const handleHpChange = (current: number, max: number) => saveLife({ currentHp: current, maxHp: max })
+  const handleHpAdjust = (delta: number) => {
+    if (!currentLife) return
+    const state = (currentLife.gameplayState || {}) as GameplayState
+    const result = adjustHitPoints(currentLife.currentHp, currentLife.maxHp, delta, state)
+    setCombatNotice(result.massiveDamage ? 'Massive damage: instant death. Resolve regeneration with your DM.' : result.concentrationDC ? `Concentration check: Constitution DC ${result.concentrationDC}. End concentration if the save fails.` : null)
+    void saveLife({ currentHp: result.currentHp, gameplayState: result.gameplayState })
   }
 
-  const handleLevelChange = async (newLevel: number) => {
-    setLevel(newLevel)
-    if (!currentLife || !character) return
-
-    // Recalculate stats with ASI for new level
-    const baseStats = (currentLife.baseStats || currentLife.stats) as Stats
-    const newStats = applyASIs(baseStats, currentLife.class, newLevel)
-
-    const conMod = getStatModifier(newStats.con)
-    const newMaxHp = calculateMaxHp(currentLife.class, newLevel, conMod)
-    const newCurrentHp = Math.min(currentLife.currentHp, newMaxHp)
-
-    setCurrentLife({
-      ...currentLife,
-      level: newLevel,
-      stats: newStats,
-      maxHp: newMaxHp,
-      currentHp: newCurrentHp
-    })
-
-    try {
-      // Update character level
-      await fetch(`/api/characters/${slug}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ level: newLevel }),
-      })
-
-      // Update life stats
-      await fetch(`/api/characters/${slug}/lives/${currentLife.id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          level: newLevel,
-          stats: newStats,
-          maxHp: newMaxHp,
-          currentHp: newCurrentHp
-        }),
-      })
-    } catch (err) {
-      console.error('Failed to update level:', err)
-    }
-  }
+  const handleLevelChange = (newLevel: number) => saveLife({ level: newLevel })
 
   const handleSelectLife = (life: Life) => {
+    hydrationRequest.current += 1
+    setHydratedData(null)
     setCurrentLife(life)
     setLevel(life.level)
+    setActiveTab('story')
+    setFormTab('summary')
+    setCombatNotice(null)
   }
 
   const handleClearHistory = async () => {
@@ -261,11 +241,11 @@ export default function CharacterPage() {
       return
     }
     try {
-      await fetch(`/api/characters/${slug}/lives`, { method: 'DELETE' })
-      setAllLives([])
-      setCurrentLife(null)
+      const res = await fetch(`/api/characters/${slug}/lives`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to clear history')
+      await fetchCharacter()
     } catch (err) {
-      console.error('Failed to clear history:', err)
+      setSaveError('Failed to clear history. Please try again.')
     }
   }
 
@@ -275,10 +255,11 @@ export default function CharacterPage() {
       return
     }
     try {
-      await fetch(`/api/characters/${slug}`, { method: 'DELETE' })
+      const res = await fetch(`/api/characters/${slug}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Failed to delete character')
       router.push('/')
     } catch (err) {
-      console.error('Failed to delete character:', err)
+      setSaveError('Failed to delete character. Please try again.')
     }
   }
 
@@ -301,6 +282,7 @@ export default function CharacterPage() {
     )
   }
 
+  const gameplayState = (currentLife?.gameplayState || {}) as GameplayState
   const stats = currentLife?.stats as Stats | undefined
   const baseStats = (currentLife?.baseStats || currentLife?.stats) as Stats | undefined
   const proficiencyBonus = calculateProficiencyBonus(level)
@@ -339,7 +321,7 @@ export default function CharacterPage() {
           <div className="mt-6 flex flex-col items-center gap-4">
             {character && character.isRegenerist && (
               <>
-                <RegenerateButton onClick={handleRegenerate} isLoading={isRegenerating} />
+                <fieldset disabled={isSaving}><RegenerateButton onClick={handleRegenerate} isLoading={isRegenerating} /></fieldset>
                 <div className="flex items-center gap-3">
                   <label className="flex items-center gap-2 cursor-pointer">
                     <div className="relative">
@@ -375,6 +357,11 @@ export default function CharacterPage() {
           </div>
         </div>
 
+        {hydrationError && <div role="alert" className="mb-4 rounded bg-amber-950 p-3 text-amber-200">{hydrationError} <button onClick={fetchHydratedData} className="underline">Retry loading rules</button></div>}
+        {combatNotice && <p role="status" className="mb-4 rounded bg-amber-950 p-3 text-amber-200">{combatNotice}</p>}
+        {saveError && <div role="alert" className="mb-4 rounded border border-red-600 bg-red-950 p-3 text-red-200">{saveError}</div>}
+        {isSaving && <p role="status" className="mb-3 text-sm text-gold-400">Saving changes…</p>}
+        {currentLife && !currentLife.isActive && <p className="mb-4 rounded bg-amber-950 p-3 text-amber-200">Viewing archived life #{currentLife.lifeNumber}. Regeneration uses your active character’s level.</p>}
         {/* Main Content */}
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
           {/* Left Sidebar - Life History & Skills */}
@@ -423,7 +410,7 @@ export default function CharacterPage() {
                         )}
                       </p>
                     </div>
-                    <LevelSelector level={level} onChange={handleLevelChange} />
+                    <fieldset disabled={isSaving || isRegenerating}><LevelSelector level={level} onChange={handleLevelChange} /></fieldset>
                   </div>
                 </div>
 
@@ -435,7 +422,7 @@ export default function CharacterPage() {
                   >
                     <span className="text-xs text-slate-400 font-semibold tracking-wider block">AC</span>
                     <span className="text-3xl font-bold text-white">
-                      {stats ? calculateAC(stats, currentLife.class) : 10}
+                      {stats ? calculateAC(stats, currentLife.class, { armor: gameplayState.armor, shield: gameplayState.shield, bonus: gameplayState.acBonus, race: currentLife.race, subclass: currentLife.subclass }) : 10}
                     </span>
                   </div>
                   <div
@@ -453,7 +440,7 @@ export default function CharacterPage() {
                   >
                     <span className="text-xs text-slate-400 font-semibold tracking-wider block">SPEED</span>
                     <span className="text-3xl font-bold text-white">
-                      {calculateSpeed(currentLife.race)} ft
+                      {calculateSpeed(currentLife.race, currentLife.class, level, { armor: gameplayState.armor, shield: gameplayState.shield, strength: stats?.str })} ft
                     </span>
                   </div>
                 </div>
@@ -471,10 +458,16 @@ export default function CharacterPage() {
 
                 {/* HP Tracker */}
                 <HPTracker
+                  key={currentLife.id}
+                  disabled={isSaving || isRegenerating}
                   currentHp={currentLife.currentHp}
                   maxHp={currentLife.maxHp}
                   onHpChange={handleHpChange}
+                  onAdjust={handleHpAdjust}
                 />
+
+                <AttackPanel key={`attack-${currentLife.id}`} life={currentLife} state={gameplayState} data={hydratedData} disabled={isSaving || isRegenerating} onSave={saveLife} />
+                <GameplayTracker key={currentLife.id} life={currentLife} state={gameplayState} data={hydratedData} disabled={isSaving || isRegenerating} onSave={saveLife} />
 
                 {/* Stats */}
                 <div className="grid grid-cols-3 md:grid-cols-6 gap-3">
@@ -627,6 +620,7 @@ export default function CharacterPage() {
 
                 {activeTab === 'spells' && hydratedData?.isSpellcaster && hydratedData.spellcastingAbility && stats && (
                   <SpellList
+                    key={currentLife.id}
                     selectedSpellbook={hydratedData.selectedSpellbook}
                     allAvailableSpells={hydratedData.spells || undefined}
                     maxSpellLevel={hydratedData.maxSpellLevel || 0}
@@ -635,6 +629,8 @@ export default function CharacterPage() {
                     proficiencyBonus={proficiencyBonus}
                     slug={slug}
                     lifeId={currentLife?.id}
+                    onSave={saveLife}
+                    disabled={isSaving || isRegenerating}
                     onSpellbookUpdate={() => fetchHydratedData()}
                   />
                 )}

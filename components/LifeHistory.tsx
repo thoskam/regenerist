@@ -27,7 +27,7 @@ export default function LifeHistory({ lives, currentLifeId, onSelectLife, onClea
           onClick={onClearHistory}
           className="text-xs text-red-400 hover:text-red-300 transition-colors"
         >
-          Clear All
+          Clear Past Lives
         </button>
       </div>
 

@@ -35,6 +35,7 @@ model Life {
   skillProficiencies  String[]  @default([])
   subclassChoice      String?
   spellbook           Json?     // {spellNames: string[], archivistNote: string}
+  gameplayState       Json?     // HP resources, death saves, spell slots, concentration
   createdAt           DateTime  @default(now())
   isActive            Boolean   @default(false)
 

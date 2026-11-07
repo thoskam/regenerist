@@ -44,3 +44,5 @@ prisma/*.db-journal
 
 #the data files from 5e 
 /data
+/test-results/
+/playwright-report/

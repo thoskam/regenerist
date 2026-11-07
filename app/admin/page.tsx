@@ -11,6 +11,8 @@ export default function AdminPage() {
   const [characters, setCharacters] = useState<Character[]>([])
   const [quirks, setQuirks] = useState<Quirk[]>([])
   const [isLoading, setIsLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isSaving, setIsSaving] = useState(false)
 
   // Character form state
   const [showCharacterModal, setShowCharacterModal] = useState(false)
@@ -37,10 +39,12 @@ export default function AdminPage() {
         charsRes.json(),
         quirksRes.json(),
       ])
+      if (!charsRes.ok || !quirksRes.ok) throw new Error(charsData.error || quirksData.error || 'Could not load admin data')
+      setError(null)
       setCharacters(charsData)
       setQuirks(quirksData)
     } catch (error) {
-      console.error('Failed to fetch data:', error)
+      setError(error instanceof Error ? error.message : 'Failed to fetch data')
     } finally {
       setIsLoading(false)
     }
@@ -49,6 +53,9 @@ export default function AdminPage() {
   // Character CRUD
   const handleSaveCharacter = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isSaving) return
+    setIsSaving(true)
+    setError(null)
     try {
       if (editingCharacter) {
         const res = await fetch(`/api/characters/${editingCharacter.slug}`, {
@@ -56,6 +63,10 @@ export default function AdminPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(characterForm),
         })
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.error || 'Save failed')
+        }
         if (res.ok) {
           const updated = await res.json()
           setCharacters(prev =>
@@ -68,6 +79,10 @@ export default function AdminPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(characterForm),
         })
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.error || 'Save failed')
+        }
         if (res.ok) {
           const newChar = await res.json()
           setCharacters(prev => [...prev, newChar])
@@ -75,24 +90,27 @@ export default function AdminPage() {
       }
       closeCharacterModal()
     } catch (error) {
-      console.error('Failed to save character:', error)
+      setError(error instanceof Error ? error.message : 'Could not save character')
+    } finally {
+      setIsSaving(false)
     }
   }
 
   const handleDeleteCharacter = async (character: Character) => {
     if (!confirm(`Delete ${character.name}? This will also delete all their lives.`)) return
     try {
-      await fetch(`/api/characters/${character.slug}`, { method: 'DELETE' })
+      const res = await fetch(`/api/characters/${character.slug}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Could not delete character')
       setCharacters(prev => prev.filter(c => c.id !== character.id))
     } catch (error) {
-      console.error('Failed to delete character:', error)
+      setError(error instanceof Error ? error.message : 'Failed to delete character')
     }
   }
 
   const openCharacterModal = (character?: Character) => {
     if (character) {
       setEditingCharacter(character)
-      setCharacterForm({ name: character.name, level: character.level, isRegenerist: (character as any).isRegenerist ?? true })
+      setCharacterForm({ name: character.name, level: character.level, isRegenerist: character.isRegenerist })
     } else {
       setEditingCharacter(null)
       setCharacterForm({ name: '', level: 1, isRegenerist: true })
@@ -109,6 +127,9 @@ export default function AdminPage() {
   // Quirk CRUD
   const handleSaveQuirk = async (e: React.FormEvent) => {
     e.preventDefault()
+    if (isSaving) return
+    setIsSaving(true)
+    setError(null)
     try {
       if (editingQuirk) {
         const res = await fetch(`/api/quirks/${editingQuirk.id}`, {
@@ -116,6 +137,10 @@ export default function AdminPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(quirkForm),
         })
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.error || 'Save failed')
+        }
         if (res.ok) {
           const updated = await res.json()
           setQuirks(prev =>
@@ -128,6 +153,10 @@ export default function AdminPage() {
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(quirkForm),
         })
+        if (!res.ok) {
+          const data = await res.json()
+          throw new Error(data.error || 'Save failed')
+        }
         if (res.ok) {
           const newQuirk = await res.json()
           setQuirks(prev => [...prev, newQuirk])
@@ -135,17 +164,20 @@ export default function AdminPage() {
       }
       closeQuirkModal()
     } catch (error) {
-      console.error('Failed to save quirk:', error)
+      setError(error instanceof Error ? error.message : 'Could not save quirk')
+    } finally {
+      setIsSaving(false)
     }
   }
 
   const handleDeleteQuirk = async (quirk: Quirk) => {
     if (!confirm(`Delete quirk "${quirk.name}"?`)) return
     try {
-      await fetch(`/api/quirks/${quirk.id}`, { method: 'DELETE' })
+      const res = await fetch(`/api/quirks/${quirk.id}`, { method: 'DELETE' })
+      if (!res.ok) throw new Error('Could not delete quirk')
       setQuirks(prev => prev.filter(q => q.id !== quirk.id))
     } catch (error) {
-      console.error('Failed to delete quirk:', error)
+      setError(error instanceof Error ? error.message : 'Failed to delete quirk')
     }
   }
 
@@ -156,6 +188,7 @@ export default function AdminPage() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ isActive: !quirk.isActive }),
       })
+      if (!res.ok) throw new Error('Could not update quirk')
       if (res.ok) {
         const updated = await res.json()
         setQuirks(prev =>
@@ -163,7 +196,7 @@ export default function AdminPage() {
         )
       }
     } catch (error) {
-      console.error('Failed to toggle quirk:', error)
+      setError(error instanceof Error ? error.message : 'Failed to toggle quirk')
     }
   }
 
@@ -208,6 +241,8 @@ export default function AdminPage() {
           </div>
         </div>
 
+        {error && <p role="alert" className="mb-4 rounded border border-red-500/50 p-3 text-red-300">{error}</p>}
+
         {/* Tabs */}
         <div className="flex gap-4 mb-8 border-b border-slate-700">
           <button
@@ -245,7 +280,7 @@ export default function AdminPage() {
               </button>
             </div>
 
-            <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+            <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-slate-700">
                   <tr>
@@ -307,7 +342,7 @@ export default function AdminPage() {
               </button>
             </div>
 
-            <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-hidden">
+            <div className="bg-slate-800 rounded-lg border border-slate-700 overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-slate-700">
                   <tr>
@@ -368,6 +403,7 @@ export default function AdminPage() {
                 {editingCharacter ? 'Edit Character' : 'Create Character'}
               </h3>
               <form onSubmit={handleSaveCharacter}>
+                {error && <p role="alert" className="mb-4 text-red-300">{error}</p>}
                 <div className="mb-4">
                   <label className="block text-sm text-slate-400 mb-2">Name</label>
                   <input
@@ -414,6 +450,7 @@ export default function AdminPage() {
                   </button>
                   <button
                     type="submit"
+                    disabled={isSaving}
                     className="px-4 py-2 bg-gold-500 hover:bg-gold-400 rounded-lg text-slate-900 font-semibold transition-colors"
                   >
                     {editingCharacter ? 'Save' : 'Create'}
@@ -432,6 +469,7 @@ export default function AdminPage() {
                 {editingQuirk ? 'Edit Quirk' : 'Create Quirk'}
               </h3>
               <form onSubmit={handleSaveQuirk}>
+                {error && <p role="alert" className="mb-4 text-red-300">{error}</p>}
                 <div className="mb-4">
                   <label className="block text-sm text-slate-400 mb-2">Name</label>
                   <input
@@ -474,6 +512,7 @@ export default function AdminPage() {
                   </button>
                   <button
                     type="submit"
+                    disabled={isSaving}
                     className="px-4 py-2 bg-gold-500 hover:bg-gold-400 rounded-lg text-slate-900 font-semibold transition-colors"
                   >
                     {editingQuirk ? 'Save' : 'Create'}

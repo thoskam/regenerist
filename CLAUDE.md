@@ -1,3 +1,5 @@
+> Updated September 2026: see README.md, docs/REVIEW.md, and docs/RULES-COVERAGE.md for current setup, validation, and actual rules coverage. The original design notes below contain historical behavior (including AI racial bonuses and earlier spell eligibility) that has been replaced. The app now uses Next 15, Node 22, deterministic mechanics, transactional regeneration, and persisted gameplay resources.
+
 # CLAUDE.md
 
 This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.

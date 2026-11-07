@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import type { HydratedSpell, HydratedSpellbook } from '@/lib/types/5etools'
 
 interface Stats {
@@ -20,6 +20,8 @@ interface SpellListProps {
   stats: Stats
   proficiencyBonus: number
   // For editing
+  disabled?: boolean
+  onSave?: (patch: Record<string, unknown>) => Promise<unknown>
   slug?: string
   lifeId?: number
   onSpellbookUpdate?: (spellbook: { spellNames: string[]; archivistNote: string }) => void
@@ -55,6 +57,8 @@ function formatModifier(mod: number): string {
 
 export default function SpellList({
   selectedSpellbook,
+  onSave,
+  disabled,
   allAvailableSpells,
   maxSpellLevel,
   spellcastingAbility,
@@ -70,6 +74,8 @@ export default function SpellList({
   const [isEditing, setIsEditing] = useState(false)
   const [editedSpellNames, setEditedSpellNames] = useState<string[]>([])
   const [isSaving, setIsSaving] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => { setIsEditing(false); setSelectedLevel(null); setExpandedSpell(null); setSearchQuery(''); setError(null) }, [lifeId])
 
   // Use selected spellbook if available, otherwise fall back to all available spells
   const selectedSpells = selectedSpellbook?.spells || []
@@ -98,12 +104,14 @@ export default function SpellList({
   }
 
   const handleRemoveSpell = (spellName: string) => {
+    if (selectedSpells.some(s => s.name === spellName && s.grantedBySubclass)) return
     setEditedSpellNames(editedSpellNames.filter(n => n !== spellName))
   }
 
   const handleSaveSpellbook = async () => {
     if (!slug || !lifeId) return
 
+    setError(null)
     setIsSaving(true)
     try {
       const newSpellbook = {
@@ -111,27 +119,26 @@ export default function SpellList({
         archivistNote: selectedSpellbook?.archivistNote || 'A custom spell selection.',
       }
 
-      const res = await fetch(`/api/characters/${slug}/lives/${lifeId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ spellbook: newSpellbook }),
-      })
-
-      if (res.ok) {
-        setIsEditing(false)
-        if (onSpellbookUpdate) {
-          onSpellbookUpdate(newSpellbook)
-        }
+      if (onSave) {
+        const saved = await onSave({ spellbook: newSpellbook })
+        if (saved === false) throw new Error('Spellbook was not saved. Check the sheet error and retry.')
+      } else {
+        const res = await fetch(`/api/characters/${slug}/lives/${lifeId}`, {
+          method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ spellbook: newSpellbook }),
+        })
+        if (!res.ok) { const data = await res.json(); throw new Error(data.error || 'Failed to save spellbook') }
       }
+      setIsEditing(false)
+      onSpellbookUpdate?.(newSpellbook)
     } catch (error) {
-      console.error('Failed to save spellbook:', error)
+      setError(error instanceof Error ? error.message : 'Failed to save spellbook')
     } finally {
       setIsSaving(false)
     }
   }
 
   // Determine which spells to show based on edit mode
-  const spellsToShow = isEditing ? availableSpells : (selectedSpells.length > 0 ? selectedSpells : availableSpells)
+  const spellsToShow = isEditing ? availableSpells : selectedSpells
 
   // Group spells by level
   const spellsByLevel = spellsToShow.reduce((acc, spell) => {
@@ -156,7 +163,7 @@ export default function SpellList({
     ? (spellsByLevel[selectedLevel] || []).filter((s) =>
         s.name.toLowerCase().includes(searchQuery.toLowerCase())
       )
-    : []
+    : spellsToShow.filter(s => s.level <= maxSpellLevel && s.name.toLowerCase().includes(searchQuery.toLowerCase()))
 
   // Check if spell is in edited list
   const isSpellSelected = (spellName: string) => editedSpellNames.includes(spellName)
@@ -164,16 +171,10 @@ export default function SpellList({
   // Check if we can edit (need slug, lifeId, and available spells)
   const canEdit = slug && lifeId && availableSpells.length > 0
 
-  if (spellsToShow.length === 0) {
-    return (
-      <div className="bg-slate-800 rounded-lg p-4 border border-slate-700">
-        <p className="text-sm text-slate-500 text-center">No spells available yet.</p>
-      </div>
-    )
-  }
 
   return (
     <div className="bg-slate-800 rounded-lg p-4 border border-slate-700 space-y-4">
+      {error && <p role="alert" className="text-sm text-red-400">{error}</p>}
       {/* Spellcasting Stats Block */}
       <div className="grid grid-cols-3 gap-2 text-center">
         <div className="bg-slate-700/50 rounded p-2">
@@ -207,7 +208,7 @@ export default function SpellList({
       {/* Header with Edit Button */}
       <div className="flex items-center justify-between">
         <h3 className="text-xs text-slate-400 font-semibold tracking-wider">
-          {isEditing ? 'EDIT SPELLS' : (selectedSpellbook ? 'PREPARED SPELLS' : 'AVAILABLE SPELLS')}
+          {isEditing ? 'EDIT SPELLS' : 'SELECTED SPELLS'}
         </h3>
         <div className="flex items-center gap-2">
           {isEditing && (
@@ -237,14 +238,14 @@ export default function SpellList({
             <>
               <button
                 onClick={handleSaveSpellbook}
-                disabled={isSaving}
+                disabled={isSaving || disabled}
                 className="flex-1 px-3 py-1.5 text-xs font-medium bg-gold-500 text-slate-900 rounded hover:bg-gold-400 transition-colors disabled:opacity-50"
               >
                 {isSaving ? 'Saving...' : 'Save Changes'}
               </button>
               <button
                 onClick={handleCancelEditing}
-                disabled={isSaving}
+                disabled={isSaving || disabled}
                 className="px-3 py-1.5 text-xs font-medium bg-slate-700 text-slate-300 rounded hover:bg-slate-600 transition-colors disabled:opacity-50"
               >
                 Cancel
@@ -278,12 +279,13 @@ export default function SpellList({
       </div>
 
       {/* Spell list for selected level */}
-      {selectedLevel !== null && (
+      {(
         <>
           {/* Search input */}
           <div>
             <input
               type="text"
+              aria-label="Search spells"
               placeholder="Search spells..."
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
@@ -310,6 +312,8 @@ export default function SpellList({
                       {/* Add/Remove button in edit mode */}
                       {isEditing && (
                         <button
+                          disabled={isSaving || disabled || !!spell.grantedBySubclass}
+                          aria-label={`${isSelected ? 'Remove' : 'Add'} ${spell.name}`}
                           onClick={() => isSelected ? handleRemoveSpell(spell.name) : handleAddSpell(spell.name)}
                           className={`px-3 py-2 text-lg transition-colors ${
                             isSelected
@@ -328,6 +332,7 @@ export default function SpellList({
                         <div className="flex items-center gap-2">
                           <span className={`font-medium ${isEditing && isSelected ? 'text-gold-400' : 'text-slate-200'}`}>
                             {spell.name}
+                            {spell.grantedBySubclass && <span className="ml-1 text-xs text-gold-400">Subclass grant</span>}
                           </span>
                           <span className={`text-xs ${SCHOOL_COLORS[spell.school] || 'text-slate-400'}`}>
                             {spell.school}
@@ -378,7 +383,7 @@ export default function SpellList({
 
       {selectedLevel === null && (
         <p className="text-sm text-slate-500 text-center py-2">
-          Select a spell level to view spells
+          {spellsToShow.length === 0 ? 'No spells selected. Use Edit Spells to build your spell list.' : 'Showing all spell levels. Choose a level to filter.'}
         </p>
       )}
     </div>

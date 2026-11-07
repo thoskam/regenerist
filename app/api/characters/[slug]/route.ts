@@ -1,14 +1,19 @@
+export const dynamic = 'force-dynamic'
+
+import { Prisma } from '@prisma/client'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { InputError, integer, prepareLifeUpdate } from '@/lib/lifeUpdates'
 
 // GET a single character by slug
 export async function GET(
   request: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
+  const routeParams = await params
   try {
     const character = await prisma.character.findUnique({
-      where: { slug: params.slug },
+      where: { slug: routeParams.slug },
       include: {
         lives: {
           orderBy: { lifeNumber: 'desc' },
@@ -36,14 +41,16 @@ export async function GET(
 // PUT update a character
 export async function PUT(
   request: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
+  const routeParams = await params
   try {
     const body = await request.json()
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new InputError('Expected an object')
     const { name, level, isRegenerist } = body
 
     const existingCharacter = await prisma.character.findUnique({
-      where: { slug: params.slug },
+      where: { slug: routeParams.slug },
     })
 
     if (!existingCharacter) {
@@ -64,7 +71,7 @@ export async function PUT(
         .replace(/[^a-z0-9]+/g, '-')
         .replace(/^-|-$/g, '')
 
-      if (newSlug !== params.slug) {
+      if (newSlug !== routeParams.slug) {
         // Check if new slug is already taken
         const slugExists = await prisma.character.findUnique({
           where: { slug: newSlug },
@@ -79,21 +86,26 @@ export async function PUT(
       }
     }
 
-    if (typeof level === 'number') {
-      updateData.level = Math.max(1, Math.min(20, level))
-    }
+    if (level !== undefined) updateData.level = integer(level, 1, 20, 'Level')
+    if (name !== undefined && (typeof name !== 'string' || !name.trim())) throw new InputError('Name is required')
+    if (updateData.slug === '') throw new InputError('Name must contain a letter or number')
+    if (isRegenerist !== undefined && typeof isRegenerist !== 'boolean') throw new InputError('Invalid character type')
 
     if (typeof isRegenerist === 'boolean') {
       updateData.isRegenerist = isRegenerist
     }
 
-    const character = await prisma.character.update({
-      where: { slug: params.slug },
-      data: updateData,
-    })
+    const character = await prisma.$transaction(async tx => {
+      const active = await tx.life.findFirst({ where: { characterId: existingCharacter.id, isActive: true } })
+      if (isRegenerist === false && !active) throw new InputError('Create an incarnation before switching to a static character')
+      if (active && level !== undefined) await tx.life.update({ where: { id: active.id }, data: await prepareLifeUpdate(active, { level }) })
+      return tx.character.update({ where: { id: existingCharacter.id }, data: updateData })
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
 
     return NextResponse.json(character)
   } catch (error) {
+    if (error instanceof InputError || error instanceof SyntaxError) return NextResponse.json({ error: error.message }, { status: 400 })
+    if (error instanceof Prisma.PrismaClientKnownRequestError && ['P2034', 'P2002'].includes(error.code)) return NextResponse.json({ error: 'Character changed or name is already taken. Refresh and try again.' }, { status: 409 })
     console.error('Error updating character:', error)
     return NextResponse.json(
       { error: 'Failed to update character' },
@@ -105,11 +117,12 @@ export async function PUT(
 // DELETE a character (cascade deletes lives)
 export async function DELETE(
   request: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
+  const routeParams = await params
   try {
     const character = await prisma.character.findUnique({
-      where: { slug: params.slug },
+      where: { slug: routeParams.slug },
     })
 
     if (!character) {
@@ -120,7 +133,7 @@ export async function DELETE(
     }
 
     await prisma.character.delete({
-      where: { slug: params.slug },
+      where: { slug: routeParams.slug },
     })
 
     return NextResponse.json({ success: true })

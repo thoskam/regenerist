@@ -1,3 +1,5 @@
+import { getSpellSelectionLimits } from '@/lib/spellSlots'
+import { Prisma } from '@prisma/client'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { randomClass, randomRace, randomFromArray } from '@/lib/randomizer'
@@ -9,7 +11,7 @@ import { applyASIs } from '@/lib/asiCalculator'
 import { selectSkillProficiencies } from '@/lib/proficiencyEngine'
 import { getSpellSlotInfo, getSpellcastingAbilityForClass } from '@/lib/spellSlots'
 import { generateSmartSpellbook } from '@/lib/spellbookGenerator'
-import { getAvailableSpellNames, getCasterType } from '@/lib/dndApi'
+import { getAvailableSpellNames, getCasterType, getRacialAbilityBonuses, getSubclassSpellGrants } from '@/lib/dndApi'
 
 const bedrockClient = new BedrockRuntimeClient({
   region: process.env.AWS_REGION || 'us-east-1',
@@ -18,91 +20,6 @@ const bedrockClient = new BedrockRuntimeClient({
     secretAccessKey: process.env.AWS_SECRET_ACCESS_KEY || '',
   },
 })
-
-interface RacialBonuses {
-  str: number
-  dex: number
-  con: number
-  int: number
-  wis: number
-  cha: number
-}
-
-async function getRacialBonuses(race: string): Promise<RacialBonuses> {
-  const defaultBonuses: RacialBonuses = { str: 0, dex: 0, con: 0, int: 0, wis: 0, cha: 0 }
-
-  try {
-    const prompt = `For D&D 5e, what are the ability score increases for the race "${race}"?
-
-Respond ONLY with a JSON object in this exact format, no other text:
-{"str": 0, "dex": 0, "con": 0, "int": 0, "wis": 0, "cha": 0}
-
-Replace the 0s with the actual racial bonuses. For races with flexible bonuses (like Custom Lineage, Variant Human, or Tasha's optional rules), use the most common/optimal distribution. For subraces, use the combined total of base race + subrace bonuses.
-
-Examples:
-- Dwarf (Hill): {"str": 0, "dex": 0, "con": 2, "int": 0, "wis": 1, "cha": 0}
-- Elf (High): {"str": 0, "dex": 2, "con": 0, "int": 1, "wis": 0, "cha": 0}
-- Human (Standard): {"str": 1, "dex": 1, "con": 1, "int": 1, "wis": 1, "cha": 1}
-- Human (Variant): {"str": 0, "dex": 0, "con": 0, "int": 0, "wis": 0, "cha": 0} (plus +1 to two stats of choice - use {"str": 1, "dex": 1, "con": 0, "int": 0, "wis": 0, "cha": 0} as default)
-
-Now give me the bonuses for: ${race}`
-
-    const payload = {
-      anthropic_version: 'bedrock-2023-05-31',
-      max_tokens: 100,
-      temperature: 0,
-      messages: [
-        {
-          role: 'user',
-          content: prompt,
-        },
-      ],
-    }
-
-    const command = new InvokeModelCommand({
-      modelId: process.env.BEDROCK_MODEL_ID || 'us.anthropic.claude-3-5-sonnet-20241022-v2:0',
-      contentType: 'application/json',
-      accept: 'application/json',
-      body: JSON.stringify(payload),
-    })
-
-    const response = await bedrockClient.send(command)
-    const responseBody = JSON.parse(new TextDecoder().decode(response.body))
-    const text = responseBody.content[0]?.text || ''
-
-    // Extract JSON from response
-    const jsonMatch = text.match(/\{[^}]+\}/)
-    if (jsonMatch) {
-      const bonuses = JSON.parse(jsonMatch[0])
-      return {
-        str: Number(bonuses.str) || 0,
-        dex: Number(bonuses.dex) || 0,
-        con: Number(bonuses.con) || 0,
-        int: Number(bonuses.int) || 0,
-        wis: Number(bonuses.wis) || 0,
-        cha: Number(bonuses.cha) || 0,
-      }
-    }
-  } catch (error) {
-    console.error('Error getting racial bonuses:', error)
-  }
-
-  return defaultBonuses
-}
-
-function applyRacialBonuses(
-  baseStats: { str: number; dex: number; con: number; int: number; wis: number; cha: number },
-  bonuses: RacialBonuses
-): { str: number; dex: number; con: number; int: number; wis: number; cha: number } {
-  return {
-    str: baseStats.str + bonuses.str,
-    dex: baseStats.dex + bonuses.dex,
-    con: baseStats.con + bonuses.con,
-    int: baseStats.int + bonuses.int,
-    wis: baseStats.wis + bonuses.wis,
-    cha: baseStats.cha + bonuses.cha,
-  }
-}
 
 async function generateStory(
   name: string,
@@ -218,12 +135,13 @@ function rollD4(): number {
 
 export async function POST(
   request: Request,
-  { params }: { params: { slug: string } }
+  { params }: { params: Promise<{ slug: string }> }
 ) {
+  const routeParams = await params
   try {
     // Find the character by slug
     const character = await prisma.character.findUnique({
-      where: { slug: params.slug },
+      where: { slug: routeParams.slug },
     })
 
     if (!character) {
@@ -233,7 +151,10 @@ export async function POST(
       )
     }
 
+    if (!character.isRegenerist) return NextResponse.json({ error: 'Static characters cannot regenerate' }, { status: 400 })
+
     const body = await request.json().catch(() => ({}))
+    if (!body || typeof body !== 'object' || Array.isArray(body) || (body.uniqueSubclasses !== undefined && typeof body.uniqueSubclasses !== 'boolean')) return NextResponse.json({ error: 'Invalid regeneration options' }, { status: 400 })
     const uniqueSubclasses = body.uniqueSubclasses || false
 
     // Use character's current level
@@ -241,16 +162,8 @@ export async function POST(
 
     // Level changes on regeneration: current level - (1d4 - 2)
     const levelRoll = rollD4() - 2
-    const newLevel = Math.max(1, currentLevel - levelRoll)
+    const newLevel = Math.max(1, Math.min(20, currentLevel - levelRoll))
     const level = newLevel
-
-    // Update character's level if it changed
-    if (level !== currentLevel) {
-      await prisma.character.update({
-        where: { id: character.id },
-        data: { level },
-      })
-    }
 
     // Get the current active life for this character to mark it inactive
     const currentLife = await prisma.life.findFirst({
@@ -259,13 +172,6 @@ export async function POST(
         isActive: true,
       },
     })
-
-    if (currentLife) {
-      await prisma.life.update({
-        where: { id: currentLife.id },
-        data: { isActive: false },
-      })
-    }
 
     // Get the next life number for THIS character
     const lastLife = await prisma.life.findFirst({
@@ -311,14 +217,15 @@ export async function POST(
 
     // Get base stats from class priority and apply racial bonuses
     const classStats = mapStatsForClass(className)
-    const racialBonuses = await getRacialBonuses(race)
-    const baseStats = applyRacialBonuses(classStats, racialBonuses)
+    const racialBonuses = await getRacialAbilityBonuses(race, className)
+    const baseStats = { ...classStats }
+    for (const key of Object.keys(baseStats) as (keyof typeof baseStats)[]) baseStats[key] += racialBonuses[key] || 0
 
     // Apply ASIs based on level (stats with ASI applied)
     const stats = applyASIs(baseStats, className, level)
 
     const conMod = getStatModifier(stats.con)
-    const maxHp = calculateMaxHp(className, level, conMod)
+    const maxHp = calculateMaxHp(className, level, conMod, { race, subclass })
 
     // Generate story with Bedrock
     const story = await generateStory(
@@ -347,7 +254,12 @@ export async function POST(
       const slotInfo = getSpellSlotInfo(className, subclass, level, spellMod)
 
       if (slotInfo.maxSpellLevel > 0 || slotInfo.cantripsKnown > 0) {
-        const available = await getAvailableSpellNames(className, subclass, level)
+        const available = await getAvailableSpellNames(className, subclass, level, subclassChoice || undefined)
+        const grants = await getSubclassSpellGrants(className, subclass, level, subclassChoice || undefined)
+        const fixedSpells = [...grants.prepared, ...grants.known]
+        available.spells = available.spells.filter(name => !fixedSpells.includes(name))
+        available.cantrips = available.cantrips.filter(name => !fixedSpells.includes(name))
+        const selectionLimits = getSpellSelectionLimits(className, subclass, level, spellMod)
         const spellCount = slotInfo.spellsKnown ?? slotInfo.spellsPrepared ?? 0
 
         spellbook = await generateSmartSpellbook(
@@ -357,14 +269,24 @@ export async function POST(
           level,
           available.cantrips,
           available.spells,
-          slotInfo.cantripsKnown,
+          selectionLimits.cantrips,
           spellCount
         )
       }
     }
 
     // Create new life associated with this character
-    const newLife = await prisma.life.create({
+    const newLife = await prisma.$transaction(async tx => {
+      // Compare the snapshot after generation; a concurrent edit/regeneration must win intact.
+      const updated = await tx.character.updateMany({
+        where: { id: character.id, updatedAt: character.updatedAt },
+        data: { level, updatedAt: new Date() },
+      })
+      if (updated.count !== 1) throw new Error('REGENERATION_CONFLICT')
+      const latest = await tx.life.findFirst({ where: { characterId: character.id }, orderBy: { lifeNumber: 'desc' } })
+      if ((latest?.lifeNumber || 0) + 1 !== newLifeNumber) throw new Error('REGENERATION_CONFLICT')
+      await tx.life.updateMany({ where: { characterId: character.id, isActive: true }, data: { isActive: false } })
+      return tx.life.create({
       data: {
         characterId: character.id,
         lifeNumber: newLifeNumber,
@@ -386,8 +308,11 @@ export async function POST(
       },
     })
 
+    }, { isolationLevel: Prisma.TransactionIsolationLevel.Serializable })
+
     return NextResponse.json(newLife)
   } catch (error) {
+    if ((error instanceof Error && error.message === 'REGENERATION_CONFLICT') || (error instanceof Prisma.PrismaClientKnownRequestError && ['P2034', 'P2002'].includes(error.code))) return NextResponse.json({ error: 'Character changed during regeneration. Please try again.' }, { status: 409 })
     console.error('Regeneration error:', error)
     return NextResponse.json(
       { error: 'Failed to regenerate' },

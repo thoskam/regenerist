@@ -3,6 +3,7 @@ CREATE TABLE IF NOT EXISTS "Character" (
     "id" SERIAL PRIMARY KEY,
     "name" TEXT NOT NULL,
     "slug" TEXT NOT NULL UNIQUE,
+    "isRegenerist" BOOLEAN NOT NULL DEFAULT true,
     "level" INTEGER NOT NULL DEFAULT 1,
     "createdAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP,
     "updatedAt" TIMESTAMP(3) NOT NULL DEFAULT CURRENT_TIMESTAMP
@@ -19,6 +20,8 @@ CREATE TABLE IF NOT EXISTS "Life" (
     "level" INTEGER NOT NULL DEFAULT 1,
     "stats" JSONB NOT NULL,
     "baseStats" JSONB,
+    "spellbook" JSONB,
+    "gameplayState" JSONB,
     "currentHp" INTEGER NOT NULL,
     "maxHp" INTEGER NOT NULL,
     "effect" TEXT NOT NULL,

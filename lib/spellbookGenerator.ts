@@ -41,6 +41,12 @@ export async function generateSmartSpellbook(
     return null
   }
 
+  const select = (requested: unknown, available: string[], count: number) => {
+    const pool = Array.from(new Set(available))
+    const chosen = Array.isArray(requested) ? requested.filter((name): name is string => typeof name === 'string').map(name => pool.find(candidate => candidate.toLowerCase() === name.toLowerCase())).filter((name): name is string => !!name) : []
+    return Array.from(new Set([...chosen, ...pool])).slice(0, Math.max(0, count))
+  }
+  const fallback = { spellNames: [...select([], availableCantrips, cantripsCount), ...select([], availableSpells, spellsCount)], archivistNote: 'A starter selection from your available class spells. Edit these spells to suit your play style.' }
   try {
     const systemPrompt = `You are "The Archivist," a tactical D&D 5e strategist who selects balanced, thematically appropriate spell lists.
 
@@ -93,34 +99,23 @@ Remember: Select ONLY from the lists above. Provide tactical advice considering 
     const jsonMatch = text.match(/\{[\s\S]*\}/)
     if (!jsonMatch) {
       console.error('No JSON found in Bedrock response:', text)
-      return null
+      return fallback
     }
 
     const parsed = JSON.parse(jsonMatch[0])
 
-    // Validate and filter cantrips - only keep ones from available list
-    const validCantrips = (parsed.cantrips || [])
-      .filter((name: string) =>
-        availableCantrips.some(c => c.toLowerCase() === name.toLowerCase())
-      )
-      .slice(0, cantripsCount)
-
-    // Validate and filter spells - only keep ones from available list
-    const validSpells = (parsed.spells || [])
-      .filter((name: string) =>
-        availableSpells.some(s => s.toLowerCase() === name.toLowerCase())
-      )
-      .slice(0, spellsCount)
+    const validCantrips = select(parsed.cantrips, availableCantrips, cantripsCount)
+    const validSpells = select(parsed.spells, availableSpells, spellsCount)
 
     // Combine into spellNames
     const spellNames = [...validCantrips, ...validSpells]
 
     return {
       spellNames,
-      archivistNote: parsed.archivistNote || 'Trust in your magical instincts.',
+      archivistNote: typeof parsed.archivistNote === 'string' ? parsed.archivistNote : fallback.archivistNote,
     }
   } catch (error) {
     console.error('Error generating smart spellbook:', error)
-    return null
+    return fallback
   }
 }

@@ -1,14 +1,18 @@
+export const dynamic = 'force-dynamic'
+
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
+import { InputError, textValue } from '@/lib/lifeUpdates'
 
 // GET a single quirk
 export async function GET(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const routeParams = await params
   try {
-    const id = parseInt(params.id)
-    if (isNaN(id)) {
+    const id = Number(routeParams.id)
+    if (!Number.isSafeInteger(id) || id < 1) {
       return NextResponse.json(
         { error: 'Invalid quirk ID' },
         { status: 400 }
@@ -39,11 +43,12 @@ export async function GET(
 // PUT update a quirk
 export async function PUT(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const routeParams = await params
   try {
-    const id = parseInt(params.id)
-    if (isNaN(id)) {
+    const id = Number(routeParams.id)
+    if (!Number.isSafeInteger(id) || id < 1) {
       return NextResponse.json(
         { error: 'Invalid quirk ID' },
         { status: 400 }
@@ -51,7 +56,11 @@ export async function PUT(
     }
 
     const body = await request.json()
+    if (!body || typeof body !== 'object' || Array.isArray(body)) throw new InputError('Expected an object')
     const { name, description, isActive } = body
+    if (name !== undefined && !textValue(name, 'name', 200).trim()) throw new InputError('Name is required')
+    if (description !== undefined && !textValue(description, 'description').trim()) throw new InputError('Description is required')
+    if (isActive !== undefined && typeof isActive !== 'boolean') throw new InputError('isActive must be a boolean')
 
     const existingQuirk = await prisma.quirk.findUnique({
       where: { id },
@@ -85,6 +94,7 @@ export async function PUT(
 
     return NextResponse.json(quirk)
   } catch (error) {
+    if (error instanceof InputError || error instanceof SyntaxError) return NextResponse.json({ error: error.message }, { status: 400 })
     console.error('Error updating quirk:', error)
     return NextResponse.json(
       { error: 'Failed to update quirk' },
@@ -96,11 +106,12 @@ export async function PUT(
 // DELETE a quirk
 export async function DELETE(
   request: Request,
-  { params }: { params: { id: string } }
+  { params }: { params: Promise<{ id: string }> }
 ) {
+  const routeParams = await params
   try {
-    const id = parseInt(params.id)
-    if (isNaN(id)) {
+    const id = Number(routeParams.id)
+    if (!Number.isSafeInteger(id) || id < 1) {
       return NextResponse.json(
         { error: 'Invalid quirk ID' },
         { status: 400 }

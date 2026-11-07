@@ -1,3 +1,4 @@
+import { getSpellSlotInfo } from '@/lib/spellSlots'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import {
@@ -25,7 +26,8 @@ import {
 async function hydrateSpellbook(spellbook: Spellbook): Promise<HydratedSpellbook> {
   const allSpells = await loadSpells()
 
-  const hydratedSpells: HydratedSpell[] = spellbook.spellNames
+  const names = Array.isArray(spellbook.spellNames) ? spellbook.spellNames.filter((name): name is string => typeof name === 'string') : []
+  const hydratedSpells: HydratedSpell[] = names
     .map((name) => {
       const spell = allSpells.find(
         (s) => s.name.toLowerCase() === name.toLowerCase()
@@ -51,56 +53,15 @@ async function hydrateSpellbook(spellbook: Spellbook): Promise<HydratedSpellbook
   }
 }
 
-function getMaxSpellLevel(
-  casterType: 'full' | 'half' | 'third' | 'pact' | null,
-  level: number
-): number {
-  if (!casterType) return 0
-
-  switch (casterType) {
-    case 'full':
-      if (level >= 17) return 9
-      if (level >= 15) return 8
-      if (level >= 13) return 7
-      if (level >= 11) return 6
-      if (level >= 9) return 5
-      if (level >= 7) return 4
-      if (level >= 5) return 3
-      if (level >= 3) return 2
-      return 1
-
-    case 'half':
-      if (level < 2) return 0
-      if (level >= 17) return 5
-      if (level >= 13) return 4
-      if (level >= 9) return 3
-      if (level >= 5) return 2
-      return 1
-
-    case 'third':
-      if (level < 3) return 0
-      if (level >= 19) return 4
-      if (level >= 13) return 3
-      if (level >= 7) return 2
-      return 1
-
-    case 'pact':
-      if (level >= 9) return 5
-      if (level >= 7) return 4
-      if (level >= 5) return 3
-      if (level >= 3) return 2
-      return 1
-
-    default:
-      return 0
-  }
-}
-
 export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
   const { slug } = await params
+  const requestedLifeId = request.nextUrl.searchParams.get('lifeId')
+  if (requestedLifeId !== null && (!/^\d+$/.test(requestedLifeId) || Number(requestedLifeId) < 1 || !Number.isSafeInteger(Number(requestedLifeId)))) {
+    return NextResponse.json({ error: 'Invalid life ID' }, { status: 400 })
+  }
 
   try {
     // Get character with active life
@@ -108,7 +69,7 @@ export async function GET(
       where: { slug },
       include: {
         lives: {
-          where: { isActive: true },
+          where: requestedLifeId ? { id: Number(requestedLifeId) } : { isActive: true },
           take: 1,
         },
       },
@@ -135,18 +96,25 @@ export async function GET(
 
     // Get spells if character is a spellcaster
     const casterType = getCasterType(className, subclassName)
-    const isSpellcaster = casterType !== null
-    const maxSpellLevel = getMaxSpellLevel(casterType, level)
+    const maxSpellLevel = getSpellSlotInfo(className, subclassName, level, 0).maxSpellLevel
+    const isSpellcaster = casterType !== null && maxSpellLevel > 0
 
     let spells = null
     if (isSpellcaster && maxSpellLevel > 0) {
-      spells = await getSpellsForClass(className, subclassName, level)
+      spells = await getSpellsForClass(className, subclassName, level, activeLife.subclassChoice)
     }
 
     // Hydrate spellbook if character has one
     let selectedSpellbook: HydratedSpellbook | null = null
     if (activeLife.spellbook) {
       selectedSpellbook = await hydrateSpellbook(activeLife.spellbook as unknown as Spellbook)
+    }
+
+    // Domain/oath/origin spells are granted independently of the editable selection.
+    const grantedSpells = (spells || []).filter(spell => spell.grantedBySubclass)
+    if (grantedSpells.length) {
+      const selected = selectedSpellbook?.spells || []
+      selectedSpellbook = { spells: [...selected.filter(spell => !grantedSpells.some(grant => grant.name === spell.name)), ...grantedSpells], archivistNote: selectedSpellbook?.archivistNote || '' }
     }
 
     const result: HydratedCharacterData = {
