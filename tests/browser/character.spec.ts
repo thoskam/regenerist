@@ -94,7 +94,7 @@ test('history clearing retains the current incarnation', async ({ page }) => {
 
 test('hub displays API failure instead of crashing or showing an empty collection', async ({ page }) => {
   await page.route('**/api/characters', route => route.fulfill({ status: 500, json: { error: 'Database unavailable' } }))
-  await page.goto('/')
+  await page.goto('/regenerist')
   await expect(page.getByRole('alert').filter({ hasText: 'Database unavailable' })).toBeVisible()
   await expect(page.getByRole('button', { name: 'Retry loading' })).toBeVisible()
 })
