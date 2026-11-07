@@ -45,16 +45,18 @@ export default function SheetApp({ slug, initial, readOnly, campaigns = [] }: Sh
       <div className={cx('mx-auto flex max-w-[1392px] flex-col gap-4 px-3 pb-36 sm:px-6', doc.theme?.backdrop === false ? 'pt-3 sm:pt-6' : 'pt-12 sm:pt-28')}>
         {readOnly && <div role="status" className="rounded-xl border border-line bg-panel px-4 py-2.5 text-[13px] text-muted">View only — this is another player’s character. You can roll, but changes aren’t saved.</div>}
         <Header api={api} slug={slug} hasAvatar={initial.hasAvatar} campaigns={campaigns} />
-        <VitalsRow api={api} onDetail={setDetail} />
-
-        <div className="flex flex-wrap items-start gap-4">
-          <div className="hidden min-w-0 flex-[1_1_260px] flex-col gap-4 lg:flex">
-            <AbilitiesColumn api={api} />
+        {/* Two columns on wide screens: abilities, saves and skills on the left; stats, HP and the tabs on the right.
+            Narrower screens stack them, and saves/skills move into tabs. */}
+        <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,9fr)_minmax(0,10fr)] xl:items-start">
+          <div className="flex min-w-0 flex-col gap-4">
+            <AbilityScores api={api} />
+            <div className="hidden items-start gap-4 xl:flex">
+              <div className="flex min-w-0 flex-[1_1_260px] flex-col gap-4"><AbilitiesColumn api={api} /></div>
+              <div className="flex min-w-0 flex-[1_1_290px]"><SkillsCard api={api} /></div>
+            </div>
           </div>
-          <div className="hidden min-w-0 flex-[1_1_290px] lg:flex">
-            <SkillsCard api={api} />
-          </div>
-          <div className="flex min-w-0 flex-[3_1_560px] flex-col gap-4">
+          <div className="flex min-w-0 flex-col gap-4">
+            <VitalsBlock api={api} onDetail={setDetail} />
             <ConditionsCard api={api} />
             <Card className="flex flex-col">
               <TabBar tab={tab} setTab={setTab} showLives={!!doc.regenerist?.enabled} />
@@ -84,7 +86,7 @@ function TabBar({ tab, setTab, showLives }: { tab: Tab; setTab: (t: Tab) => void
       {TABS.filter(t => t.id !== 'lives' || showLives).map(t => (
         <button
           key={t.id} type="button" aria-pressed={tab === t.id} onClick={() => setTab(t.id)}
-          className={cx('min-h-[44px] shrink-0 border-b-[3px] px-3 text-sm font-semibold', t.mobileOnly && 'lg:hidden', tab === t.id ? 'border-accent text-ink' : 'border-transparent text-muted')}
+          className={cx('min-h-[44px] shrink-0 border-b-[3px] px-3 text-sm font-semibold', t.mobileOnly && 'xl:hidden', tab === t.id ? 'border-accent text-ink' : 'border-transparent text-muted')}
         >{t.label}</button>
       ))}
     </nav>
@@ -273,12 +275,10 @@ function StatTile({ label, children, onClick, highlight, ariaLabel, title }: { l
   return onClick ? <button type="button" className={cls} onClick={onClick} aria-label={ariaLabel} title={title}>{inner}</button> : <div className={cls} title={title}>{inner}</div>
 }
 
-function VitalsRow({ api, onDetail }: { api: SheetApi; onDetail: (d: DetailContent) => void }) {
-  const { sheet, state, setState, rollCheck } = api
-  const walk = sheet.speeds[0]
+function AbilityScores({ api }: { api: SheetApi }) {
+  const { sheet, rollCheck } = api
   return (
-    <section className="flex flex-wrap gap-4" aria-label="Abilities and vitals">
-      <div className="grid flex-[1_1_560px] grid-cols-3 content-start items-start gap-2.5 self-start sm:grid-cols-6">
+      <section aria-label="Ability scores" className="grid grid-cols-3 content-start items-start gap-2.5 sm:grid-cols-6">
         {ABILITIES.map((a: Ability) => (
           <button key={a} type="button" onClick={() => rollCheck(`${ABILITY_NAMES[a]} check`, sheet.abilities[a].mod)} aria-label={`Roll ${ABILITY_NAMES[a]} check`}
             className="flex flex-col items-center gap-0.5 rounded-2xl border border-line bg-panel px-1.5 pb-2.5 pt-3 hover:border-accent">
@@ -287,8 +287,15 @@ function VitalsRow({ api, onDetail }: { api: SheetApi; onDetail: (d: DetailConte
             <span className="rounded-full bg-raised px-2.5 py-px text-[13px] font-semibold text-muted">{sheet.abilities[a].score}</span>
           </button>
         ))}
-      </div>
-      <div className="flex flex-[1_1_640px] flex-wrap gap-2.5">
+      </section>
+  )
+}
+
+function VitalsBlock({ api, onDetail }: { api: SheetApi; onDetail: (d: DetailContent) => void }) {
+  const { sheet, state, setState, rollCheck } = api
+  const walk = sheet.speeds[0]
+  return (
+      <section aria-label="Vitals" className="flex flex-wrap gap-2.5">
         <StatTile label="Proficiency"><span className="text-[30px] font-semibold leading-tight">{fmtMod(sheet.pb)}</span></StatTile>
         <StatTile label={walk.kind} title={sheet.speeds.map(s => `${s.kind} ${s.value} ft`).join(', ')}>
           <span className="text-[30px] font-semibold leading-tight">{walk.value}<span className="text-sm text-muted"> ft</span></span>
@@ -302,8 +309,7 @@ function VitalsRow({ api, onDetail }: { api: SheetApi; onDetail: (d: DetailConte
           <svg width="28" height="28" viewBox="0 0 24 24" fill={state.inspiration ? 'var(--accent)' : 'none'} stroke={state.inspiration ? 'var(--accent)' : 'var(--muted)'} strokeWidth="1.8" strokeLinejoin="round" aria-hidden="true"><path d="M12 2.5l2.9 6 6.6.9-4.8 4.6 1.2 6.5L12 17.4l-5.9 3.1 1.2-6.5-4.8-4.6 6.6-.9z" /></svg>
         </StatTile>
         <HitPointsCard api={api} damage={n => setState(s => applyDamage(api.doc, s, n))} heal={n => setState(s => applyHealing(s, n))} temp={n => setState(s => setTempHp(s, n))} />
-      </div>
-    </section>
+      </section>
   )
 }
 
