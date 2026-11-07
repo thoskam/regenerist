@@ -248,7 +248,7 @@ function ClassStep({ b, up, pack }: StepProps) {
           </select>
         </label>
       )}
-      {b.edition === '2024' && b.classes.some(c => c.subclass && !findClass(pack, c.name)?.subclasses.length) && <CustomFeatures b={b} up={up} />}
+      {b.classes.some(c => c.subclass && !findClass(pack, c.name)?.subclasses.length) && <CustomFeatures b={b} up={up} />}
     </div>
   )
 }
@@ -259,7 +259,7 @@ function CustomFeatures({ b, up }: { b: Build; up: (p: Partial<Build>) => void }
   return (
     <div className="flex flex-col gap-2 rounded-2xl border border-dashed border-line p-4">
       <h3 className="m-0 text-base font-semibold">Subclass features (entered by hand)</h3>
-      <p className="m-0 text-[13px] text-muted">The 2024 data has no subclass text. Add the features you have; they appear on your sheet.</p>
+      <p className="m-0 text-[13px] text-muted">This subclass isn’t in the rules data. Add its features by hand; they appear on your sheet.</p>
       {list.map((f, i) => (
         <div key={i} className="flex items-center justify-between gap-2 rounded-lg bg-raised px-3 py-2 text-[13px]">
           <span><strong>{f.name}</strong>{f.level ? <span className="text-muted"> · level {f.level}</span> : null}</span>
@@ -501,7 +501,8 @@ function AsiStep({ b, up, pack }: StepProps) {
     const rest = b.asi.filter(x => !(x.className === s.className && x.classLevel === s.classLevel))
     up({ asi: patch === null ? rest : [...rest, { ...(get(s) ?? { className: s.className, classLevel: s.classLevel, kind: 'asi' }), ...patch } as AsiChoice] })
   }
-  const feats = pack.feats.filter(f => f.name !== 'Ability Score Improvement')
+  // Fighting Style feats come from the class feature, not from Ability Score Improvements.
+  const feats = pack.feats.filter(f => f.name !== 'Ability Score Improvement' && !f.category?.startsWith('FS'))
   return (
     <div className="flex flex-col gap-3">
       {slots.map(s => {
@@ -547,7 +548,6 @@ function AsiStep({ b, up, pack }: StepProps) {
         )
       })}
       <datalist id={`feats-${b.edition}`}>{feats.map(f => <option key={f.name} value={f.name} />)}</datalist>
-      {b.edition === '2024' && <p className="m-0 text-[13px] text-muted">The 2024 data includes origin feats only. Type any other feat’s name; its rules text won’t be shown.</p>}
     </div>
   )
 }

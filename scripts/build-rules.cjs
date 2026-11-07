@@ -1,13 +1,16 @@
 #!/usr/bin/env node
 // Builds normalized rules packs for the character builder.
 //
-//   2014: local 5etools-format data in data/ (class/, races.json, backgrounds.json, feats.json, spells/)
-//         plus lib/data/spellLists2014.json for spell class lists.
-//   2024: github.com/nick-aschenbach/dnd-data (Free Rules 2024 structured records + PHB 2024 text),
-//         downloaded once to data/vendor/dnd-data/. 2024 species mechanics are hand-entered below.
+//   Rules text: github.com/5etools-mirror-3/5etools-src (data/ folder), cloned once to
+//         data/vendor/5etools/ (falls back to an older local copy in data/ for 2014).
+//         2014 = PHB and other 5e books; 2024 = PHB (2024) and later books. Spell class lists come
+//         from its spells/sources.json (plus lib/data/spellLists2014.json for 2014).
+//   2024 class mechanics (uses, scaling dice, resources): github.com/nick-aschenbach/dnd-data,
+//         downloaded once to data/vendor/dnd-data/. 2024 subclasses, feats, backgrounds and spells
+//         come from 5etools. 2024 species mechanics are hand-entered below with 5etools trait text.
 //
 // Output: data/rules/rules-2014.json, data/rules/rules-2024.json (data/ is not committed).
-// Usage: node scripts/build-rules.cjs [--offline]
+// Usage: node scripts/build-rules.cjs [--offline] [--update]   (--update pulls the latest 5etools data)
 
 require('./register-ts.cjs')
 const fs = require('node:fs')
@@ -18,6 +21,25 @@ const root = path.resolve(__dirname, '..')
 const dataDir = path.join(root, 'data')
 const outDir = path.join(dataDir, 'rules')
 const vendorDir = path.join(dataDir, 'vendor', 'dnd-data')
+const fiveDir = path.join(dataDir, 'vendor', '5etools')
+/** Where 5etools-format data is read from (set in main). */
+let SRC = dataDir
+
+function ensure5etools() {
+  const { spawnSync } = require('node:child_process')
+  const git = args => spawnSync('git', args, { cwd: fiveDir, stdio: 'inherit' })
+  if (fs.existsSync(path.join(fiveDir, 'data', 'class'))) {
+    if (process.argv.includes('--update')) git(['pull', '--depth', '1', '--ff-only'])
+    return true
+  }
+  if (process.argv.includes('--offline')) return false
+  fs.mkdirSync(path.dirname(fiveDir), { recursive: true })
+  process.stdout.write('Downloading 5etools data (github.com/5etools-mirror-3/5etools-src, data/ only)…\n')
+  const clone = spawnSync('git', ['clone', '--depth', '1', '--filter=blob:none', '--sparse', 'https://github.com/5etools-mirror-3/5etools-src.git', fiveDir], { stdio: 'inherit' })
+  if (clone.status !== 0) return false
+  git(['sparse-checkout', 'set', 'data'])
+  return fs.existsSync(path.join(fiveDir, 'data', 'class'))
+}
 const readJson = f => JSON.parse(fs.readFileSync(f, 'utf8'))
 const ABIL = { strength: 'str', dexterity: 'dex', constitution: 'con', intelligence: 'int', wisdom: 'wis', charisma: 'cha' }
 const ABILS = ['str', 'dex', 'con', 'int', 'wis', 'cha']
@@ -79,97 +101,135 @@ function inferUses(text) {
 }
 
 /* ───────────────────────────── 2014 ───────────────────────────── */
-function build2014() {
-  const classDir = path.join(dataDir, 'class')
-  const spellLists = readJson(path.join(root, 'lib/data/spellLists2014.json'))
-  const classes = []
-  for (const file of fs.readdirSync(classDir).filter(f => /^class-(?!mystic|sidekick).*\.json$/.test(f))) {
-    const d = readJson(path.join(classDir, file))
-    const cls = (d.class || []).find(c => ['PHB', 'TCE', 'ERLW', 'EGW'].includes(c.source) && !c.isReprinted) || (d.class || [])[0]
-    if (!cls) continue
-    const featureIndex = new Map((d.classFeature || []).map(f => [`${f.name}|${f.className}|${f.level}|${f.source}`.toLowerCase(), f]))
-    const subFeatureIndex = new Map((d.subclassFeature || []).map(f => [`${f.name}|${f.className}|${f.subclassShortName}|${f.level}|${f.source}`.toLowerCase(), f]))
-    const columns = []
-    for (const g of cls.classTableGroups || []) {
-      if (g.title && /spell slots/i.test(g.title)) continue
-      ;(g.colLabels || []).forEach((label, i) => {
-        const l = strip(label)
-        if (/^(cantrips known|spells known|spell slots|slot level|[1-9](st|nd|rd|th))$/i.test(l)) return
-        columns.push({ label: l, values: (g.rows || []).map(r => cellText(r[i])) })
-      })
-    }
-    const sc = cls.spellcastingAbility ? spellcasting2014(cls, cls.name) : undefined
-    const features = []
-    let subclassLevel = 3
-    const asiLevels = []
-    for (const ref of cls.classFeatures || []) {
-      const s = typeof ref === 'string' ? ref : ref.classFeature
-      const [name, className, classSource, level, fsrc] = s.split('|')
-      if (typeof ref === 'object' && ref.gainSubclassFeature && !features.some(f => f.subclassMarker)) subclassLevel = Math.min(subclassLevel, Number(level))
-      const f = featureIndex.get(`${name}|${className}|${level}|${fsrc || classSource || cls.source}`.toLowerCase()) || featureIndex.get(`${name}|${className}|${level}|phb`.toLowerCase())
-      if (!f) continue
-      if (/^Ability Score Improvement$/i.test(f.name)) { asiLevels.push(Number(level)); continue }
-      const description = html(f.entries)
-      const col = columns.find(c => c.label.toLowerCase() === f.name.toLowerCase() || f.name.toLowerCase().startsWith(c.label.toLowerCase()))
-      features.push({ name: f.name, level: Number(level), description, activation: inferActivation(description), uses: inferUses(description), optional: fsrc === 'TCE' || f.isClassFeatureVariant || undefined, scaling: col?.values, grants: Number(level) > 1 ? inferGrants(description) : undefined })
-    }
-    if ((cls.classFeatures || []).some(r => typeof r === 'object' && r.gainSubclassFeature)) {
-      const first = (cls.classFeatures || []).find(r => typeof r === 'object' && r.gainSubclassFeature)
-      subclassLevel = Number(first.classFeature.split('|')[3])
-    }
-    const subclasses = []
-    for (const sub of d.subclass || []) {
-      if (sub.isReprinted || sub._copy) continue
-      const feats = []
-      for (const ref of sub.subclassFeatures || []) {
-        const [name, className, , shortName, subSource, level] = ref.split('|')
-        const f = subFeatureIndex.get(`${name}|${className}|${shortName}|${level}|${subSource || 'PHB'}`.toLowerCase()) || subFeatureIndex.get(`${name}|${className}|${shortName}|${level}|${sub.source}`.toLowerCase())
-        if (!f) continue
-        const refs = []
-        const description = html(f.entries, refs)
-        // The first feature usually just introduces the subclass; keep its text unless it is empty.
-        if (textOf(description).trim().length > 0 && !(refs.length && f.name === sub.name)) feats.push({ name: f.name, level: Number(level), description, activation: inferActivation(description), uses: inferUses(description) })
-        else if (refs.length && f.name === sub.name && textOf(description).trim().length > 40) feats.push({ name: `${f.name}`, level: Number(level), description })
-        for (const r of refs) {
-          const key = (r.subclassFeature || r.classFeature || '').split('|')
-          const child = subFeatureIndex.get(`${key[0]}|${key[1]}|${key[3]}|${key[5]}|${key[4] || 'PHB'}`.toLowerCase()) || subFeatureIndex.get(`${key[0]}|${key[1]}|${key[3]}|${key[5]}|${sub.source}`.toLowerCase())
-          if (!child) continue
-          const cd = html(child.entries)
-          feats.push({ name: child.name, level: Number(key[5]) || Number(level), description: cd, activation: inferActivation(cd), uses: inferUses(cd) })
-        }
-      }
-      subclasses.push({ name: sub.name, source: sub.source, features: feats, spellcasting: sub.spellcastingAbility ? spellcasting2014(sub, sub.name === 'Arcane Trickster' || sub.name === 'Eldritch Knight' ? 'Wizard' : cls.name) : undefined })
-    }
-    const sp = cls.startingProficiencies || {}
-    const skillChoose = (sp.skills || []).find(s => s.choose) || {}
-    const anySkill = (sp.skills || []).find(s => s.any)
-    const mc = cls.multiclassing || {}
-    const mcReq = mc.requirements || {}
-    const mcSkills = (mc.proficienciesGained?.skills || []).find(s => s.choose)
-    classes.push({
-      name: cls.name, source: cls.source, hitDie: cls.hd?.faces || 8, saves: cls.proficiency || [],
-      armor: (sp.armor || []).map(a => (typeof a === 'string' ? armorName(a) : armorName(a.proficiency || ''))),
-      weapons: (sp.weapons || []).map(w => (typeof w === 'string' ? weaponName(w) : weaponName(w.proficiency || ''))),
-      tools: (sp.tools || []).map(t => strip(typeof t === 'string' ? t : t.proficiency || '')),
-      skillChoices: anySkill ? { count: anySkill.any, from: [] } : { count: skillChoose.choose?.count || 2, from: (skillChoose.choose?.from || []).map(slug) },
-      subclassTitle: cls.subclassTitle || 'Subclass', subclassLevel, asiLevels, features, subclasses,
-      spellcasting: sc, columns,
-      multiclass: {
-        requirements: Object.fromEntries(Object.entries(mcReq).filter(([k]) => ABILS.includes(k))), anyOf: !!mcReq.or,
-        armor: (mc.proficienciesGained?.armor || []).map(a => armorName(typeof a === 'string' ? a : a.proficiency || '')),
-        weapons: (mc.proficienciesGained?.weapons || []).map(w => weaponName(typeof w === 'string' ? w : w.proficiency || '')),
-        tools: (mc.proficienciesGained?.tools || []).map(t => strip(typeof t === 'string' ? t : '')),
-        skills: mcSkills ? { count: mcSkills.choose.count || 1, from: (mcSkills.choose.from || []).map(slug) } : undefined,
-      },
-      expertise: features.filter(f => f.name === 'Expertise').map(f => ({ level: f.level, count: 2 })),
-    })
-    if (mcReq.or) classes[classes.length - 1].multiclass.requirements = Object.assign({}, ...mcReq.or)
-    if (sc) sc.list = cls.name
-    for (const s of subclasses) if (s.spellcasting && !spellLists[s.spellcasting.list.toLowerCase()]) s.spellcasting.list = 'Wizard'
-  }
+/* ───────── 5etools classes and subclasses (shared by both editions) ───────── */
+function classFiles() {
+  return fs.readdirSync(path.join(SRC, 'class')).filter(f => /^class-(?!mystic|sidekick).*\.json$/.test(f)).map(f => readJson(path.join(SRC, 'class', f)))
+}
 
+/** Parse one subclass, resolving `_copy` entries (2014 subclasses offered for the 2024 class). */
+function parseSubclass(d, cls, sub) {
+  const subFeatureIndex = new Map((d.subclassFeature || []).map(f => [`${f.name}|${f.className}|${f.classSource || 'PHB'}|${f.subclassShortName}|${f.subclassSource}|${f.level}`.toLowerCase(), f]))
+  const lookup = key => subFeatureIndex.get(`${key[0]}|${key[1]}|${key[2] || 'PHB'}|${key[3]}|${key[4] || 'PHB'}|${key[5]}`.toLowerCase())
+  let src = sub
+  if (sub._copy) {
+    const c = sub._copy
+    const orig = (d.subclass || []).find(x => x.name === c.name && x.source === c.source && (x.classSource || 'PHB') === (c.classSource || 'PHB') && !x._copy)
+    if (!orig) return null
+    src = { ...orig, ...Object.fromEntries(Object.entries(sub).filter(([k]) => k !== '_copy')) }
+    if (!sub.subclassFeatures) src.subclassFeatures = orig.subclassFeatures
+  }
+  const feats = []
+  for (const ref of src.subclassFeatures || []) {
+    const key = String(typeof ref === 'string' ? ref : ref.subclassFeature || '').split('|')
+    const level = key[5]
+    const f = lookup(key)
+    if (!f) continue
+    const refs = []
+    const description = html(f.entries, refs)
+    // The first feature usually just introduces the subclass; keep its text unless it is empty.
+    if (textOf(description).trim().length > 0 && !(refs.length && f.name === src.name)) feats.push({ name: f.name, level: Number(level), description, activation: inferActivation(description), uses: inferUses(description) })
+    else if (refs.length && f.name === src.name && textOf(description).trim().length > 40) feats.push({ name: `${f.name}`, level: Number(level), description })
+    for (const r of refs) {
+      const child = lookup(String(r.subclassFeature || r.classFeature || '').split('|'))
+      if (!child) continue
+      const cd = html(child.entries)
+      feats.push({ name: child.name, level: Number(String(r.subclassFeature || '').split('|')[5]) || Number(level), description: cd, activation: inferActivation(cd), uses: inferUses(cd) })
+    }
+  }
+  const list = /^(Arcane Trickster|Eldritch Knight)$/.test(src.name) ? 'Wizard' : cls.name
+  return { name: src.name, source: src.source, features: feats, spellcasting: src.spellcastingAbility ? spellcasting5e(src, list) : undefined }
+}
+
+function parseClass(d, cls, subFilter) {
+  const featureIndex = new Map((d.classFeature || []).map(f => [`${f.name}|${f.className}|${f.level}|${f.source}`.toLowerCase(), f]))
+  const columns = []
+  for (const g of cls.classTableGroups || []) {
+    if (g.title && /spell slots/i.test(g.title)) continue
+    ;(g.colLabels || []).forEach((label, i) => {
+      const l = strip(label)
+      if (/^(cantrips known|spells known|prepared spells|spell slots|slot level|[1-9](st|nd|rd|th))$/i.test(l)) return
+      columns.push({ label: l, values: (g.rows || []).map(r => cellText(r[i])) })
+    })
+  }
+  const sc = cls.spellcastingAbility ? spellcasting5e(cls, cls.name) : undefined
+  const features = []
+  let subclassLevel = 3
+  const asiLevels = []
+  for (const ref of cls.classFeatures || []) {
+    const s = typeof ref === 'string' ? ref : ref.classFeature
+    const [name, className, classSource, level, fsrc] = s.split('|')
+    const f = featureIndex.get(`${name}|${className}|${level}|${fsrc || classSource || cls.source}`.toLowerCase()) || featureIndex.get(`${name}|${className}|${level}|phb`.toLowerCase())
+    if (!f) continue
+    if (/^(Ability Score Improvement|Epic Boon)$/i.test(f.name)) { asiLevels.push(Number(level)); if (/^Ability/i.test(f.name)) continue }
+    const description = html(f.entries)
+    const col = columns.find(c => c.label.toLowerCase() === f.name.toLowerCase() || f.name.toLowerCase().startsWith(c.label.toLowerCase()))
+    features.push({ name: f.name, level: Number(level), description, activation: inferActivation(description), uses: inferUses(description), optional: (cls.source !== 'TCE' && fsrc === 'TCE') || f.isClassFeatureVariant || undefined, scaling: col?.values, grants: Number(level) > 1 ? inferGrants(description) : undefined })
+  }
+  const first = (cls.classFeatures || []).find(r => typeof r === 'object' && r.gainSubclassFeature)
+  if (first) subclassLevel = Number(first.classFeature.split('|')[3])
+  const subclasses = []
+  for (const sub of (d.subclass || []).filter(subFilter)) {
+    const parsed = parseSubclass(d, cls, sub)
+    if (parsed && !subclasses.some(x => x.name === parsed.name)) subclasses.push(parsed)
+  }
+  const sp = cls.startingProficiencies || {}
+  const skillChoose = (sp.skills || []).find(s => s.choose) || {}
+  const anySkill = (sp.skills || []).find(s => s.any)
+  const mc = cls.multiclassing || {}
+  const mcReq = mc.requirements || {}
+  const mcSkills = (mc.proficienciesGained?.skills || []).find(s => s.choose)
+  const out = {
+    name: cls.name, source: cls.source, hitDie: cls.hd?.faces || 8, saves: cls.proficiency || [],
+    armor: (sp.armor || []).map(a => (typeof a === 'string' ? armorName(a) : armorName(a.proficiency || ''))),
+    weapons: (sp.weapons || []).map(w => (typeof w === 'string' ? weaponName(w) : weaponName(w.proficiency || ''))),
+    tools: (sp.tools || []).map(t => strip(typeof t === 'string' ? t : t.proficiency || '')),
+    skillChoices: anySkill ? { count: anySkill.any, from: [] } : { count: skillChoose.choose?.count || 2, from: (skillChoose.choose?.from || []).map(slug) },
+    subclassTitle: strip(cls.subclassTitle || 'Subclass'), subclassLevel, asiLevels, features, subclasses,
+    spellcasting: sc, columns,
+    multiclass: {
+      requirements: Object.fromEntries(Object.entries(mcReq).filter(([k]) => ABILS.includes(k))), anyOf: !!mcReq.or,
+      armor: (mc.proficienciesGained?.armor || []).map(a => armorName(typeof a === 'string' ? a : a.proficiency || '')),
+      weapons: (mc.proficienciesGained?.weapons || []).map(w => weaponName(typeof w === 'string' ? w : w.proficiency || '')),
+      tools: (mc.proficienciesGained?.tools || []).map(t => strip(typeof t === 'string' ? t : '')),
+      skills: mcSkills ? { count: mcSkills.choose.count || 1, from: (mcSkills.choose.from || []).map(slug) } : undefined,
+    },
+    expertise: features.filter(f => f.name === 'Expertise').map(f => ({ level: f.level, count: 2 })),
+  }
+  if (mcReq.or) out.multiclass.requirements = Object.assign({}, ...mcReq.or)
+  return out
+}
+
+const BOOKS_2014 = new Set(['PHB', 'DMG', 'PSA', 'PSK', 'PSZ', 'PSI', 'PSD', 'TCE', 'ERLW', 'EGW', 'XGE', 'SCAG', 'VGM', 'MPMM', 'EEPC', 'MTF', 'GGR', 'MOT', 'VRGR', 'FTD', 'WBtW', 'SCC', 'AAG', 'BGG', 'TDCSR', 'BMT', 'AI', 'IDRotF', 'LLK', 'SatO', 'AitFR-AVT', 'DSotDQ', 'HWCS', 'GHLoE', 'PSK', 'PSX', 'TCE'])
+const BOOKS_2024 = new Set(['XPHB', 'XDMG', 'EFA', 'FRHoF'])
+
+/** 2014 pack from 5etools, plus anything only the older local copy in data/ has (e.g. Critical Role content). */
+function build2014() {
+  const pack = build2014From()
+  if (SRC === dataDir || !fs.existsSync(path.join(dataDir, 'class'))) return pack
+  const main = SRC
+  SRC = dataDir
+  let local
+  try { local = build2014From() } catch (e) { console.warn(`Local data/ not merged: ${e.message}`); return pack } finally { SRC = main }
+  let added = 0
+  for (const lc of local.classes) {
+    const c = pack.classes.find(x => x.name === lc.name)
+    if (!c) { pack.classes.push(lc); added += 1 + lc.subclasses.length; continue }
+    for (const sub of lc.subclasses) if (!c.subclasses.some(x => x.name === sub.name)) { c.subclasses.push(sub); added++ }
+  }
+  for (const k of ['species', 'backgrounds', 'feats', 'spells']) for (const x of local[k]) if (!pack[k].some(y => y.name === x.name)) { pack[k].push(x); added++ }
+  if (added) console.log(`2014: ${added} entries kept from the local data/ folder`)
+  return pack
+}
+
+function build2014From() {
+  const classes = []
+  for (const d of classFiles()) {
+    const cls = (d.class || []).find(c => ['PHB', 'TCE', 'ERLW', 'EGW'].includes(c.source) && !c.isReprinted && c.edition !== 'one')
+    if (!cls) continue
+    classes.push(parseClass(d, cls, sub => (sub.classSource || 'PHB') === cls.source && !sub.isReprinted && !sub._copy && sub.edition !== 'one' && BOOKS_2014.has(sub.source)))
+  }
   // Species: races + subraces flattened ("Elf (High)").
-  const r = readJson(path.join(dataDir, 'races.json'))
+  const r = readJson(path.join(SRC, 'races.json'))
   const species = []
   const okSources = new Set(['PHB', 'VGM', 'MPMM', 'EEPC', 'MTF', 'ERLW', 'GGR', 'TCE', 'SCAG', 'EGW', 'MOT', 'VRGR', 'FTD', 'WBtW', 'SCC', 'AAG', 'BGG', 'TDCSR'])
   const toSpecies = (base, sub) => {
@@ -215,7 +275,7 @@ function build2014() {
     for (const s of named) species.push(toSpecies(base, s))
   }
 
-  const b = readJson(path.join(dataDir, 'backgrounds.json'))
+  const b = readJson(path.join(SRC, 'backgrounds.json'))
   const backgrounds = (b.background || []).filter(x => okSources.has(x.source) && !x._copy).map(x => {
     const skills = []; for (const s of x.skillProficiencies || []) for (const [k, v] of Object.entries(s)) if (v === true) skills.push(slug(k))
     const tools = []; for (const t of x.toolProficiencies || []) for (const [k, v] of Object.entries(t)) if (v === true || typeof v === 'number') tools.push(k.replace(/\b\w/g, c => c.toUpperCase()))
@@ -224,21 +284,43 @@ function build2014() {
     return { name: x.name, source: x.source, skills, tools, languages, description: html((x.entries || []).filter(e => e !== feat)), feature: feat ? { name: feat.name.replace(/^Feature:\s*/, ''), description: html(feat.entries) } : undefined }
   })
 
-  const f = readJson(path.join(dataDir, 'feats.json'))
-  const feats = (f.feat || []).filter(x => okSources.has(x.source) && !x._copy).map(x => {
+  const feats = parseFeats(x => okSources.has(x.source))
+  const spells = parseSpells('2014')
+  return { edition: '2014', builtAt: new Date().toISOString(), classes, species, backgrounds, feats, spells }
+}
+
+function parseFeats(keep) {
+  const f = readJson(path.join(SRC, 'feats.json'))
+  return (f.feat || []).filter(x => keep(x) && !x._copy).map(x => {
     const ch = (x.ability || []).find(a => a.choose)
     const fixed = (x.ability || []).find(a => !a.choose && Object.keys(a).some(k => ABILS.includes(k)))
     return {
       name: x.name, source: x.source, description: html(x.entries),
       prerequisite: (x.prerequisite || []).map(p => Object.entries(p).map(([k, v]) => k === 'ability' ? v.map(o => Object.entries(o).map(([a, n]) => `${a.toUpperCase()} ${n}`).join(' or ')).join(', ') : k === 'spellcasting' || k === 'spellcasting2020' ? 'Spellcasting' : k === 'race' ? v.map(r => r.name).join(' or ') : k === 'level' ? `Level ${v.level || v}` : k === 'proficiency' ? v.map(o => Object.keys(o).join(' ')).join(', ') + ' proficiency' : '').filter(Boolean).join('; ')).filter(Boolean).join('; ') || undefined,
       abilityChoice: ch ? { from: ch.choose.from || ABILS, amount: ch.choose.amount || 1 } : fixed ? { from: Object.keys(fixed).filter(k => ABILS.includes(k)), amount: Object.values(fixed)[0] } : undefined,
+      origin: x.category === 'O' || undefined, category: x.category || undefined,
     }
   })
+}
 
-  const spells = []
-  for (const file of fs.readdirSync(path.join(dataDir, 'spells')).filter(n => n.startsWith('spells-'))) {
-    for (const s of readJson(path.join(dataDir, 'spells', file)).spell || []) {
-      const classes = Object.entries(spellLists).filter(([, list]) => list.includes(s.name)).map(([k]) => k.replace(/\b\w/g, c => c.toUpperCase()))
+/** Spells from 5etools for one edition, with class lists from spells/sources.json. */
+function parseSpells(edition) {
+  const books = edition === '2024' ? BOOKS_2024 : BOOKS_2014
+  const sourcesFile = path.join(SRC, 'spells', 'sources.json')
+  const lists = fs.existsSync(sourcesFile) ? readJson(sourcesFile) : {}
+  const legacy = edition === '2014' && fs.existsSync(path.join(root, 'lib/data/spellLists2014.json')) ? readJson(path.join(root, 'lib/data/spellLists2014.json')) : {}
+  const classBook = c => (edition === '2024' ? BOOKS_2024.has(c.source) : !BOOKS_2024.has(c.source) && c.source !== 'WoW') && (!c.definedInSource || books.has(c.definedInSource) || c.definedInSource === 'PHB')
+  const out = new Map()
+  const files = fs.readdirSync(path.join(SRC, 'spells')).filter(n => /^spells-.*\.json$/.test(n))
+  // 2024: the PHB (2024) version wins over a same-named spell from another book.
+  files.sort((x, y) => Number(y === 'spells-xphb.json') - Number(x === 'spells-xphb.json'))
+  for (const file of files) {
+    for (const s of readJson(path.join(SRC, 'spells', file)).spell || []) {
+      if (!books.has(s.source) || out.has(s.name.toLowerCase())) continue
+      const entry = lists[s.source]?.[s.name] || {}
+      const names = new Set([...(entry.class || []), ...(entry.classVariant || [])].filter(classBook).map(c => c.name))
+      for (const [k, list] of Object.entries(legacy)) if (list.includes(s.name)) names.add(k.replace(/\b\w/g, c => c.toUpperCase()))
+      const classes = [...names]
       const t = (s.time || [])[0] || {}
       const desc = html([...(s.entries || []), ...(s.entriesHigherLevel || [])])
       const dice = /(\d+d\d+)/.exec(textOf(desc))
@@ -247,7 +329,7 @@ function build2014() {
       const scale = (s.entriesHigherLevel ? /\{@scaledamage ([^|]+)\|(\d+)-\d+\|([^}]+)\}/.exec(JSON.stringify(s.entriesHigherLevel)) : null)
       const sld = Array.isArray(s.scalingLevelDice) ? s.scalingLevelDice[0] : s.scalingLevelDice
       const plainUp = !scale && s.entriesHigherLevel ? /increases by (\d+d\d+) for each slot level above/i.exec(textOf(desc)) : null
-      spells.push({
+      const spell = {
         name: s.name, source: s.source, level: s.level, school: SCHOOLS[s.school] || s.school, classes,
         castingTime: `${t.number || 1} ${t.unit === 'bonus' ? 'bonus action' : t.unit || 'action'}`, activation: t.unit === 'bonus' ? 'bonus' : t.unit === 'reaction' ? 'reaction' : t.unit === 'action' ? 'action' : 'special',
         range, components: [s.components?.v && 'V', s.components?.s && 'S', s.components?.m && `M (${typeof s.components.m === 'string' ? s.components.m : s.components.m.text || ''})`].filter(Boolean).join(', '),
@@ -256,10 +338,11 @@ function build2014() {
         dice: sld ? sld.scaling['1'] : dice ? dice[1] : undefined, damageType: (s.damageInflict || [])[0] || (s.miscTags || []).includes('HL') ? (s.damageInflict || [])[0] || 'healing' : undefined,
         save: s.savingThrow ? ABIL[s.savingThrow[0]] : undefined, attack: s.spellAttack ? (s.spellAttack[0] === 'M' ? 'melee' : 'ranged') : undefined,
         scaling: sld ? { kind: 'character', steps: Object.entries(sld.scaling).filter(([l]) => l !== '1').map(([l, d]) => ({ level: Number(l), dice: d })) } : scale ? { kind: 'slot', dice: scale[3], every: 1 } : plainUp ? { kind: 'slot', dice: plainUp[1], every: 1 } : undefined,
-      })
+      }
+      out.set(s.name.toLowerCase(), spell)
     }
   }
-  return { edition: '2014', builtAt: new Date().toISOString(), classes, species, backgrounds, feats, spells }
+  return [...out.values()]
 }
 
 function cellText(c) {
@@ -273,13 +356,13 @@ function cellText(c) {
 function keysOf(list) { return (list || []).flatMap(o => Object.entries(o || {}).filter(([, v]) => v === true).map(([k]) => k)) }
 function armorName(a) { const s = strip(a).toLowerCase(); return s === 'light' ? 'Light Armor' : s === 'medium' ? 'Medium Armor' : s === 'heavy' ? 'Heavy Armor' : s === 'shield' || s === 'shields' ? 'Shields' : strip(a) }
 function weaponName(w) { const s = strip(w); return s === 'simple' ? 'Simple Weapons' : s === 'martial' ? 'Martial Weapons' : s.replace(/s$/, '').replace(/\b\w/g, c => c.toUpperCase()) }
-function spellcasting2014(c, list) {
+function spellcasting5e(c, list) {
   const prog = { full: 'full', '1/2': 'half', '1/3': 'third', pact: 'pact', artificer: 'artificer' }[c.casterProgression] || 'full'
   const pf = String(c.preparedSpells || '')
   return {
     ability: c.spellcastingAbility, progression: prog, cantrips: c.cantripProgression || Array(20).fill(0),
-    known: c.spellsKnownProgression || undefined,
-    preparedFormula: pf ? (/\/ 2/.test(pf) ? 'half' : 'level') : undefined, list,
+    known: c.spellsKnownProgression || undefined, prepared: c.preparedSpellsProgression || undefined,
+    preparedFormula: pf && !c.preparedSpellsProgression ? (/\/ 2/.test(pf) ? 'half' : 'level') : undefined, list,
   }
 }
 
@@ -300,6 +383,20 @@ async function vendor(file) {
 const paraHtml = t => sanitizeHtml(String(t || '').split(/\n{2,}/).map(p => `<p>${esc(p.trim()).replace(/\n/g, '<br>')}</p>`).join(''))
 const abilityOf = name => ABIL[String(name).toLowerCase()]
 const resetOf = r => (/short/i.test(r) ? 'short' : /long/i.test(r) ? 'long' : /dawn/i.test(r) ? 'dawn' : 'other')
+
+/** 2024 backgrounds from 5etools: ability options, origin feat, skills, tool. */
+function backgrounds2024() {
+  const title = t => t.replace(/\b\w/g, c => c.toUpperCase())
+  return (readJson(path.join(SRC, 'backgrounds.json')).background || []).filter(x => BOOKS_2024.has(x.source) && x.edition === 'one' && !x._copy).map(x => {
+    const skills = keysOf(x.skillProficiencies).map(slug)
+    const tools = (x.toolProficiencies || []).flatMap(t => Object.entries(t).filter(([k, v]) => v === true && k !== 'any').map(([k]) => title(k)))
+    const opts = (x.ability || []).map(a => a.choose?.weighted?.from).find(Boolean) || []
+    const featKey = Object.keys((x.feats || [])[0] || {})[0] || ''
+    const [featName, featArg] = featKey.split('|')[0].split(';').map(v => v.trim())
+    const feat = featName ? `${title(featName)}${featArg ? ` (${title(featArg)})` : ''}` : undefined
+    return { name: x.name, source: x.source, skills, tools, languages: 0, abilityOptions: opts, feat, description: html(x.entries) }
+  })
+}
 
 async function build2024() {
   const classesRaw = await vendor('classes.json')
@@ -395,6 +492,31 @@ async function build2024() {
     })
   }
 
+  const have5e = SRC !== dataDir
+  if (have5e) {
+    // Subclasses from 5etools: the 2024 ones, plus 2014 subclasses offered for the 2024 class.
+    const files = classFiles()
+    for (const c of classes) {
+      const d = files.find(f => (f.class || []).some(x => x.name === c.name && x.source === 'XPHB'))
+      const cls = d && d.class.find(x => x.name === c.name && x.source === 'XPHB')
+      if (!cls) continue
+      const subs = (d.subclass || []).filter(sub => sub.classSource === 'XPHB' && (BOOKS_2024.has(sub.source) || BOOKS_2014.has(sub.source)))
+      // Prefer the 2024 printing when a subclass exists in both.
+      subs.sort((x, y) => Number(y.edition === 'one') - Number(x.edition === 'one'))
+      for (const sub of subs) {
+        const parsed = parseSubclass(d, cls, sub)
+        if (parsed && parsed.features.length && !c.subclasses.some(x => x.name === parsed.name)) c.subclasses.push(parsed)
+      }
+      c.subclasses.sort((x, y) => Number(BOOKS_2014.has(x.source)) - Number(BOOKS_2014.has(y.source)) || x.name.localeCompare(y.name))
+      if (cls.subclassTitle) c.subclassTitle = strip(cls.subclassTitle)
+    }
+    // Classes outside the free rules (Artificer 2024), parsed from 5etools text.
+    for (const d of files) for (const cls of (d.class || []).filter(x => x.edition === 'one' && BOOKS_2024.has(x.source) && x.source !== 'XPHB')) {
+      if (classes.some(c => c.name === cls.name)) continue
+      classes.push(parseClass(d, cls, sub => sub.classSource === cls.source && BOOKS_2024.has(sub.source)))
+    }
+  }
+
   // 2024 species: mechanics entered by hand; description text from the PHB 2024 entries.
   const sp = name => speciesRaw.find(x => x.name === name && x.book === "Player's Handbook (2024)")?.description || ''
   const blurb = name => paraHtml(sp(name).replace(/\s+([A-Z][\w’' ]{2,40})\.\s/g, '\n\n$1. '))
@@ -415,8 +537,31 @@ async function build2024() {
     { name: 'Tiefling', size: 'small or medium', speed: { walk: 30 }, darkvision: 60, traits: [t('Fiendish Legacy', 'Abyssal (poison), Chthonic (necrotic), or Infernal (fire): resistance plus a cantrip, with spells at levels 3 and 5.'), t('Otherworldly Presence', 'You know the Thaumaturgy cantrip.')],
       options: { label: 'Fiendish legacy', choices: [{ name: 'Abyssal', resist: ['poison'], description: 'Poison Spray; Ray of Sickness (3), Hold Person (5).' }, { name: 'Chthonic', resist: ['necrotic'], description: 'Chill Touch; False Life (3), Ray of Enfeeblement (5).' }, { name: 'Infernal', resist: ['fire'], description: 'Fire Bolt; Hellish Rebuke (3), Darkness (5).' }] } },
   ].map(s => ({ source: 'XPHB', languages: ['Common'], languageChoice: 2, ...s, traits: s.traits, description: blurb(s.name) }))
+  if (have5e) {
+    // Full trait text from 5etools in place of the short summaries above.
+    const races = readJson(path.join(SRC, 'races.json')).race || []
+    for (const sp of species) {
+      const r = races.find(x => x.name === sp.name && x.source === 'XPHB')
+      for (const e of (r?.entries || []).filter(e => e && e.name)) {
+        const t = sp.traits.find(t => t.name.toLowerCase() === strip(e.name).toLowerCase())
+        if (t) t.description = html([{ entries: e.entries }])
+      }
+    }
+  }
 
-  // 2024 backgrounds: parse the fixed "Ability Scores / Feat / Skill Proficiencies / Tool Proficiency" lines.
+  if (have5e) {
+    const feats = parseFeats(x => BOOKS_2024.has(x.source))
+    const backgrounds = backgrounds2024()
+    // Use the feat's own spelling ("Mark of Making", "Magic Initiate (Wizard)").
+    for (const b of backgrounds) if (b.feat) {
+      const [base, arg] = /^(.*?)(?: \((.*)\))?$/.exec(b.feat).slice(1)
+      const f = feats.find(x => x.name.toLowerCase() === base.toLowerCase())
+      if (f) b.feat = arg ? `${f.name} (${arg})` : f.name
+    }
+    return { edition: '2024', builtAt: new Date().toISOString(), classes, species, backgrounds, feats, spells: parseSpells('2024') }
+  }
+
+  // Fallback without 5etools: parse the fixed "Ability Scores / Feat / Skill Proficiencies / Tool Proficiency" lines.
   const backgrounds = backgroundsRaw.filter(x => x.book === "Player's Handbook (2024)").map(x => {
     const d = x.description
     const grab = re => (re.exec(d) || [])[1]?.trim()
@@ -469,6 +614,9 @@ async function build2024() {
 
 ;(async () => {
   fs.mkdirSync(outDir, { recursive: true })
+  if (ensure5etools()) SRC = path.join(fiveDir, 'data')
+  else console.warn('5etools data not available; using the local data/ folder (2014 only, no 2024 subclasses).')
+  console.log(`Rules text from ${path.relative(root, SRC)}`)
   const p14 = build2014()
   fs.writeFileSync(path.join(outDir, 'rules-2014.json'), JSON.stringify(p14))
   console.log(`2014: ${p14.classes.length} classes (${p14.classes.reduce((t, c) => t + c.subclasses.length, 0)} subclasses), ${p14.species.length} species, ${p14.backgrounds.length} backgrounds, ${p14.feats.length} feats, ${p14.spells.length} spells`)

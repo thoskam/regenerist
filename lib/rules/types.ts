@@ -102,6 +102,8 @@ export interface RFeat {
   description: string
   abilityChoice?: { from: Ability[]; amount: number }
   origin?: boolean
+  /** 5etools feat category: O origin, G general, FS fighting style, EB epic boon. */
+  category?: string
 }
 
 export interface RSpell {

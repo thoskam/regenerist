@@ -1,4 +1,5 @@
-// Item catalog from the local 5etools-format data (data/items-base.json, data/items.json; 2014 books),
+// Item catalog from 5etools data: data/vendor/5etools/data (2014 and 2024 books, from `npm run data:rules`),
+// then anything only the older local copy in data/ has (items-base.json, items.json),
 // converted into sheet Items with their mechanical effects. Server-only (reads the filesystem).
 
 import fs from 'node:fs'
@@ -66,10 +67,10 @@ let cache: { list: CatalogItem[]; raw: Map<string, Raw>; base: Map<string, Raw> 
 
 function load() {
   if (cache) return cache
-  const dir = path.join(process.cwd(), 'data')
-  const read = (f: string) => { try { return JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')) } catch { return {} } }
-  const baseItems: Raw[] = read('items-base.json').baseitem || []
-  const items: Raw[] = read('items.json').item || []
+  const dirs = [path.join(process.cwd(), 'data', 'vendor', '5etools', 'data'), path.join(process.cwd(), 'data')]
+  const read = (dir: string, f: string) => { try { return JSON.parse(fs.readFileSync(path.join(dir, f), 'utf8')) } catch { return {} } }
+  const baseItems: Raw[] = dirs.flatMap(d => read(d, 'items-base.json').baseitem || [])
+  const items: Raw[] = dirs.flatMap(d => read(d, 'items.json').item || [])
   const raw = new Map<string, Raw>()
   const base = new Map<string, Raw>()
   for (const b of baseItems) base.set(`${String(b.name).toLowerCase()}|${String(b.source).toLowerCase()}`, b)

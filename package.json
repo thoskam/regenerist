@@ -14,7 +14,8 @@
     "typecheck": "tsc --noEmit",
     "test:e2e": "playwright test",
     "data:check": "node scripts/check-data.cjs",
-    "data:rules": "node scripts/build-rules.cjs"
+    "data:rules": "node scripts/build-rules.cjs",
+    "data:update": "node scripts/build-rules.cjs --update"
   },
   "dependencies": {
     "@aws-sdk/client-bedrock-runtime": "^3.712.0",
