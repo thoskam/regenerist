@@ -4,6 +4,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { computeSheet } from '@/lib/sheet/compute'
 import { rollD20, rollDice, type D20Options, type RollMode } from '@/lib/sheet/dice'
 import type { CharacterDoc, PlayState, ThemeName } from '@/lib/sheet/types'
+import { applyDocOp, type DocOp } from '@/lib/sheet/docOps'
 
 export interface RollEntry {
   id: number
@@ -32,6 +33,8 @@ export function useSheet(slug: string, initial: { doc: CharacterDoc; state: Play
   const seq = useRef(0)
 
   const sheet = useMemo(() => computeSheet(doc, state), [doc, state])
+  const docRef = useRef(doc)
+  docRef.current = doc
 
   // Roll log survives reloads on this device.
   const logKey = `regenerist:rolls:${slug}`
@@ -126,7 +129,28 @@ export function useSheet(slug: string, initial: { doc: CharacterDoc; state: Play
     if (res.ok) { const data = await res.json(); revision.current = data.revision; setStatus('saved') } else setStatus('error')
   }, [slug])
 
-  return { doc, setDoc, state, setState, sheet, status, mode, setMode, log, setLog, push, rollCheck, rollDamage, critKey, saveTheme, saveNotes }
+  const [docError, setDocError] = useState<string | null>(null)
+  /** Inventory/currency edit: applied locally first (except catalog adds), then confirmed by the server. */
+  const editDoc = useCallback(async (op: DocOp | { op: 'item.add'; catalogKey: string; id: string; quantity?: number; magicBonus?: number }) => {
+    setDocError(null)
+    const before = docRef.current
+    if (op.op !== 'item.add') {
+      try { setDoc(applyDocOp(before, op as DocOp)) } catch (e) { setDocError((e as Error).message); return false }
+    }
+    try {
+      const res = await fetch(`/api/sheets/${slug}/doc`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(op) })
+      const data = await res.json().catch(() => ({}))
+      if (!res.ok) throw new Error(data.error || 'Could not save that change.')
+      setDoc(data.doc)
+      return true
+    } catch (e) {
+      if (op.op !== 'item.add') setDoc(before)
+      setDocError((e as Error).message)
+      return false
+    }
+  }, [slug])
+
+  return { doc, setDoc, editDoc, docError, setDocError, state, setState, sheet, status, mode, setMode, log, setLog, push, rollCheck, rollDamage, critKey, saveTheme, saveNotes }
 }
 
 export type SheetApi = ReturnType<typeof useSheet>

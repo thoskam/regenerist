@@ -5,6 +5,8 @@ import { convertDdbCharacter, fetchDdbCharacter, parseDdbCharacterId } from '../
 import { computeSheet } from './compute'
 import { normalizeState } from './state'
 import type { CharacterDoc, PlayState, ThemeName } from './types'
+import { applyDocOp, DocOpError, type DocOp } from './docOps'
+import { catalogToItem } from '../catalog/items'
 
 export class StoreError extends Error {
   constructor(message: string, public status: number, public extra?: Record<string, unknown>) { super(message) }
@@ -193,4 +195,27 @@ export async function setAvatar(slug: string, bytes: Uint8Array | null): Promise
   const data = bytes ? { avatar: Buffer.from(bytes), avatarType: validateAvatar(bytes) } : { avatar: null, avatarType: null }
   const r = await prisma.playerCharacter.updateMany({ where: { slug }, data })
   if (!r.count) throw new StoreError('Character not found.', 404)
+}
+
+/** Apply an inventory/currency edit. `item.add` resolves a catalog entry on the server. */
+export async function editDoc(slug: string, body: unknown): Promise<CharacterDoc> {
+  const b = (body && typeof body === 'object' ? body : {}) as Record<string, unknown>
+  return prisma.$transaction(async tx => {
+    const row = await tx.playerCharacter.findUnique({ where: { slug }, select: { id: true, doc: true } })
+    if (!row) throw new StoreError('Character not found.', 404)
+    const doc = row.doc as unknown as CharacterDoc
+    let op: DocOp
+    if (b.op === 'item.add') {
+      const item = catalogToItem(String(b.catalogKey || ''), { id: String(b.id || ''), quantity: Number(b.quantity) || 1, magicBonus: Number(b.magicBonus) || 0, edition: doc.edition })
+      if (!item) throw new StoreError('That item is not in the catalog.', 400)
+      op = { op: 'item.insert', item }
+    } else op = b as unknown as DocOp
+    let next: CharacterDoc
+    try { next = applyDocOp(doc, op) } catch (e) {
+      if (e instanceof DocOpError) throw new StoreError(e.message, 400)
+      throw e
+    }
+    await tx.playerCharacter.update({ where: { id: row.id }, data: { doc: next as unknown as Prisma.InputJsonValue } })
+    return next
+  })
 }
