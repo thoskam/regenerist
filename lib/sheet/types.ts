@@ -266,6 +266,8 @@ export interface CharacterDoc {
   }
   theme: { name: ThemeName; accent?: string | null }
   import?: { source: 'ddb'; id: string; url: string; importedAt: string } | null
+  /** Set when an imported character was converted to a builder character (a backup of the import is kept). */
+  convertedFrom?: { source: 'ddb'; id: string; url: string; convertedAt: string } | null
   /** Builder choices; present for characters made in the app (the doc is regenerated from it). */
   build?: Build | null
   /** Regenerist mode: the soul takes a random new form on each regeneration. */

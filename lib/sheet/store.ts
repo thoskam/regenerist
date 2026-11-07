@@ -8,7 +8,8 @@ import { normalizeState } from './state'
 import type { CharacterDoc, PlayState, ThemeName } from './types'
 import { applyDocOp, DocOpError, type DocOp } from './docOps'
 import { catalogToItem } from '../catalog/items'
-import { generateDoc, normalizeBuild, validateBuild } from '../rules/build'
+import { filterKept, generateDoc, keptIds, normalizeBuild, validateBuild } from '../rules/build'
+import { keptFromImport } from '../rules/fromImport'
 import { loadPack } from '../rules/pack'
 import { driftLevel, randomBuild } from '../rules/random'
 import { generateStory } from '../regenerist/story'
@@ -123,6 +124,7 @@ export async function importFromDdb(input: string, viewer?: Viewer): Promise<{ s
   const avatar = await downloadDdbAvatar(avatarUrl)
   const existing = await prisma.playerCharacter.findUnique({ where: { ddbId: id }, select: { slug: true, doc: true, avatarType: true, ownerId: true, campaignId: true } })
   if (existing && viewer && !(await canAccessCharacter(viewer, existing, 'write'))) throw new StoreError('Another account already imported this character.', 409)
+  if (existing && !(existing.doc as unknown as CharacterDoc).import) throw new StoreError(`${(existing.doc as unknown as CharacterDoc).name} was moved off D&D Beyond and is edited here now. Use “Restore D&D Beyond version” in its sheet menu to go back.`, 409)
   if (existing) {
     const prev = existing.doc as unknown as CharacterDoc
     doc.theme = prev.theme ?? doc.theme
@@ -256,7 +258,11 @@ export async function createFromBuild(input: unknown, ownerId: string | null = n
   return { slug }
 }
 
-/** Re-generate a builder character after level-up or edits; inventory, notes, and table state are kept. */
+/**
+ * Re-generate a builder character after level-up or edits; inventory, notes, and table state are kept.
+ * For an imported character this is the conversion: the import is backed up and the character
+ * becomes a builder character.
+ */
 export async function updateBuild(slug: string, input: unknown): Promise<{ slug: string }> {
   const build = normalizeBuild(input)
   const pack = loadPack(build.edition)
@@ -265,10 +271,26 @@ export async function updateBuild(slug: string, input: unknown): Promise<{ slug:
   const row = await prisma.playerCharacter.findUnique({ where: { slug }, select: { id: true, doc: true } })
   if (!row) throw new StoreError('Character not found.', 404)
   const prev = row.doc as unknown as CharacterDoc
-  if (prev.import) throw new StoreError('Imported characters are edited on D&D Beyond and re-synced.', 400)
+  // Kept spells/actions always come from the server's copy; the client can only drop some.
+  build.kept = filterKept(prev.import ? keptFromImport(prev, pack) : prev.build?.kept, keptIds(input))
   const doc = generateDoc(pack, build, prev)
+  if (prev.import) {
+    doc.convertedFrom = { source: 'ddb', id: prev.import.id, url: prev.import.url, convertedAt: new Date().toISOString() }
+    await prisma.playerCharacter.update({ where: { id: row.id }, data: { name: doc.name, doc: doc as unknown as Prisma.InputJsonValue, importBackup: prev as unknown as Prisma.InputJsonValue } })
+    return { slug }
+  }
+  doc.convertedFrom = prev.convertedFrom ?? null
   await prisma.playerCharacter.update({ where: { id: row.id }, data: { name: doc.name, doc: doc as unknown as Prisma.InputJsonValue } })
   return { slug }
+}
+
+/** Undo a conversion: put back the imported D&D Beyond version (inventory and notes as they were then). */
+export async function restoreImport(slug: string): Promise<void> {
+  const row = await prisma.playerCharacter.findUnique({ where: { slug }, select: { id: true, importBackup: true } })
+  if (!row) throw new StoreError('Character not found.', 404)
+  if (!row.importBackup) throw new StoreError('There is no D&D Beyond version to restore.', 400)
+  const backup = row.importBackup as unknown as CharacterDoc
+  await prisma.playerCharacter.update({ where: { id: row.id }, data: { name: backup.name, doc: backup as unknown as Prisma.InputJsonValue, importBackup: Prisma.DbNull } })
 }
 
 /** Regenerate: archive the current life, roll a new random form, and reset table state. */

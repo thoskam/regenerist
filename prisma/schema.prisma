@@ -69,6 +69,8 @@ model PlayerCharacter {
   avatarType String?
   /// D&D Beyond character id, when imported.
   ddbId      String?  @unique
+  /// The imported document as it was before conversion to a builder character (for undo).
+  importBackup Json?
   /// Owning user (null in open single-user mode).
   ownerId    String?
   /// Party this character plays in.

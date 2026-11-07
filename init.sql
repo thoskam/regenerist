@@ -131,3 +131,6 @@ CREATE TABLE IF NOT EXISTS "Roll" (
   CONSTRAINT "Roll_pkey" PRIMARY KEY ("id")
 );
 CREATE INDEX IF NOT EXISTS "Roll_campaignId_createdAt_idx" ON "Roll"("campaignId", "createdAt");
+
+-- v2: keep the D&D Beyond import when a character is converted to a builder character (undo). Additive only.
+ALTER TABLE "PlayerCharacter" ADD COLUMN IF NOT EXISTS "importBackup" JSONB;

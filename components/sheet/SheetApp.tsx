@@ -124,6 +124,12 @@ function Header({ api, slug, hasAvatar, campaigns }: { api: SheetApi; slug: stri
     await fetch(`/api/sheets/${slug}/avatar`, { method: 'DELETE' })
     setAvatarVersion(0)
   }
+  const restoreImport = async () => {
+    if (!window.confirm('Go back to the D&D Beyond version from before you converted? Level-ups, build edits, and inventory changes made since then are lost.')) return
+    const res = await fetch(`/api/sheets/${slug}/restore-import`, { method: 'POST' })
+    if (res.ok) window.location.reload()
+    else window.alert((await res.json().catch(() => ({}))).error || 'Could not restore.')
+  }
   const resync = async () => {
     if (!doc.import) return
     setSyncing(true)
@@ -199,6 +205,8 @@ function Header({ api, slug, hasAvatar, campaigns }: { api: SheetApi; slug: stri
                   {syncing ? 'Syncing…' : 'Re-sync from D&D Beyond'}
                 </button>
               )}
+              {doc.import && !api.readOnly && <Link href={`/c/${slug}/build`} className="min-h-[40px] rounded-xl bg-accent px-3 py-2.5 text-[13px] font-semibold text-on-accent">Edit here instead of D&amp;D Beyond</Link>}
+              {doc.convertedFrom && !api.readOnly && <button type="button" onClick={restoreImport} className="min-h-[40px] rounded-xl border border-line bg-raised px-3 text-left text-[13px] font-semibold">Restore D&amp;D Beyond version</button>}
               {doc.build && !api.readOnly && <Link href={`/c/${slug}/build?levelup=1`} className="min-h-[40px] rounded-xl bg-accent px-3 py-2.5 text-[13px] font-semibold text-on-accent">Level up</Link>}
               {doc.build && !api.readOnly && <Link href={`/c/${slug}/build`} className="min-h-[40px] rounded-xl border border-line bg-raised px-3 py-2.5 text-[13px] font-semibold">Edit build</Link>}
               {avatarVersion ? <button type="button" onClick={removeAvatar} className="min-h-[40px] rounded-xl border border-line bg-raised px-3 text-left text-[13px] font-semibold">Remove portrait</button> : null}

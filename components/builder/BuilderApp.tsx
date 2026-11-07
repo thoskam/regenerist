@@ -4,10 +4,11 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { useEffect, useMemo, useState } from 'react'
 import { ABILITY_NAMES, SKILLS, computeSheet, fmtMod, ordinal } from '@/lib/sheet/compute'
-import { emptyPlayState, ABILITIES, type Ability } from '@/lib/sheet/types'
+import { emptyPlayState, ABILITIES, type Ability, type CharacterDoc } from '@/lib/sheet/types'
 import { POINT_BUY_COST, STANDARD_ARRAY, abilityScores, asiSlots, findClass, findSpecies, generateDoc, spellAllowance, totalLevel, validateBuild, type AsiChoice, type Build, type BuildClass } from '@/lib/rules/build'
 import type { RulesPack } from '@/lib/rules/types'
 import { cx } from '@/components/sheet/ui'
+import type { ConversionReport } from '@/lib/rules/fromImport'
 
 type Step = 'basics' | 'class' | 'species' | 'background' | 'abilities' | 'skills' | 'asi' | 'spells' | 'review'
 const STEPS: Array<{ id: Step; label: string }> = [
@@ -26,7 +27,7 @@ const blankBuild = (): Build => ({
 const field = 'min-h-[42px] rounded-xl border border-line bg-raised px-3 text-sm text-ink'
 const chip = (on: boolean) => cx('min-h-[34px] rounded-full border px-3 text-[13px] font-semibold', on ? 'border-accent bg-accent text-on-accent' : 'border-line text-ink')
 
-export default function BuilderApp({ initial, slug, levelUp }: { initial?: Build | null; slug?: string; levelUp?: boolean }) {
+export default function BuilderApp({ initial, slug, levelUp, conversion, current }: { initial?: Build | null; slug?: string; levelUp?: boolean; conversion?: ConversionReport; current?: CharacterDoc }) {
   const router = useRouter()
   const [b, setB] = useState<Build>(() => initial ?? blankBuild())
   const [step, setStep] = useState<Step>(initial ? (levelUp ? 'class' : 'review') : 'basics')
@@ -50,8 +51,9 @@ export default function BuilderApp({ initial, slug, levelUp }: { initial?: Build
   const issues = useMemo(() => (pack ? validateBuild(pack, b) : []), [pack, b])
   const preview = useMemo(() => {
     if (!pack || !b.classes.length) return null
-    try { return computeSheet(generateDoc(pack, b), emptyPlayState()) } catch { return null }
-  }, [pack, b])
+    // With the character's current doc, the preview includes worn armor and magic items.
+    try { return computeSheet(generateDoc(pack, b, current), emptyPlayState()) } catch { return null }
+  }, [pack, b, current])
   const errors = issues.filter(i => i.level === 'error')
 
   const save = async () => {
@@ -70,7 +72,7 @@ export default function BuilderApp({ initial, slug, levelUp }: { initial?: Build
         <header className="flex flex-wrap items-center justify-between gap-3">
           <div>
             <Link href={slug ? `/c/${slug}` : '/'} className="text-xs text-muted underline">{slug ? 'Back to sheet' : 'All characters'}</Link>
-            <h1 className="m-0 font-display text-3xl font-semibold">{slug ? (levelUp ? 'Level up' : 'Edit build') : 'New character'}{b.name ? ` · ${b.name}` : ''}</h1>
+            <h1 className="m-0 font-display text-3xl font-semibold">{conversion ? 'Move off D&D Beyond' : slug ? (levelUp ? 'Level up' : 'Edit build') : 'New character'}{b.name ? ` · ${b.name}` : ''}</h1>
           </div>
           <span className="rounded-full border border-line px-3 py-1.5 text-xs text-muted">{b.edition} rules · level {totalLevel(b) || 0}</span>
         </header>
@@ -93,25 +95,25 @@ export default function BuilderApp({ initial, slug, levelUp }: { initial?: Build
                 {step === 'skills' && <SkillsStep b={b} up={up} pack={pack} />}
                 {step === 'asi' && <AsiStep b={b} up={up} pack={pack} />}
                 {step === 'spells' && <SpellsStep b={b} up={up} pack={pack} />}
-                {step === 'review' && <Review issues={issues} />}
+                {step === 'review' && <><Review issues={issues} conversion={conversion} /><CarriedOver b={b} up={up} /></>}
               </>
             )}
             <div className="flex flex-wrap justify-between gap-2 border-t border-line pt-4">
               <button type="button" disabled={idx === 0} onClick={() => setStep(STEPS[idx - 1].id)} className="min-h-[44px] rounded-xl border border-line px-4 font-semibold disabled:opacity-40">Back</button>
               {step !== 'review'
                 ? <button type="button" onClick={() => setStep(STEPS[idx + 1].id)} className="min-h-[44px] rounded-xl bg-accent px-5 font-semibold text-on-accent">Next</button>
-                : <button type="button" disabled={saving || !!errors.length || !pack} onClick={save} className="min-h-[44px] rounded-xl bg-accent px-5 font-semibold text-on-accent disabled:opacity-50">{saving ? 'Saving…' : slug ? 'Save changes' : 'Create character'}</button>}
+                : <button type="button" disabled={saving || !!errors.length || !pack} onClick={save} className="min-h-[44px] rounded-xl bg-accent px-5 font-semibold text-on-accent disabled:opacity-50">{saving ? 'Saving…' : conversion ? 'Convert and save' : slug ? 'Save changes' : 'Create character'}</button>}
             </div>
             {saveError && <p role="alert" className="m-0 text-bad">{saveError}</p>}
           </section>
-          <Preview b={b} preview={preview} issues={issues} />
+          <Preview b={b} preview={preview} issues={issues} hasGear={!!current?.inventory.some(i => i.equipped && (i.armor || i.effects.length))} />
         </div>
       </div>
     </div>
   )
 }
 
-function Preview({ b, preview, issues }: { b: Build; preview: ReturnType<typeof computeSheet> | null; issues: ReturnType<typeof validateBuild> }) {
+function Preview({ b, preview, issues, hasGear }: { b: Build; preview: ReturnType<typeof computeSheet> | null; issues: ReturnType<typeof validateBuild>; hasGear: boolean }) {
   return (
     <aside aria-label="Preview" className="flex min-w-0 flex-[1_1_280px] flex-col gap-3 rounded-2xl border border-line bg-panel p-4 lg:sticky lg:top-4">
       <h2 className="m-0 font-display text-xl font-semibold">{b.name || 'Unnamed'}</h2>
@@ -128,7 +130,7 @@ function Preview({ b, preview, issues }: { b: Build; preview: ReturnType<typeof 
             ))}
           </div>
           <div className="grid grid-cols-2 gap-2 text-[13px]">
-            <span>HP <strong>{preview.hp.max}</strong></span><span>AC <strong>{preview.ac.value}</strong> <span className="text-muted">(no armor)</span></span>
+            <span>HP <strong>{preview.hp.max}</strong></span><span>AC <strong>{preview.ac.value}</strong>{!hasGear && <span className="text-muted"> (no armor)</span>}</span>
             <span>Initiative <strong>{fmtMod(preview.initiative)}</strong></span><span>Proficiency <strong>{fmtMod(preview.pb)}</strong></span>
             <span>Speed <strong>{preview.speeds[0].value} ft</strong></span><span>Passive Perception <strong>{preview.passives.perception}</strong></span>
           </div>
@@ -592,16 +594,62 @@ function SpellsStep({ b, up, pack }: StepProps) {
   )
 }
 
-function Review({ issues }: { issues: ReturnType<typeof validateBuild> }) {
+function Review({ issues, conversion }: { issues: ReturnType<typeof validateBuild>; conversion?: ConversionReport }) {
   return (
     <div className="flex flex-col gap-3">
       <h2 className="m-0 font-display text-2xl font-semibold">Review</h2>
+      {conversion && (
+        <div className="flex flex-col gap-2 rounded-xl border border-accent bg-accent-soft p-3">
+          <p className="m-0">This turns your D&amp;D Beyond character into one you level and edit here. Check each step, then <strong>Convert and save</strong>. Your HP, used resources, inventory, coins, notes and portrait stay as they are.</p>
+          <p className="m-0 text-[13px] text-muted">A copy of the D&amp;D Beyond version is kept: “Restore D&amp;D Beyond version” in the sheet menu undoes this.</p>
+          {conversion.differences.length === 0
+            ? <p className="m-0 font-semibold text-good">Every number matches your D&amp;D Beyond sheet.</p>
+            : <><p className="m-0 font-semibold">Numbers that differ from D&amp;D Beyond:</p><ul className="m-0 pl-5">{conversion.differences.map(d => <li key={d}>{d}</li>)}</ul></>}
+          {conversion.notes.map(n => <p key={n} className="m-0 text-[13px]">{n}</p>)}
+        </div>
+      )}
       {issues.length === 0 ? <p className="m-0 text-good">Everything checks out.</p> : (
         <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
           {issues.map(i => <li key={i.message} className={cx('rounded-lg px-3 py-2', i.level === 'error' ? 'border border-bad text-bad' : 'bg-raised text-muted')}>{i.level === 'error' ? 'Must fix: ' : 'Heads up: '}{i.message}</li>)}
         </ul>
       )}
-      <p className="m-0 text-[13px] text-muted">Warnings don’t block saving. Equipment is added on the sheet’s Inventory tab after you create the character.</p>
+      <p className="m-0 text-[13px] text-muted">Warnings don’t block saving. Equipment lives on the sheet’s Inventory tab.</p>
+    </div>
+  )
+}
+
+const words = (x: string) => x.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+const ADJ_LABEL = (a: NonNullable<Build['adjustments']>[number]) => a.type === 'bonus'
+  ? <><strong>Bonus</strong> {a.value != null && a.value >= 0 ? '+' : ''}{a.value ?? ''}{a.ability ? ` ${a.ability.toUpperCase()}` : ''} to {words(a.subType)}</>
+  : <><strong>{words(a.type)}</strong> {words(a.subType)}{a.value ? ` ${a.value}` : ''}</>
+
+/** Things outside the normal rules: carried over from D&D Beyond or added by hand. Each can be removed. */
+function CarriedOver({ b, up }: { b: Build; up: (p: Partial<Build>) => void }) {
+  const adj = b.adjustments ?? []
+  const kept = b.kept ?? { spellSources: [], actions: [] }
+  const custom = b.customFeatures ?? []
+  const extra = b.extraProficiencies ?? { armor: [], weapons: [], tools: [], languages: [] }
+  const extraList = (['armor', 'weapons', 'tools', 'languages'] as const).flatMap(k => extra[k].map((name, i) => ({ k, name, i })))
+  if (!adj.length && !kept.spellSources.length && !kept.actions.length && !custom.length && !extraList.length && !b.hpBonus && !(b.languages ?? []).length) return null
+  const row = (key: string, label: React.ReactNode, onRemove: () => void) => (
+    <li key={key} className="flex items-center justify-between gap-2 rounded-lg bg-raised px-3 py-2 text-[13px]">
+      <span>{label}</span>
+      <button type="button" onClick={onRemove} className="shrink-0 text-bad underline">Remove</button>
+    </li>
+  )
+  return (
+    <div className="flex flex-col gap-2">
+      <h3 className="m-0 text-base font-semibold">Outside the standard rules</h3>
+      <p className="m-0 text-[13px] text-muted">Carried over from D&amp;D Beyond (or added by hand), so your sheet keeps them. Remove anything you don’t want.</p>
+      <ul className="m-0 flex list-none flex-col gap-1.5 p-0">
+        {b.hpBonus ? row('hp', <><strong>Hit points</strong> {b.hpBonus > 0 ? '+' : ''}{b.hpBonus} to maximum</>, () => up({ hpBonus: 0 })) : null}
+        {(b.languages ?? []).map((l, i) => row(`lang-${i}`, <><strong>Language</strong> {l}</>, () => up({ languages: (b.languages ?? []).filter((_, j) => j !== i) })))}
+        {extraList.map(x => row(`x-${x.k}-${x.i}`, <><strong>Proficiency</strong> {x.name}</>, () => up({ extraProficiencies: { ...extra, [x.k]: extra[x.k].filter((_, j) => j !== x.i) } })))}
+        {adj.map((a, i) => row(`adj-${i}`, <>{ADJ_LABEL(a)}{a.label ? <span className="text-muted"> · {a.label}</span> : null}</>, () => up({ adjustments: adj.filter((_, j) => j !== i) })))}
+        {kept.spellSources.map(s => row(s.id, <><strong>Spells</strong> from {s.label}: {s.spells.map(x => x.name).join(', ')}</>, () => up({ kept: { ...kept, spellSources: kept.spellSources.filter(x => x.id !== s.id) } })))}
+        {kept.actions.map(a => row(a.id, <><strong>Action</strong> {a.name}</>, () => up({ kept: { ...kept, actions: kept.actions.filter(x => x.id !== a.id) } })))}
+        {custom.map((f, i) => row(`cf-${i}`, <><strong>Feature</strong> {f.name}{f.source ? <span className="text-muted"> · {f.source}</span> : null}</>, () => up({ customFeatures: custom.filter((_, j) => j !== i) })))}
+      </ul>
     </div>
   )
 }

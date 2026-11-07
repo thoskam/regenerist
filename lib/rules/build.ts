@@ -46,7 +46,20 @@ export interface Build {
   hpMode: 'average' | 'rolled'
   customFeatures?: Array<{ name: string; level?: number; description: string; source?: string }>
   languages?: string[]
+  /** Extra effects the rules don't produce (e.g. carried over from D&D Beyond). */
+  adjustments?: BuildAdjustment[]
+  /** Proficiencies granted by name outside the rules (e.g. a specific weapon). */
+  extraProficiencies?: { armor: string[]; weapons: string[]; tools: string[]; languages: string[] }
+  /** Flat bonus to maximum hit points. */
+  hpBonus?: number
+  /** One-line summaries by feature name (carried over from D&D Beyond). */
+  snippets?: Record<string, string>
+  /** Spells and actions carried over verbatim from an imported sheet. Set by the server only. */
+  kept?: { spellSources: SpellSource[]; actions: ActionEntry[] }
 }
+
+export interface BuildAdjustment { type: string; subType: string; value?: number | null; ability?: Ability | null; label?: string }
+export const ADJUSTMENT_TYPES = ['bonus', 'proficiency', 'expertise', 'half-proficiency', 'advantage', 'disadvantage', 'resistance', 'immunity', 'vulnerability', 'set-base', 'set', 'language', 'sense'] as const
 
 export const POINT_BUY_COST: Record<number, number> = { 8: 0, 9: 1, 10: 2, 11: 3, 12: 4, 13: 5, 14: 7, 15: 9 }
 export const STANDARD_ARRAY = [15, 14, 13, 12, 10, 8]
@@ -165,14 +178,16 @@ const maxUsesAt = (u: RUses, classLevel: number) => (u.byLevel ? u.byLevel[Math.
 const toLimitedUse = (u: RUses | undefined, key: string, classLevel: number): LimitedUse | undefined =>
   u ? { max: maxUsesAt(u, classLevel), ability: u.ability ?? null, addPb: u.addPb || undefined, reset: u.reset, key } : undefined
 
-function featureToDoc(f: RFeature, source: SourceRef, classLevel: number, id: string): { feature: Feature; action?: ActionEntry } {
+function featureToDoc(f: RFeature, source: SourceRef, classLevel: number, id: string, snippets?: Record<string, string>): { feature: Feature; action?: ActionEntry } {
   const scale = f.scaling?.[Math.min(20, classLevel) - 1]
+  // Summaries can't follow level scaling, so scaling features show their full text instead.
+  const snippet = f.scaling ? undefined : snippets?.[f.name]
   const dice = scale && /^\d+d\d+/.test(scale) ? scale : undefined
   const uses = toLimitedUse(f.uses, `feat-${id}`, classLevel)
   const name = scale && !dice ? `${f.name} (${scale})` : f.name
-  const feature: Feature = { id, name, source, level: f.level, description: f.description, activation: f.activation, uses }
+  const feature: Feature = { id, name, source, level: f.level, description: f.description, snippet, activation: f.activation, uses }
   const action = f.activation || uses || dice
-    ? { id: `act-${id}`, name: f.name, activation: f.activation ?? 'special', source, description: f.description, uses, dice }
+    ? { id: `act-${id}`, name: f.name, activation: f.activation ?? 'special', source, description: f.description, snippet, uses, dice }
     : undefined
   return { feature, action }
 }
@@ -202,6 +217,9 @@ function featureEffects(name: string, className: string, classLevel: number, sou
     default: return []
   }
 }
+
+/** Weapon proficiency slug matching item bases: "Hand crossbows" → crossbow-hand. */
+const weaponSlug = (w: string) => slug(w).replace(/^(hand|light|heavy)-crossbows?$/, 'crossbow-$1')
 
 const skillName = (k: string) => k === 'thieves-tools' ? 'thieves-tools' : slug(k)
 
@@ -235,11 +253,11 @@ export function generateDoc(pack: RulesPack, b: Build, prev?: CharacterDoc | nul
     if (idx === 0) {
       for (const a of rc.saves) prof(`${ABILITY_SLUG[a]}-saving-throws`, src)
       for (const a of rc.armor) prof(slug(a), src)
-      for (const w of rc.weapons) prof(slug(w), src)
+      for (const w of rc.weapons) prof(weaponSlug(w), src)
       for (const t of rc.tools) if (!/^choose|^one /i.test(t)) prof(slug(t), src)
     } else {
       for (const a of rc.multiclass.armor) prof(slug(a), src)
-      for (const w of rc.multiclass.weapons) prof(slug(w), src)
+      for (const w of rc.multiclass.weapons) prof(weaponSlug(w), src)
       for (const t of rc.multiclass.tools) if (t) prof(slug(t), src)
     }
     for (const s of c.skills) prof(skillName(s), src)
@@ -248,7 +266,7 @@ export function generateDoc(pack: RulesPack, b: Build, prev?: CharacterDoc | nul
     for (const f of rc.features) {
       if (f.level > c.level || placeholder.test(f.name) || (f.optional && !(c.optional ?? []).includes(f.name))) continue
       if (/^Ability Score Improvement$|^Expertise$/.test(f.name) && features.some(x => x.name === f.name && x.source.label === rc.name)) continue
-      const { feature, action } = featureToDoc(f, src, c.level, `${slug(rc.name)}-${slug(f.name)}-${f.level}`)
+      const { feature, action } = featureToDoc(f, src, c.level, `${slug(rc.name)}-${slug(f.name)}-${f.level}`, b.snippets)
       features.push(feature); if (action) actions.push(action)
       effects.push(...featureEffects(f.name, rc.name, c.level, { kind: 'class', label: f.name }))
       for (const a of f.grants?.saves ?? []) prof(`${ABILITY_SLUG[a]}-saving-throws`, { kind: 'class', label: f.name })
@@ -257,7 +275,7 @@ export function generateDoc(pack: RulesPack, b: Build, prev?: CharacterDoc | nul
       const ssrc: SourceRef = { kind: 'subclass', label: sub.name }
       for (const f of sub.features) {
         if (f.level > c.level) continue
-        const { feature, action } = featureToDoc(f, ssrc, c.level, `${slug(sub.name)}-${slug(f.name)}-${f.level}`)
+        const { feature, action } = featureToDoc(f, ssrc, c.level, `${slug(sub.name)}-${slug(f.name)}-${f.level}`, b.snippets)
         features.push(feature); if (action) actions.push(action)
         effects.push(...featureEffects(f.name, rc.name, c.level, { kind: 'subclass', label: f.name }))
       }
@@ -273,7 +291,7 @@ export function generateDoc(pack: RulesPack, b: Build, prev?: CharacterDoc | nul
     for (const s of species.skills ?? []) prof(skillName(s), speciesSrc)
     for (const s of b.species.skills ?? []) prof(skillName(s), speciesSrc)
     for (const l of species.languages) prof(slug(l), speciesSrc, 'language')
-    for (const w of species.weapons ?? []) prof(slug(w), speciesSrc)
+    for (const w of species.weapons ?? []) prof(weaponSlug(w), speciesSrc)
     for (const a of species.armor ?? []) prof(slug(a), speciesSrc)
     for (const t of species.tools ?? []) prof(slug(t), speciesSrc)
     if (species.hpPerLevel) effects.push({ type: 'bonus', subType: 'hit-points-per-level', value: species.hpPerLevel, source: speciesSrc })
@@ -291,7 +309,8 @@ export function generateDoc(pack: RulesPack, b: Build, prev?: CharacterDoc | nul
   // Background.
   if (bg) {
     for (const s of bg.skills) prof(skillName(s), bgSrc)
-    for (const t of bg.tools) if (!/^choose|^one /i.test(t)) prof(slug(t), bgSrc)
+    // Generic categories ("Gaming Set", "Musical Instrument") are choices, not proficiencies.
+    for (const t of bg.tools) if (!/^choose|^one |^any|^(gaming set|musical instrument)$/i.test(t)) prof(slug(t), bgSrc)
     if (bg.feature) features.push({ id: `bg-${slug(bg.name)}`, name: bg.feature.name, source: bgSrc, description: bg.feature.description })
     else features.push({ id: `bg-${slug(bg.name)}`, name: bg.name, source: bgSrc, description: bg.description })
   }
@@ -308,6 +327,9 @@ export function generateDoc(pack: RulesPack, b: Build, prev?: CharacterDoc | nul
     if (/^Lucky$/.test(name)) actions.push({ id: `act-feat-lucky-${i}`, name: 'Lucky', activation: 'special', source: fsrc, description: f?.description ?? '', uses: b.edition === '2024' ? { max: 0, addPb: true, reset: 'long', key: `feat-lucky-${i}` } : { max: 3, reset: 'long', key: `feat-lucky-${i}` } })
   })
 
+  for (const a of b.adjustments ?? []) effects.push({ type: a.type, subType: a.subType, value: a.value ?? null, ability: a.ability ?? null, source: { kind: 'custom', label: a.label || 'Adjustment' } })
+  for (const a of b.kept?.actions ?? []) actions.push(a)
+
   for (const cf of b.customFeatures ?? []) features.push({ id: `custom-${slug(cf.name)}-${cf.level ?? 0}`, name: cf.name, level: cf.level, source: { kind: 'custom', label: cf.source || 'Custom' }, description: sanitizeHtml(cf.description) })
 
   // Spells.
@@ -319,10 +341,12 @@ export function generateDoc(pack: RulesPack, b: Build, prev?: CharacterDoc | nul
     if (!chosen.length) continue
     spellSources.push({ id: `class-${slug(c.name)}`, label: c.name, ability: cls.spellcasting.ability, spells: chosen.sort((x, y) => x.level - y.level || x.name.localeCompare(y.name)).map(s => spellEntry(s, `spell-${slug(c.name)}-${slug(s.name)}`)) })
   }
+  for (const src of b.kept?.spellSources ?? []) spellSources.push(src)
 
   const blank = { personality: undefined } as CharacterDoc['notes']
   return {
-    schema: 1, name: b.name.trim() || prev?.name || 'New character', edition: b.edition, rulesLabel: `${b.edition} rules`,
+    // Keep a mixed-edition label (e.g. "2014 class · 2024 items") that came with the inventory.
+    schema: 1, name: b.name.trim() || prev?.name || 'New character', edition: b.edition, rulesLabel: prev?.rulesLabel?.startsWith(`${b.edition} class · `) ? prev.rulesLabel : `${b.edition} rules`,
     identity: {
       ...(prev?.identity ?? {}), species: b.species.option ? `${b.species.name} (${b.species.option})` : b.species.name, speciesEdition: b.edition,
       background: b.background.name, size: species?.size === 'small' ? 'small' : 'medium',
@@ -330,13 +354,13 @@ export function generateDoc(pack: RulesPack, b: Build, prev?: CharacterDoc | nul
     classes,
     abilities: { base: { ...b.abilities.base }, override: {} },
     speeds: { walk: species?.speed.walk ?? 30, fly: species?.speed.fly, swim: species?.speed.swim, climb: species?.speed.climb },
-    hitPoints: { base: Math.round(hpBase), bonus: 0, override: null },
+    hitPoints: { base: Math.round(hpBase), bonus: b.hpBonus ?? 0, override: null },
     xp: prev?.xp ?? 0,
     effects, features, actions,
     inventory: prev?.inventory ?? [],
     currency: prev?.currency ?? { cp: 0, sp: 0, ep: 0, gp: 0, pp: 0 },
     spellSources,
-    extraProficiencies: { armor: [], weapons: [], tools: [], languages: [] },
+    extraProficiencies: { armor: [...(b.extraProficiencies?.armor ?? [])], weapons: [...(b.extraProficiencies?.weapons ?? [])], tools: [...(b.extraProficiencies?.tools ?? [])], languages: [...(b.extraProficiencies?.languages ?? [])] },
     notes: prev?.notes ?? blank,
     preferences: prev?.preferences ?? { ignoreCoinWeight: true, encumbrance: 'standard', combatActions: b.edition },
     theme: prev?.theme ?? { name: 'ember', accent: null },
@@ -381,7 +405,34 @@ export function normalizeBuild(input: unknown): Build {
     hpMode: x.hpMode === 'rolled' ? 'rolled' : 'average',
     customFeatures: (Array.isArray(x.customFeatures) ? x.customFeatures : []).slice(0, 50).map((f: Record<string, unknown>) => ({ name: str(f?.name), level: f?.level ? int(f.level, 1, 20, 1) : undefined, description: str(f?.description, 8000), source: str(f?.source) || undefined })).filter(f => f.name),
     languages: strs(x.languages, 10),
+    adjustments: (Array.isArray(x.adjustments) ? x.adjustments : []).slice(0, 60).map((a: Record<string, unknown>) => ({
+      type: str(a?.type, 30), subType: str(a?.subType, 60), value: a?.value == null ? null : int(a.value, -50, 100, 0),
+      ability: isAbility(a?.ability) ? a.ability : null, label: str(a?.label, 80) || undefined,
+    })).filter(a => (ADJUSTMENT_TYPES as readonly string[]).includes(a.type) && /^[a-z0-9-]{1,60}$/.test(a.subType)),
+    extraProficiencies: (() => {
+      const e = (x.extraProficiencies ?? {}) as Record<string, unknown>
+      return { armor: strs(e.armor, 20, 60), weapons: strs(e.weapons, 40, 60), tools: strs(e.tools, 20, 60), languages: strs(e.languages, 20, 60) }
+    })(),
+    hpBonus: int(x.hpBonus, -200, 500, 0),
+    snippets: (() => {
+      const o = (x.snippets && typeof x.snippets === 'object' && !Array.isArray(x.snippets) ? x.snippets : {}) as Record<string, unknown>
+      return Object.fromEntries(Object.entries(o).filter(([k, v]) => typeof v === 'string' && k.length <= 80).slice(0, 80).map(([k, v]) => [k, (v as string).slice(0, 600)]))
+    })(),
   }
+}
+
+/** Ids of kept spell sources/actions the client still wants (the content itself comes from the server copy). */
+export function keptIds(input: unknown): Set<string> | null {
+  const k = (input && typeof input === 'object' ? (input as Record<string, unknown>).kept : null) as Record<string, unknown> | null
+  if (!k || typeof k !== 'object') return null
+  const ids = (v: unknown) => (Array.isArray(v) ? v.map(o => (o && typeof o === 'object' ? String((o as Record<string, unknown>).id ?? '') : '')).filter(Boolean) : [])
+  return new Set([...ids(k.spellSources), ...ids(k.actions)])
+}
+
+export function filterKept(kept: Build['kept'], ids: Set<string> | null): Build['kept'] {
+  if (!kept) return undefined
+  if (!ids) return kept
+  return { spellSources: kept.spellSources.filter(s => ids.has(s.id)), actions: kept.actions.filter(a => ids.has(a.id)) }
 }
 
 /** Light version of a pack for the browser builder (no long descriptions). */
