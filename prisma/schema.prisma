@@ -55,3 +55,24 @@ model Quirk {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 }
+
+/// v2 character sheet. `doc` is a CharacterDoc (lib/sheet/types.ts); `state` is its PlayState.
+model PlayerCharacter {
+  id         String   @id @default(cuid())
+  slug       String   @unique
+  name       String
+  doc        Json
+  state      Json
+  /// Increments on every write; clients send it back to detect stale edits.
+  revision   Int      @default(0)
+  avatar     Bytes?
+  avatarType String?
+  /// D&D Beyond character id, when imported.
+  ddbId      String?  @unique
+  /// Reserved for accounts (multi-user phase).
+  ownerId    String?
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([ownerId])
+}

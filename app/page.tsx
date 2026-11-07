@@ -1,254 +1,53 @@
-'use client'
-
-import { useState, useEffect } from 'react'
 import Link from 'next/link'
-import { Character, Life } from '@/lib/types'
-import CharacterTypeBadge from '@/components/CharacterTypeBadge'
+import { listSheets } from '@/lib/sheet/store'
+import ImportForm from '@/components/home/ImportForm'
 
-interface CharacterWithCurrentLife extends Character {
-  currentLife: Life | null
-  totalLives: number
-  isRegenerist: boolean
-}
+export const dynamic = 'force-dynamic'
 
-export default function CharacterHub() {
-  const [characters, setCharacters] = useState<CharacterWithCurrentLife[]>([])
-  const [isLoading, setIsLoading] = useState(true)
-  const [showCreateModal, setShowCreateModal] = useState(false)
-  const [newCharacterName, setNewCharacterName] = useState('')
-  const [isCreating, setIsCreating] = useState(false)
-  const [error, setError] = useState<string | null>(null)
-  const [isRegeneristMode, setIsRegeneristMode] = useState(true)
-
-  useEffect(() => {
-    fetchCharacters()
-  }, [])
-
-  const fetchCharacters = async () => {
-    setError(null)
-    setIsLoading(true)
-    try {
-      const res = await fetch('/api/characters')
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Could not load characters')
-      if (!Array.isArray(data)) throw new Error('Invalid character response')
-      setCharacters(data)
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Could not load characters')
-    } finally {
-      setIsLoading(false)
-    }
-  }
-
-  const handleCreateCharacter = async (e: React.FormEvent) => {
-    e.preventDefault()
-    if (!newCharacterName.trim()) return
-
-    setError(null)
-    setIsCreating(true)
-    try {
-      const res = await fetch('/api/characters', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          name: newCharacterName.trim(),
-          isRegenerist: isRegeneristMode,
-        }),
-      })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Could not create character')
-      if (res.ok) {
-        await fetchCharacters()
-        setNewCharacterName('')
-        setIsRegeneristMode(true)
-        setShowCreateModal(false)
-      }
-    } catch (error) {
-      setError(error instanceof Error ? error.message : 'Could not create character')
-    } finally {
-      setIsCreating(false)
-    }
-  }
-
-
-  if (isLoading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen bg-slate-900">
-        <div className="text-gold-400 text-xl">Loading...</div>
-      </div>
-    )
-  }
-
+export default async function Home() {
+  const characters = await listSheets()
   return (
-    <div className="min-h-screen bg-slate-900 text-white">
-      <div className="max-w-6xl mx-auto px-4 py-8">
-        {/* Header */}
-        <div className="text-center mb-12">
-          <h1 className="text-5xl font-bold bg-gradient-to-r from-amber-400 to-yellow-300 bg-clip-text text-transparent mb-4">
-            THE REGENERIST
-          </h1>
-          <p className="text-slate-400 text-lg">
-            D&D 5e Character Management for the Ever-Changing Soul
-          </p>
-        </div>
-
-        {/* Action Bar */}
-        <div className="flex justify-between items-center mb-8">
-          <h2 className="text-2xl font-semibold text-white">Your Characters</h2>
-          <div className="flex gap-4">
-            <Link
-              href="/admin"
-              className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors"
-            >
-              Admin
-            </Link>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-4 py-2 bg-gold-500 hover:bg-gold-400 rounded-lg text-slate-900 font-semibold transition-colors"
-            >
-              + New Character
-            </button>
+    <main className="v2 min-h-screen font-ui text-sm" data-theme="ember">
+      <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
+        <header className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <h1 className="m-0 font-display text-4xl font-semibold">Characters</h1>
+            <p className="m-0 mt-1 text-muted">Your sheets, rules, and rolls in one place.</p>
           </div>
-        </div>
+          <Link href="/regenerist" className="rounded-xl border border-line bg-panel px-4 py-2.5 text-[13px] font-semibold">Regenerist lives →</Link>
+        </header>
 
-        {error && <div role="alert" className="mb-6 rounded-lg border border-red-500/50 bg-red-950/30 p-4 text-red-200">{error} <button onClick={fetchCharacters} className="ml-3 underline">Retry loading</button></div>}
+        <ImportForm />
 
-        {/* Character Grid */}
         {characters.length === 0 ? (
-          <div className="bg-slate-800 rounded-lg p-12 border border-slate-700 text-center">
-            <p className="text-slate-400 text-lg mb-6">
-              No characters yet. Create your first regenerating soul!
-            </p>
-            <button
-              onClick={() => setShowCreateModal(true)}
-              className="px-6 py-3 bg-gold-500 hover:bg-gold-400 rounded-lg text-slate-900 font-semibold transition-colors"
-            >
-              Create Character
-            </button>
-          </div>
+          <p className="m-0 rounded-2xl border border-dashed border-line p-8 text-center text-muted">No characters yet. Import one from D&amp;D Beyond above.</p>
         ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {characters.map((character) => {
-              const { currentLife, totalLives } = character
-
+          <ul className="m-0 grid list-none grid-cols-[repeat(auto-fill,minmax(280px,1fr))] gap-4 p-0">
+            {characters.map(c => {
+              const initials = c.name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
+              const pct = Math.round((c.hp.current / Math.max(1, c.hp.max)) * 100)
               return (
-                <Link
-                  key={character.id}
-                  href={`/character/${character.slug}`}
-                  className="group bg-slate-800 rounded-lg border border-slate-700 hover:border-gold-500/50 transition-all hover:shadow-lg hover:shadow-gold-500/10"
-                >
-                  <div className="p-6">
-                    {/* Character Header */}
-                  <div className="flex justify-between items-start mb-4">
-                      <div>
-                        <div className="flex items-center gap-2 mb-1">
-                          <h3 className="text-xl font-bold text-white group-hover:text-gold-400 transition-colors">
-                            {character.name}
-                          </h3>
-                          <CharacterTypeBadge isRegenerist={character.isRegenerist} />
-                        </div>
-                        <p className="text-sm text-slate-500">Level {character.level}</p>
-                      </div>
-                      <div className="bg-slate-700 rounded-full px-3 py-1 text-xs text-slate-400">
-                        {totalLives} {totalLives === 1 ? 'life' : 'lives'}
-                      </div>
-                    </div>
-
-                    {/* Current Life Preview */}
-                    {currentLife ? (
-                      <div className="bg-slate-900/50 rounded-lg p-4">
-                        <p className="text-gold-400 font-medium mb-1">{currentLife.name}</p>
-                        <p className="text-sm text-slate-400">{currentLife.race}</p>
-                        <p className="text-sm text-slate-500">
-                          {currentLife.class} ({currentLife.subclass})
-                        </p>
-                        <div className="mt-3 flex items-center gap-4 text-xs text-slate-500">
-                          <span>HP: {currentLife.currentHp}/{currentLife.maxHp}</span>
-                          <span>Life #{currentLife.lifeNumber}</span>
-                        </div>
-                      </div>
-                    ) : (
-                      <div className="bg-slate-900/50 rounded-lg p-4 text-center">
-                        <p className="text-slate-500 text-sm">
-                          No incarnation yet
-                        </p>
-                        <p className="text-gold-400 text-xs mt-1">
-                          Click to regenerate!
-                        </p>
-                      </div>
-                    )}
-                  </div>
-                </Link>
+                <li key={c.slug}>
+                  <Link href={`/c/${c.slug}`} data-theme={c.theme} className="v2 flex items-center gap-4 rounded-2xl border border-line bg-panel p-4 hover:border-accent">
+                    <span className="flex h-14 w-14 shrink-0 items-center justify-center overflow-hidden rounded-xl border border-accent bg-accent-soft font-display text-xl font-semibold text-accent">
+                      {/* eslint-disable-next-line @next/next/no-img-element */}
+                      {c.hasAvatar ? <img src={`/api/sheets/${c.slug}/avatar`} alt="" className="h-full w-full object-cover" /> : initials}
+                    </span>
+                    <span className="flex min-w-0 flex-1 flex-col gap-1">
+                      <span className="truncate font-display text-lg font-semibold">{c.name}</span>
+                      <span className="truncate text-xs text-muted">{c.species} · {c.classLabel}</span>
+                      <span className="flex items-center gap-2 text-xs text-muted">
+                        <span className="h-1.5 w-24 overflow-hidden rounded bg-raised"><span className="block h-1.5" style={{ width: `${pct}%`, background: pct > 50 ? 'var(--good)' : pct > 25 ? 'var(--accent)' : 'var(--bad)' }} /></span>
+                        {c.hp.current}/{c.hp.max} HP
+                      </span>
+                    </span>
+                  </Link>
+                </li>
               )
             })}
-          </div>
-        )}
-
-        {/* Create Modal */}
-        {showCreateModal && (
-          <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
-            <div className="bg-slate-800 rounded-lg p-6 w-full max-w-md border border-slate-700">
-              <h3 className="text-xl font-bold text-white mb-4">Create New Character</h3>
-              <form onSubmit={handleCreateCharacter}>
-                {error && <p role="alert" className="mb-4 text-red-300">{error}</p>}
-                <div className="mb-4">
-                  <label className="block text-sm text-slate-400 mb-2">
-                    Character Name
-                  </label>
-                  <input
-                    type="text"
-                    value={newCharacterName}
-                    onChange={(e) => setNewCharacterName(e.target.value)}
-                    className="w-full px-4 py-2 bg-slate-900 border border-slate-600 rounded-lg text-white focus:outline-none focus:border-gold-500"
-                    placeholder="Enter character name..."
-                    maxLength={100}
-                    autoFocus
-                  />
-                </div>
-                
-                <div className="mb-6">
-                  <label className="flex items-center gap-3 cursor-pointer">
-                    <div className="relative">
-                      <input
-                        type="checkbox"
-                        checked={isRegeneristMode}
-                        onChange={(e) => setIsRegeneristMode(e.target.checked)}
-                        className="sr-only peer"
-                      />
-                      <div className="w-10 h-5 bg-slate-700 rounded-full peer peer-checked:bg-gold-500 transition-colors"></div>
-                      <div className="absolute left-0.5 top-0.5 w-4 h-4 bg-white rounded-full transition-transform peer-checked:translate-x-5"></div>
-                    </div>
-                    <div>
-                      <p className="text-sm font-semibold text-slate-300">Regenerist Mode</p>
-                      <p className="text-xs text-slate-500">{isRegeneristMode ? 'Auto-generates lives with AI stories' : 'Manual static character'}</p>
-                    </div>
-                  </label>
-                </div>
-
-                <div className="flex gap-3 justify-end">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      setShowCreateModal(false)
-                      setIsRegeneristMode(true)
-                    }}
-                    className="px-4 py-2 bg-slate-700 hover:bg-slate-600 rounded-lg text-slate-300 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={isCreating || !newCharacterName.trim()}
-                    className="px-4 py-2 bg-gold-500 hover:bg-gold-400 disabled:bg-slate-600 disabled:text-slate-400 rounded-lg text-slate-900 font-semibold transition-colors"
-                  >
-                    {isCreating ? 'Creating...' : 'Create'}
-                  </button>
-                </div>
-              </form>
-            </div>
-          </div>
+          </ul>
         )}
       </div>
-    </div>
+    </main>
   )
 }

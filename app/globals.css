@@ -205,3 +205,45 @@ body {
   animation: grid-pulse 1.2s ease-in-out infinite;
   animation-delay: 0.5s;
 }
+
+/* ───────────── v2 sheet themes ─────────────
+   Each character carries a theme name and an optional accent; the sheet sets
+   data-theme on its root and may override --accent inline. */
+.v2 {
+  --bg: #13110e; --panel: #1c1915; --raised: #26211c; --line: #3b332b;
+  --ink: #f3ece3; --muted: #b6a998; --accent: #f0913f; --on-accent: #1b0e04;
+  --good: #86d3a5; --bad: #ff8f7f;
+  --r-common: var(--ink); --r-uncommon: #8fd6a0; --r-rare: #8fbaff; --r-very-rare: #cfa8ff; --r-legendary: #ffb36b; --r-artifact: #ff9f8a;
+  --shadow: 0 12px 32px rgba(0, 0, 0, 0.32);
+  background: var(--bg); color: var(--ink);
+  color-scheme: dark;
+  font-variant-numeric: tabular-nums;
+}
+.v2[data-theme="arcane"] {
+  --bg: #0d1120; --panel: #151a2d; --raised: #1d2440; --line: #2d365c;
+  --ink: #e9ecf8; --muted: #a7afcc; --accent: #a3b5ff; --on-accent: #0a0f2a;
+  --good: #84dab4; --bad: #ff98a3;
+  --r-uncommon: #8fd6a0; --r-rare: #86c5ff; --r-very-rare: #d3adff; --r-legendary: #ffbe7a;
+}
+.v2[data-theme="parchment"] {
+  --bg: #ebe3d2; --panel: #fcf8f0; --raised: #f3ecdd; --line: #d8cab0;
+  --ink: #2a2017; --muted: #62554a; --accent: #9e2b25; --on-accent: #fff8f0;
+  --good: #2b7348; --bad: #b0241c;
+  --r-uncommon: #2b7340; --r-rare: #2353ad; --r-very-rare: #7438b0; --r-legendary: #9a5200; --r-artifact: #a3271b;
+  --shadow: 0 12px 32px rgba(60, 40, 20, 0.18);
+  color-scheme: light;
+}
+.v2 { --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent); }
+.v2 ::selection { background: var(--accent); color: var(--on-accent); }
+.v2 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
+.v2 .rich p { margin: 0 0 0.6em; }
+.v2 .rich p:last-child { margin-bottom: 0; }
+.v2 .rich ul, .v2 .rich ol { margin: 0 0 0.6em 1.2em; list-style: disc; }
+.v2 .rich ol { list-style: decimal; }
+.v2 .rich table { width: 100%; border-collapse: collapse; margin: 0.5em 0; font-size: 0.92em; }
+.v2 .rich th, .v2 .rich td { border: 1px solid var(--line); padding: 4px 6px; text-align: left; }
+.v2 .rich h4, .v2 .rich h5, .v2 .rich h6 { font-weight: 700; margin: 0.8em 0 0.3em; }
+.v2 .rich a { color: var(--accent); text-decoration: underline; }
+@keyframes v2-pop { from { transform: translateY(8px); opacity: 0 } to { transform: none; opacity: 1 } }
+.v2 .pop { animation: v2-pop 160ms ease-out; }
+@media (prefers-reduced-motion: reduce) { .v2 .pop { animation: none } }

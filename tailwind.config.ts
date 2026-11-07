@@ -8,7 +8,15 @@ const config: Config = {
   ],
   theme: {
     extend: {
+      fontFamily: {
+        display: ['var(--font-display)', 'Georgia', 'serif'],
+        ui: ['var(--font-ui)', 'system-ui', 'sans-serif'],
+      },
+      boxShadow: { tray: 'var(--shadow)' },
       colors: {
+        bg: 'var(--bg)', panel: 'var(--panel)', raised: 'var(--raised)', line: 'var(--line)',
+        ink: 'var(--ink)', muted: 'var(--muted)', accent: 'var(--accent)', 'on-accent': 'var(--on-accent)',
+        'accent-soft': 'var(--accent-soft)', good: 'var(--good)', bad: 'var(--bad)',
         gold: {
           400: '#facc15',
           500: '#eab308',

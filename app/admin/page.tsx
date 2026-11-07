@@ -232,7 +232,7 @@ export default function AdminPage() {
         <div className="flex items-center justify-between mb-8">
           <div>
             <Link
-              href="/"
+              href="/regenerist"
               className="text-slate-400 hover:text-white transition-colors flex items-center gap-2 mb-2"
             >
               <span>&larr;</span> Back to Hub

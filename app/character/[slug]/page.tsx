@@ -257,7 +257,7 @@ export default function CharacterPage() {
     try {
       const res = await fetch(`/api/characters/${slug}`, { method: 'DELETE' })
       if (!res.ok) throw new Error('Failed to delete character')
-      router.push('/')
+      router.push('/regenerist')
     } catch (err) {
       setSaveError('Failed to delete character. Please try again.')
     }
@@ -275,7 +275,7 @@ export default function CharacterPage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-screen bg-slate-900">
         <div className="text-red-400 text-xl mb-4">{error || 'Character not found'}</div>
-        <Link href="/" className="text-gold-400 hover:underline">
+        <Link href="/regenerist" className="text-gold-400 hover:underline">
           Back to Character Hub
         </Link>
       </div>
@@ -294,7 +294,7 @@ export default function CharacterPage() {
         {/* Header */}
         <div className="flex items-center justify-between mb-8">
           <Link
-            href="/"
+            href="/regenerist"
             className="text-slate-400 hover:text-white transition-colors flex items-center gap-2"
           >
             <span>&larr;</span> Back to Hub
