@@ -64,3 +64,25 @@ test('spell slot caster levels follow single-class and multiclass rules', () => 
   assert.deepEqual(pactMagic(5), { level: 3, max: 2 })
   assert.deepEqual(pactMagic(11), { level: 5, max: 3 })
 })
+
+test('spell dice scale by slot level and by character level for cantrips', () => {
+  const { spellDice } = require('../lib/sheet/compute')
+  const rebuke = { dice: '2d10', level: 1, castAtLevel: 2, scaling: { kind: 'slot', dice: '1d10', every: 1 } }
+  assert.equal(spellDice(rebuke, null, 15), '3d10')
+  assert.equal(spellDice(rebuke, 4, 15), '5d10')
+  const fireBolt = { dice: '1d10', level: 0, scaling: { kind: 'character', steps: [{ level: 5, dice: '2d10' }, { level: 11, dice: '3d10' }, { level: 17, dice: '4d10' }] } }
+  assert.equal(spellDice(fireBolt, null, 4), '1d10')
+  assert.equal(spellDice(fireBolt, null, 12), '3d10')
+  const spiritual = { dice: '1d8', level: 2, scaling: { kind: 'slot', dice: '1d8', every: 2 } }
+  assert.equal(spellDice(spiritual, 6, 10), '3d8')
+})
+
+test('roll features: Reliable Talent floor, Lucky rerolls 1s, crit range', () => {
+  const r = rollD20(15, 'normal', { rng: seq(0.1), minRoll: 10 })
+  assert.equal(r.natural, 3); assert.equal(r.total, 25); assert.match(r.notes[0], /Reliable Talent/)
+  const lucky = rollD20(0, 'normal', { rng: seq(0.0, 0.5), rerollOnes: true })
+  assert.equal(lucky.natural, 11)
+  assert.equal(rollD20(0, 'normal', { rng: seq(0.9), critRange: 19 }).critical, true)
+  const { computeSheet } = require('../lib/sheet/compute')
+  assert.equal(computeSheet(doc, state).rollRules.reliableTalent, true)
+})

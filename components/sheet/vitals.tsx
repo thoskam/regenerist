@@ -1,6 +1,8 @@
 'use client'
 
 import { useState } from 'react'
+import { rollDice } from '@/lib/sheet/dice'
+import { applyHealing, shortRest } from '@/lib/sheet/state'
 import { CONDITION_TEXT, CONDITION_NAMES } from '@/lib/sheet/conditions'
 import type { SheetApi } from './useSheet'
 import { Card, Label, cx } from './ui'
@@ -13,7 +15,19 @@ export function HitPointsCard({ api, damage, heal, temp }: { api: SheetApi; dama
   const pct = Math.max(0, Math.min(100, Math.round((sheet.hp.current / sheet.hp.max) * 100)))
   const color = pct > 50 ? 'var(--good)' : pct > 25 ? 'var(--accent)' : 'var(--bad)'
   const down = sheet.hp.current === 0
-  const act = (f: (n: number) => void) => { if (valid) { f(n); setAmt('') } }
+  const [concDc, setConcDc] = useState<number | null>(null)
+  const act = (f: (n: number) => void) => {
+    if (!valid) return
+    f(n); setAmt('')
+    // 2024 caps the DC at 30; both editions use max(10, half the damage).
+    if (f === damage && state.concentration) setConcDc(Math.min(30, Math.max(10, Math.floor(n / 2))))
+  }
+  const rollConc = () => {
+    if (concDc == null) return
+    const r = rollCheck(`Concentration (${state.concentration}) — DC ${concDc}`, sheet.abilities.con.save)
+    if (r.total < concDc) setState(s => ({ ...s, concentration: null }))
+    setConcDc(null)
+  }
   const ds = state.deathSaves
   const setDs = (k: 'success' | 'fail', v: number) => setState(s => ({ ...s, deathSaves: { ...s.deathSaves, [k]: v } }))
 
@@ -36,6 +50,13 @@ export function HitPointsCard({ api, damage, heal, temp }: { api: SheetApi; dama
         <button type="submit" disabled={!valid} className="min-h-[38px] flex-1 rounded-[9px] border border-line bg-raised text-[13px] font-semibold text-bad disabled:opacity-50">Damage</button>
         <button type="button" disabled={!valid} onClick={() => act(temp)} className="min-h-[38px] flex-1 rounded-[9px] border border-line bg-raised text-[13px] font-semibold disabled:opacity-50">Temp</button>
       </form>
+      {concDc != null && state.concentration && (
+        <div role="alert" className="pop flex flex-wrap items-center gap-2 rounded-xl border border-accent bg-accent-soft p-2.5 text-[13px]">
+          <span className="flex-1">Concentration on <strong>{state.concentration}</strong>: CON save DC {concDc}</span>
+          <button type="button" onClick={rollConc} className="min-h-[34px] rounded-[9px] bg-accent px-3 font-semibold text-on-accent">Roll {sheet.abilities.con.save >= 0 ? '+' : ''}{sheet.abilities.con.save}</button>
+          <button type="button" onClick={() => setConcDc(null)} className="min-h-[34px] rounded-[9px] border border-line px-3 font-semibold">Dismiss</button>
+        </div>
+      )}
       {down && (
         <div className="flex flex-wrap items-center gap-3 rounded-xl bg-raised p-2.5">
           <button type="button" onClick={() => {
@@ -91,6 +112,12 @@ export function ConditionsCard({ api }: { api: SheetApi }) {
                 <button type="button" aria-label={`Remove ${c}`} onClick={() => toggle(c)} className="flex h-6 w-6 items-center justify-center rounded-full">×</button>
               </span>
             ))}
+            {state.concentration && (
+              <span className="flex items-center gap-1 rounded-full border border-good py-0.5 pl-2.5 pr-1 text-[13px] font-semibold">
+                Concentrating: {state.concentration}
+                <button type="button" aria-label={`End concentration on ${state.concentration}`} onClick={() => setState(s => ({ ...s, concentration: null }))} className="flex h-6 w-6 items-center justify-center rounded-full">×</button>
+              </span>
+            )}
             {state.exhaustion > 0 && <span className="rounded-full border border-bad px-2.5 py-0.5 text-[13px] font-semibold text-bad">Exhaustion {state.exhaustion}</span>}
             <button type="button" aria-expanded={open} onClick={() => setOpen(o => !o)} className="min-h-[32px] rounded-lg border border-dashed border-line px-3 text-[13px] text-muted">{open ? 'Done' : '+ Conditions'}</button>
           </div>
@@ -122,5 +149,37 @@ export function ConditionsCard({ api }: { api: SheetApi }) {
         </div>
       )}
     </Card>
+  )
+}
+
+export function ShortRestDialog({ api, open, onClose }: { api: SheetApi; open: boolean; onClose: () => void }) {
+  const { sheet, setState, push, doc } = api
+  const conMod = sheet.abilities.con.mod
+  const spend = (die: number) => {
+    const roll = rollDice(`1d${die}`)
+    const healed = Math.max(0, roll.total + conMod)
+    setState(s => applyHealing({ ...s, hitDiceUsed: { ...s.hitDiceUsed, [die]: (s.hitDiceUsed[die] || 0) + 1 } }, healed))
+    push({ label: `Hit die (d${die})`, total: healed, detail: `${roll.text}${conMod ? ` ${conMod > 0 ? '+' : '−'} ${Math.abs(conMod)} CON` : ''}`, tag: 'HEALING' })
+  }
+  if (!open) return null
+  return (
+    <div role="dialog" aria-modal="true" aria-labelledby="sr-title" className="fixed inset-0 z-40 flex items-end justify-center bg-black/50 p-3 sm:items-center" onClick={e => { if (e.target === e.currentTarget) onClose() }}>
+      <div className="pop flex w-full max-w-md flex-col gap-4 rounded-2xl border border-line bg-panel p-5 shadow-tray">
+        <div>
+          <h2 id="sr-title" className="m-0 font-display text-2xl font-semibold">Short rest</h2>
+          <p className="m-0 mt-1 text-[13px] text-muted">Spend hit dice to heal (each adds your CON modifier). HP {sheet.hp.current} / {sheet.hp.max}.</p>
+        </div>
+        {sheet.hitDice.map(h => (
+          <div key={h.die} className="flex items-center gap-3 rounded-xl bg-raised p-3">
+            <span className="flex-1"><strong>d{h.die}</strong> <span className="text-muted">· {h.total - h.used} of {h.total} left</span></span>
+            <button type="button" disabled={h.used >= h.total || sheet.hp.current >= sheet.hp.max} onClick={() => spend(h.die)} className="min-h-[40px] rounded-[9px] bg-accent px-3 text-[13px] font-semibold text-on-accent disabled:opacity-40">Spend 1d{h.die}{conMod ? `${conMod > 0 ? '+' : '−'}${Math.abs(conMod)}` : ''}</button>
+          </div>
+        ))}
+        <div className="flex justify-end gap-2">
+          <button type="button" onClick={onClose} className="min-h-[44px] rounded-xl border border-line px-4 text-[13px] font-semibold">Cancel</button>
+          <button type="button" onClick={() => { setState(s => shortRest(doc, s)); push({ label: 'Short rest', total: 0, detail: 'Short-rest uses and pact slots restored.', tag: 'REST' }); onClose() }} className="min-h-[44px] rounded-xl bg-accent px-4 text-[13px] font-semibold text-on-accent">Finish short rest</button>
+        </div>
+      </div>
+    </div>
   )
 }

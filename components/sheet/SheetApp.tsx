@@ -3,7 +3,7 @@
 import Link from 'next/link'
 import { useRef, useState, type CSSProperties } from 'react'
 import { ABILITY_NAMES, fmtMod } from '@/lib/sheet/compute'
-import { applyDamage, applyHealing, longRest, setTempHp, shortRest } from '@/lib/sheet/state'
+import { applyDamage, applyHealing, longRest, setTempHp } from '@/lib/sheet/state'
 import type { Ability, CharacterDoc, PlayState, ThemeName } from '@/lib/sheet/types'
 import { ABILITIES } from '@/lib/sheet/types'
 import { useSheet, type SheetApi } from './useSheet'
@@ -11,7 +11,7 @@ import { combineModes } from '@/lib/sheet/dice'
 import { Card, DetailDrawer, Label, SectionTitle, Segmented, cx, type DetailContent } from './ui'
 import { ActionsTab, FeaturesTab, InventoryTab, NotesTab, SpellsTab } from './tabs'
 import { RollTray } from './RollTray'
-import { ConditionsCard, HitPointsCard } from './vitals'
+import { ConditionsCard, HitPointsCard, ShortRestDialog } from './vitals'
 
 type Tab = 'abilities' | 'skills' | 'actions' | 'spells' | 'inventory' | 'features' | 'notes'
 const TABS: Array<{ id: Tab; label: string; mobileOnly?: boolean }> = [
@@ -92,6 +92,7 @@ function Header({ api, slug, hasAvatar }: { api: SheetApi; slug: string; hasAvat
   const [menu, setMenu] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [resting, setResting] = useState(false)
   const initials = doc.name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
   const xp = sheet.xp
   const pct = xp.nextLevel ? Math.max(0, Math.min(100, ((xp.current - xp.levelStart) / (xp.nextLevel - xp.levelStart)) * 100)) : 100
@@ -147,7 +148,7 @@ function Header({ api, slug, hasAvatar }: { api: SheetApi; slug: string; hasAvat
       <div className="flex flex-wrap items-center gap-2.5">
         <span className="rounded-full border border-line px-2.5 py-1.5 text-xs text-muted">Rules: {doc.rulesLabel}</span>
         <Segmented label="Roll mode" value={mode} onChange={setMode} options={[{ value: 'normal', label: 'Normal' }, { value: 'advantage', label: 'Advantage' }, { value: 'disadvantage', label: 'Disadvantage' }]} />
-        <button type="button" onClick={() => { setState(s => shortRest(doc, s)); push({ label: 'Short rest', total: 0, detail: `Short-rest uses restored. Hit dice: ${sheet.hitDice.map(h => `${h.total - h.used}d${h.die}`).join(', ')} left.`, tag: 'REST' }) }} className="min-h-[44px] rounded-xl border border-line bg-raised px-4 text-[13px] font-semibold">Short rest</button>
+        <button type="button" onClick={() => setResting(true)} className="min-h-[44px] rounded-xl border border-line bg-raised px-4 text-[13px] font-semibold">Short rest</button>
         <button type="button" onClick={() => { setState(s => longRest(doc, s)); push({ label: 'Long rest', total: 0, detail: 'HP, spell slots, and limited uses restored.', tag: 'REST' }) }} className="min-h-[44px] rounded-xl border border-line bg-raised px-4 text-[13px] font-semibold">Long rest</button>
         <div className="relative">
           <button type="button" aria-expanded={menu} aria-label="Sheet menu" onClick={() => setMenu(m => !m)} className="flex h-11 w-11 items-center justify-center rounded-xl border border-line bg-raised">
@@ -173,6 +174,7 @@ function Header({ api, slug, hasAvatar }: { api: SheetApi; slug: string; hasAvat
           {status === 'conflict' ? <>This character was changed in another window. <button type="button" className="underline" onClick={() => window.location.reload()}>Reload</button> to continue.</> : 'Couldn’t save your last change. Retrying…'}
         </div>
       )}
+      <ShortRestDialog api={api} open={resting} onClose={() => setResting(false)} />
       <span className="sr-only" aria-live="polite">{status === 'saving' ? 'Saving' : ''}</span>
       {state.inspiration && <span className="sr-only">Heroic Inspiration available</span>}
     </header>
@@ -310,7 +312,7 @@ function SkillsCard({ api, flat }: { api: SheetApi; flat?: boolean }) {
         <span className="text-[11px] text-muted">● proficient · ◉ expertise · ◐ half</span>
       </div>
       {sheet.skills.map((s, i) => (
-        <button key={s.key} type="button" onClick={() => rollCheck(s.name, s.bonus, { forceMode: combineModes(api.mode, s.advantage, s.disadvantage) })}
+        <button key={s.key} type="button" onClick={() => rollCheck(s.name, s.bonus, { forceMode: combineModes(api.mode, s.advantage, s.disadvantage), reliable: s.prof === 'proficient' || s.prof === 'expertise' })}
           aria-label={`Roll ${s.name}`} className={cx('flex min-h-[40px] items-center gap-2.5 rounded-[9px] px-2 text-left hover:outline hover:outline-1 hover:outline-accent', i % 2 === 0 && 'bg-raised')}>
           <span aria-hidden="true" className={cx('h-3 w-3 shrink-0 rounded-full border-2',
             s.prof === 'none' ? 'border-muted' : 'border-accent',

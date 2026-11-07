@@ -111,6 +111,7 @@ export interface Sheet {
   resources: Resource[]
   inventory: { weight: number; capacity: number; attuned: number; attuneMax: number }
   hasWeaponMastery: boolean
+  rollRules: { reliableTalent: boolean; lucky: boolean; elvenAccuracy: boolean; critRange: number }
   spellSlots: Array<{ level: number; max: number; used: number }>
   pactSlots: { level: number; max: number; used: number } | null
 }
@@ -417,6 +418,12 @@ export function computeSheet(doc: CharacterDoc, state: PlayState): Sheet {
     spellcasting, resources,
     inventory: { weight: Math.round(weight * 100) / 100, capacity, attuned: doc.inventory.filter(i => i.attuned).length, attuneMax },
     hasWeaponMastery,
+    rollRules: {
+      reliableTalent: doc.features.some(f => f.name === 'Reliable Talent'),
+      lucky: doc.features.some(f => f.name === 'Lucky' && f.source.kind === 'species'),
+      elvenAccuracy: doc.features.some(f => f.name === 'Elven Accuracy'),
+      critRange: doc.features.some(f => f.name === 'Superior Critical') ? 18 : doc.features.some(f => f.name === 'Improved Critical') ? 19 : 20,
+    },
     spellSlots: (SLOT_TABLE[Math.min(20, casterLevel(doc.classes))] || []).map((max, i) => ({ level: i + 1, max, used: Math.min(max, state.slotsUsed[String(i + 1)] || 0) })),
     pactSlots: (() => {
       const warlock = doc.classes.filter(c => c.spellcasting?.progression === 'pact').reduce((t, c) => t + c.level, 0)
@@ -427,3 +434,23 @@ export function computeSheet(doc: CharacterDoc, state: PlayState): Sheet {
 }
 
 export const ordinal = (n: number) => `${n}${n % 100 >= 11 && n % 100 <= 13 ? 'th' : ['th', 'st', 'nd', 'rd'][n % 10] || 'th'}`
+
+/** Damage/healing dice for a spell cast with a given slot (or at the character's level for cantrips). */
+export function spellDice(s: SpellEntry, slotLevel: number | null, characterLevel: number): string | null {
+  if (!s.dice) return null
+  const m = /^(\d+)d(\d+)(.*)$/.exec(s.dice)
+  if (!m) return s.dice
+  const sc = s.scaling
+  if (sc?.kind === 'character') {
+    const step = [...sc.steps].reverse().find(x => characterLevel >= x.level)
+    return step ? step.dice : s.dice
+  }
+  const level = slotLevel ?? s.castAtLevel ?? s.level
+  if (sc?.kind === 'slot' && level > s.level && s.level > 0) {
+    const add = /^(\d+)d(\d+)/.exec(sc.dice)
+    const steps = Math.floor((level - s.level) / sc.every)
+    if (add && add[2] === m[2]) return `${Number(m[1]) + steps * Number(add[1])}d${m[2]}${m[3]}`
+    if (add) return `${s.dice}+${steps * Number(add[1])}d${add[2]}`
+  }
+  return s.castDice ?? s.dice
+}

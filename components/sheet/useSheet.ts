@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { computeSheet } from '@/lib/sheet/compute'
-import { rollD20, rollDice, type RollMode } from '@/lib/sheet/dice'
+import { rollD20, rollDice, type D20Options, type RollMode } from '@/lib/sheet/dice'
 import type { CharacterDoc, PlayState, ThemeName } from '@/lib/sheet/types'
 
 export interface RollEntry {
@@ -10,7 +10,7 @@ export interface RollEntry {
   label: string
   total: number
   detail: string
-  tag?: 'NAT 20' | 'NAT 1' | 'ADVANTAGE' | 'DISADVANTAGE' | 'CRIT' | 'DAMAGE' | 'HEALING' | 'REST' | 'SAVE'
+  tag?: 'NAT 20' | 'NAT 1' | 'ADVANTAGE' | 'DISADVANTAGE' | 'CRIT' | 'DAMAGE' | 'HEALING' | 'REST' | 'SAVE' | 'CAST' | 'ROLL'
   at: number
 }
 
@@ -84,13 +84,20 @@ export function useSheet(slug: string, initial: { doc: CharacterDoc; state: Play
     setLog(l => [entry, ...l].slice(0, 50))
   }, [])
 
-  const rollCheck = useCallback((label: string, modifier: number, opts: { critKey?: string; forceMode?: RollMode } = {}) => {
+  const rollCheck = useCallback((label: string, modifier: number, opts: { critKey?: string; forceMode?: RollMode; reliable?: boolean; ability?: string; attack?: boolean } = {}) => {
     const m = opts.forceMode ?? mode
-    const r = rollD20(modifier, m)
-    push({ label, total: r.total, detail: r.text, tag: r.critical ? 'NAT 20' : r.fumble ? 'NAT 1' : m === 'advantage' ? 'ADVANTAGE' : m === 'disadvantage' ? 'DISADVANTAGE' : undefined })
+    const rules = sheet.rollRules
+    const d20: D20Options = {
+      rerollOnes: rules.lucky,
+      minRoll: opts.reliable && rules.reliableTalent ? 10 : undefined,
+      critRange: opts.attack ? rules.critRange : 20,
+      extraAdvantageDie: rules.elvenAccuracy && opts.attack && opts.ability !== 'str' && opts.ability !== 'con',
+    }
+    const r = rollD20(modifier, m, d20)
+    push({ label, total: r.total, detail: [r.text, ...r.notes].join(' · '), tag: r.critical ? 'NAT 20' : r.fumble ? 'NAT 1' : m === 'advantage' ? 'ADVANTAGE' : m === 'disadvantage' ? 'DISADVANTAGE' : undefined })
     if (opts.critKey) setCritKey(r.critical ? opts.critKey : null)
     return r
-  }, [mode, push])
+  }, [mode, push, sheet.rollRules])
 
   const rollDamage = useCallback((d: DamageRoll) => {
     const crit = !!d.critKey && critKey === d.critKey

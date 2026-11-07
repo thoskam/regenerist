@@ -165,6 +165,10 @@ export interface SpellEntry {
   dice?: string | null
   /** Dice when cast at castAtLevel, from the spell's own higher-level scaling. */
   castDice?: string | null
+  /** How the dice grow: per slot level above the spell's level, or by character level (cantrips). */
+  scaling?: { kind: 'slot'; dice: string; every: number } | { kind: 'character'; steps: Array<{ level: number; dice: string }> } | null
+  /** Casting spends a spell slot (class spells); racial/item spells use `uses` instead. */
+  usesSlot?: boolean
   damageType?: string | null
 }
 

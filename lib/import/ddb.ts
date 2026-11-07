@@ -332,10 +332,17 @@ export function convertDdbCharacter(c: Json, now = new Date()): DdbImportResult 
     let src = spellSources.find(x => x.id === sourceKey)
     if (!src) { src = { id: sourceKey, label, ability, spells: [] }; spellSources.push(src) }
     const d = s.definition || {}
-    const dmg = (d.modifiers || []).find((m: Json) => m.type === 'damage' && m.die?.diceString)
+    const dmgMods = (d.modifiers || []).filter((m: Json) => m.type === 'damage' && m.die?.diceString)
+    const dmg = dmgMods[0]
+    // Several damage modifiers with identical dice (Hunter's Mark) mean "the weapon's damage type".
+    const ambiguousType = dmgMods.length > 1 && dmgMods.every((m: Json) => m.die.diceString === dmg.die.diceString) && new Set(dmgMods.map((m: Json) => m.subType)).size > 1
     const heal = (d.modifiers || []).find((m: Json) => m.type === 'bonus' && m.subType === 'hit-points' && m.die?.diceString)
     const key = `spell-${sourceKey}-${s.id ?? d.id}`
     const scaled = dmg || heal
+    let scaling: SpellEntry['scaling'] = null
+    const defs: Json[] = (scaled?.atHigherLevels?.higherLevelDefinitions || []).filter((h: Json) => h?.dice?.diceString)
+    if (defs.length && d.scaleType === 'spellscale') scaling = { kind: 'slot', dice: defs[0].dice.diceString, every: Math.max(1, num(defs[0].level, 1)) }
+    else if (defs.length && d.scaleType === 'characterlevel') scaling = { kind: 'character', steps: defs.map((h: Json) => ({ level: num(h.level), dice: h.dice.diceString })).sort((a: Json, b: Json) => a.level - b.level) }
     let castDice: string | null = null
     const per = scaled?.atHigherLevels?.higherLevelDefinitions?.find((h: Json) => h?.dice?.diceValue)
     if (scaled?.die?.diceCount && per && s.castAtLevel && s.castAtLevel > num(d.level) && num(d.level) > 0) {
@@ -353,7 +360,8 @@ export function convertDdbCharacter(c: Json, now = new Date()): DdbImportResult 
       uses: limitedUse(s.limitedUse, key),
       save: d.saveDcAbilityId ? STAT[d.saveDcAbilityId] ?? null : null,
       attack: d.attackType === 1 ? 'melee' : d.attackType === 2 ? 'ranged' : null,
-      dice: dmg?.die?.diceString ?? heal?.die?.diceString ?? null, castDice, damageType: dmg ? String(dmg.subType) : heal ? 'healing' : null,
+      dice: dmg?.die?.diceString ?? heal?.die?.diceString ?? null, castDice, scaling, usesSlot: !!s.usesSpellSlot,
+      damageType: dmg ? (ambiguousType ? null : String(dmg.subType)) : heal ? 'healing' : null,
     })
   }
   for (const s of c.spells?.race || []) pushSpell(`race-${s.componentId}`, raceTraits.get(s.componentId) || speciesName, STAT[s.spellCastingAbilityId] ?? null, s)

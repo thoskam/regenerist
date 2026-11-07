@@ -1,8 +1,8 @@
 'use client'
 
 import { useMemo, useState } from 'react'
-import { ABILITY_NAMES, fmtMod, ordinal, type ActionRow, type AttackRow, type Resource } from '@/lib/sheet/compute'
-import type { Activation, CharacterDoc, Item, Notes } from '@/lib/sheet/types'
+import { ABILITY_NAMES, fmtMod, ordinal, spellDice, type ActionRow, type AttackRow, type Resource } from '@/lib/sheet/compute'
+import type { Activation, CharacterDoc, Item, Notes, SpellEntry } from '@/lib/sheet/types'
 import type { SheetApi } from './useSheet'
 import { Label, Pips, RichText, SectionTitle, cx, rarityColor, type DetailContent } from './ui'
 
@@ -88,7 +88,7 @@ function AttackLine({ api, a, item, onDetail }: { api: SheetApi; a: AttackRow; i
   const unconditional = a.extraDamage.filter(x => !x.note)
   const conditional = a.extraDamage.filter(x => x.note)
   const crit = api.critKey === a.id
-  const rollHit = () => api.rollCheck(`${a.name} — to hit`, a.toHit, { critKey: a.id })
+  const rollHit = () => api.rollCheck(`${a.name} — to hit`, a.toHit, { critKey: a.id, attack: true, ability: a.ability })
   const rollDmg = () => api.rollDamage({ label: `${a.name} — damage`, dice: a.damage, type: a.damageType, extras: unconditional.map(x => ({ dice: x.dice, type: x.type })), critKey: a.id })
   const detail = () => onDetail({
     title: a.name, subtitle: [a.subtitle, item?.rarity && item.rarity !== 'common' && item.rarity !== 'unknown' ? item.rarity : ''].filter(Boolean).join(' · '),
@@ -168,7 +168,7 @@ export function SpellsTab({ api, onDetail }: { api: SheetApi; onDetail: OnDetail
               <div key={lvl} className="flex flex-col gap-1.5">
                 <SectionTitle accent>{lvl === 0 ? 'Cantrips' : `${ordinal(lvl)} level`}</SectionTitle>
                 {spells.map(s => {
-                  const dice = s.castDice ?? s.dice
+                  const dice = spellDice(s, null, sheet.level)
                   return (
                     <div key={s.id} className="flex flex-wrap items-center gap-x-3 gap-y-1.5 rounded-xl bg-raised px-3 py-2.5">
                       <button type="button" className="flex min-w-0 flex-[1_1_220px] flex-col text-left" onClick={() => onDetail({ title: s.name, subtitle: `${s.level ? `${ordinal(s.level)}-level ${s.school}` : `${s.school} cantrip`}${s.castAtLevel && s.castAtLevel !== s.level ? ` · cast at ${ordinal(s.castAtLevel)} level` : ''}`, html: s.description, footer: <span className="text-xs text-muted">{[s.castingTime, s.range, s.components, s.duration].filter(Boolean).join(' · ')}</span> })}>
@@ -181,6 +181,7 @@ export function SpellsTab({ api, onDetail }: { api: SheetApi; onDetail: OnDetail
                       {s.save && block.dc && <span className="text-xs font-semibold">{s.save.toUpperCase()} DC {block.dc}</span>}
                       {s.attack && block.attack != null && <button type="button" onClick={() => api.rollCheck(`${s.name} — spell attack`, block.attack!)} className="min-h-[34px] rounded-[9px] border border-line bg-panel px-2.5 text-[13px] font-semibold">{fmtMod(block.attack)}</button>}
                       {dice && <button type="button" onClick={() => api.rollDamage({ label: s.name, dice, type: s.damageType ?? undefined, healing: s.damageType === 'healing' })} className="min-h-[34px] rounded-[9px] border border-accent bg-accent-soft px-2.5 text-[13px] font-semibold">{dice}{s.damageType ? ` ${s.damageType}` : ''}</button>}
+                      <CastControl api={api} s={s} />
                       <ResourcePips api={api} r={s.resource} />
                     </div>
                   )
@@ -190,6 +191,54 @@ export function SpellsTab({ api, onDetail }: { api: SheetApi; onDetail: OnDetail
           </div>
         )
       })}
+    </div>
+  )
+}
+
+function CastControl({ api, s }: { api: SheetApi; s: SpellEntry & { resource?: Resource } }) {
+  const { sheet, state, setState, push } = api
+  const [open, setOpen] = useState(false)
+  const concentrate = () => (s.concentration ? { concentration: s.name } : {})
+  const logCast = (how: string) => {
+    const dropped = s.concentration && state.concentration && state.concentration !== s.name ? ` Ended concentration on ${state.concentration}.` : ''
+    push({ label: `Cast ${s.name}`, total: 0, detail: `${how}${s.concentration ? ' · concentration' : ''}.${dropped}`, tag: 'CAST' })
+  }
+  if (!s.usesSlot || s.level === 0) {
+    const r = s.resource
+    const empty = !!r && r.used >= r.max
+    return (
+      <button type="button" disabled={empty} onClick={() => {
+        setState(st => ({ ...st, ...(r ? { used: { ...st.used, [r.key]: Math.min(r.max, (st.used[r.key] || 0) + 1) } } : {}), ...concentrate() }))
+        logCast(r ? `${r.source} · ${r.max - r.used - 1} of ${r.max} left` : s.level === 0 ? 'Cantrip' : 'At will')
+      }} className="min-h-[34px] rounded-[9px] bg-accent px-3 text-[13px] font-semibold text-on-accent disabled:opacity-40">Cast</button>
+    )
+  }
+  const options = [
+    ...sheet.spellSlots.filter(x => x.level >= s.level).map(x => ({ key: String(x.level), level: x.level, left: x.max - x.used, label: ordinal(x.level) })),
+    ...(sheet.pactSlots && sheet.pactSlots.level >= s.level ? [{ key: 'pact', level: sheet.pactSlots.level, left: sheet.pactSlots.max - sheet.pactSlots.used, label: `Pact ${ordinal(sheet.pactSlots.level)}` }] : []),
+  ]
+  const none = !options.some(o => o.left > 0)
+  return (
+    <div className="relative">
+      <button type="button" aria-expanded={open} disabled={none} onClick={() => setOpen(o => !o)} className="min-h-[34px] rounded-[9px] bg-accent px-3 text-[13px] font-semibold text-on-accent disabled:opacity-40">{none ? 'No slots' : 'Cast'}</button>
+      {open && (
+        <div className="pop absolute right-0 top-10 z-20 flex w-64 flex-col gap-1.5 rounded-xl border border-line bg-panel p-2 shadow-tray">
+          {options.map(o => {
+            const d = spellDice(s, o.level, sheet.level)
+            return (
+              <div key={o.key} className="flex items-center gap-2 rounded-lg bg-raised px-2 py-1.5">
+                <span className="flex-1 text-[13px]"><strong>{o.label}</strong> <span className="text-muted">· {o.left} left</span></span>
+                {d && <button type="button" onClick={() => api.rollDamage({ label: `${s.name} (${o.label})`, dice: d, type: s.damageType ?? undefined, healing: s.damageType === 'healing' })} className="min-h-[30px] rounded-md border border-accent px-2 text-xs font-semibold">{d}</button>}
+                <button type="button" disabled={o.left <= 0} onClick={() => {
+                  setState(st => ({ ...st, slotsUsed: { ...st.slotsUsed, [o.key]: (st.slotsUsed[o.key] || 0) + 1 }, ...concentrate() }))
+                  logCast(`${o.label}-level slot`)
+                  setOpen(false)
+                }} className="min-h-[30px] rounded-md bg-accent px-2.5 text-xs font-semibold text-on-accent disabled:opacity-40">Cast</button>
+              </div>
+            )
+          })}
+        </div>
+      )}
     </div>
   )
 }
