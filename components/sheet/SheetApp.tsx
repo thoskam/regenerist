@@ -42,7 +42,7 @@ export default function SheetApp({ slug, initial, readOnly, campaigns = [] }: Sh
 
   return (
     <div className="v2 v2-scene min-h-screen font-ui text-sm" data-theme={doc.theme?.name ?? 'ember'} data-backdrop={doc.theme?.backdrop === false ? 'off' : undefined} style={style}>
-      <div className={cx('mx-auto flex max-w-[1392px] flex-col gap-4 px-3 pb-36 sm:px-6', doc.theme?.backdrop === false ? 'pt-3 sm:pt-6' : 'pt-12 sm:pt-28')}>
+      <div className={cx('mx-auto flex max-w-[1392px] flex-col gap-4 px-3 pb-36 sm:px-6', doc.theme?.backdrop === false ? 'pt-3 sm:pt-6' : 'pt-16 sm:pt-40')}>
         {readOnly && <div role="status" className="rounded-xl border border-line bg-panel px-4 py-2.5 text-[13px] text-muted">View only — this is another player’s character. You can roll, but changes aren’t saved.</div>}
         <Header api={api} slug={slug} hasAvatar={initial.hasAvatar} campaigns={campaigns} />
         {/* Two columns on wide screens: abilities, saves and skills on the left; stats, HP and the tabs on the right.
@@ -237,6 +237,7 @@ const THEME_SWATCHES: Array<{ name: ThemeName; label: string; bg: string; accent
   { name: 'papyrus', label: 'Papyrus', bg: '#f2ece0', accent: '#a3201c' },
   { name: 'verdant', label: 'Verdant', bg: '#0d1510', accent: '#9bd36b' },
   { name: 'frost', label: 'Frost', bg: '#0c151b', accent: '#7fd3ea' },
+  { name: 'dungeon', label: 'Dungeon', bg: '#121214', accent: '#e2574c' },
 ]
 const ACCENTS = ['#f0913f', '#e05d5d', '#d4a72c', '#5fb878', '#4fb3bf', '#a3b5ff', '#c28bf5', '#9e2b25']
 

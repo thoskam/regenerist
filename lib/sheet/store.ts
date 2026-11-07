@@ -148,7 +148,7 @@ export async function importFromDdb(input: string, viewer?: Viewer): Promise<{ s
   return { slug, created: true }
 }
 
-const THEMES: ThemeName[] = ['ember', 'arcane', 'parchment', 'papyrus', 'verdant', 'frost']
+const THEMES: ThemeName[] = ['ember', 'arcane', 'parchment', 'papyrus', 'verdant', 'frost', 'dungeon']
 
 export interface SheetPatch {
   revision?: number
