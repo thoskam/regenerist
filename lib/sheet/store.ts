@@ -1,6 +1,7 @@
 // Server-side persistence for v2 character sheets.
 import { Prisma } from '@prisma/client'
 import { prisma } from '../prisma'
+import { canAccessCharacter, type Viewer } from '../auth'
 import { convertDdbCharacter, fetchDdbCharacter, parseDdbCharacterId } from '../import/ddb'
 import { computeSheet } from './compute'
 import { normalizeState } from './state'
@@ -73,13 +74,22 @@ export interface SheetSummary {
   hp: { current: number; max: number }
   updatedAt: string
   importedFrom: string | null
+  ac: number
+  passivePerception: number
+  conditions: string[]
+  concentration: string | null
+  exhaustion: number
+  ownerId: string | null
 }
 
-export async function listSheets(): Promise<SheetSummary[]> {
-  const rows = await prisma.playerCharacter.findMany({
+export async function listSheets(viewer: Viewer, opts: { campaignId?: string } = {}): Promise<SheetSummary[]> {
+  const all = await prisma.playerCharacter.findMany({
+    where: opts.campaignId ? { campaignId: opts.campaignId } : undefined,
     orderBy: { updatedAt: 'desc' },
-    select: { slug: true, name: true, doc: true, state: true, avatarType: true, updatedAt: true },
+    select: { slug: true, name: true, doc: true, state: true, avatarType: true, updatedAt: true, ownerId: true, campaignId: true },
   })
+  const rows = []
+  for (const r of all) if (opts.campaignId ? await canAccessCharacter(viewer, r, 'read') : !viewer.authEnabled || viewer.user?.isAdmin || r.ownerId === viewer.user?.id) rows.push(r)
   return rows.map(r => {
     const doc = r.doc as unknown as CharacterDoc
     const sheet = computeSheet(doc, normalizeState(r.state))
@@ -87,27 +97,30 @@ export async function listSheets(): Promise<SheetSummary[]> {
       slug: r.slug, name: r.name, classLabel: sheet.classLabel, species: doc.identity.species, level: sheet.level,
       theme: doc.theme?.name ?? 'ember', hasAvatar: !!r.avatarType, hp: { current: sheet.hp.current, max: sheet.hp.max },
       updatedAt: r.updatedAt.toISOString(), importedFrom: doc.import?.source ?? null,
+      ac: sheet.ac.value, passivePerception: sheet.passives.perception, conditions: normalizeState(r.state).conditions,
+      concentration: normalizeState(r.state).concentration ?? null, exhaustion: normalizeState(r.state).exhaustion, ownerId: r.ownerId,
     }
   })
 }
 
-export interface StoredSheet { slug: string; doc: CharacterDoc; state: PlayState; revision: number; hasAvatar: boolean; updatedAt: string }
+export interface StoredSheet { slug: string; doc: CharacterDoc; state: PlayState; revision: number; hasAvatar: boolean; updatedAt: string; ownerId: string | null; campaignId: string | null }
 
 export async function getSheet(slug: string): Promise<StoredSheet | null> {
-  const r = await prisma.playerCharacter.findUnique({ where: { slug }, select: { slug: true, doc: true, state: true, revision: true, avatarType: true, updatedAt: true } })
+  const r = await prisma.playerCharacter.findUnique({ where: { slug }, select: { slug: true, doc: true, state: true, revision: true, avatarType: true, updatedAt: true, ownerId: true, campaignId: true } })
   if (!r) return null
-  return { slug: r.slug, doc: r.doc as unknown as CharacterDoc, state: normalizeState(r.state), revision: r.revision, hasAvatar: !!r.avatarType, updatedAt: r.updatedAt.toISOString() }
+  return { slug: r.slug, doc: r.doc as unknown as CharacterDoc, state: normalizeState(r.state), revision: r.revision, hasAvatar: !!r.avatarType, updatedAt: r.updatedAt.toISOString(), ownerId: r.ownerId, campaignId: r.campaignId }
 }
 
 /** Import (or re-sync) a public D&D Beyond character. Re-syncing replaces the build but keeps table state. */
-export async function importFromDdb(input: string): Promise<{ slug: string; created: boolean }> {
+export async function importFromDdb(input: string, viewer?: Viewer): Promise<{ slug: string; created: boolean }> {
   const id = parseDdbCharacterId(input)
   if (!id) throw new StoreError('Paste a D&D Beyond character link, like https://www.dndbeyond.com/characters/12345678.', 400)
   let raw: unknown
   try { raw = await fetchDdbCharacter(id) } catch (e) { throw new StoreError((e as Error).message, 502) }
   const { doc, state, avatarUrl } = convertDdbCharacter(raw)
   const avatar = await downloadDdbAvatar(avatarUrl)
-  const existing = await prisma.playerCharacter.findUnique({ where: { ddbId: id }, select: { slug: true, doc: true, avatarType: true } })
+  const existing = await prisma.playerCharacter.findUnique({ where: { ddbId: id }, select: { slug: true, doc: true, avatarType: true, ownerId: true, campaignId: true } })
+  if (existing && viewer && !(await canAccessCharacter(viewer, existing, 'write'))) throw new StoreError('Another account already imported this character.', 409)
   if (existing) {
     const prev = existing.doc as unknown as CharacterDoc
     doc.theme = prev.theme ?? doc.theme
@@ -124,7 +137,7 @@ export async function importFromDdb(input: string): Promise<{ slug: string; crea
   const slug = await uniqueSlug(doc.name)
   await prisma.playerCharacter.create({
     data: {
-      slug, name: doc.name, ddbId: id, doc: doc as unknown as Prisma.InputJsonValue, state: state as unknown as Prisma.InputJsonValue,
+      slug, name: doc.name, ddbId: id, ownerId: viewer?.user?.id ?? null, doc: doc as unknown as Prisma.InputJsonValue, state: state as unknown as Prisma.InputJsonValue,
       ...(avatar ? { avatar: avatar.bytes, avatarType: avatar.type } : {}),
     },
   })
@@ -224,14 +237,14 @@ export async function editDoc(slug: string, body: unknown): Promise<CharacterDoc
 }
 
 /** Create a character from builder choices. */
-export async function createFromBuild(input: unknown): Promise<{ slug: string }> {
+export async function createFromBuild(input: unknown, ownerId: string | null = null): Promise<{ slug: string }> {
   const build = normalizeBuild(input)
   const pack = loadPack(build.edition)
   const errors = validateBuild(pack, build).filter(i => i.level === 'error')
   if (errors.length) throw new StoreError(errors.map(e => e.message).join(' '), 400)
   const doc = generateDoc(pack, build)
   const slug = await uniqueSlug(doc.name)
-  await prisma.playerCharacter.create({ data: { slug, name: doc.name, doc: doc as unknown as Prisma.InputJsonValue, state: emptyPlayState() as unknown as Prisma.InputJsonValue } })
+  await prisma.playerCharacter.create({ data: { slug, name: doc.name, ownerId, doc: doc as unknown as Prisma.InputJsonValue, state: emptyPlayState() as unknown as Prisma.InputJsonValue } })
   return { slug }
 }
 

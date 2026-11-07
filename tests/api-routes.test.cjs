@@ -1,7 +1,7 @@
 const { test } = require('node:test')
 const assert = require('node:assert/strict')
 function replace(path, exports) { const id = require.resolve(path); require.cache[id] = { id, filename: id, loaded: true, exports } }
-const db = {}
+const db = { user: { count: async () => 0 } } // no accounts: open single-user mode
 replace('../lib/prisma', { prisma: db })
 replace('../lib/randomizer', { randomClass: () => ({ className: 'Fighter', subclass: 'Champion' }), randomRace: () => 'Human (Standard)', randomFromArray: values => values[0] })
 replace('../lib/dndApi', { getRacialAbilityBonuses: async () => ({ str: 1, dex: 1, con: 1, int: 1, wis: 1, cha: 1 }), getCasterType: () => null })

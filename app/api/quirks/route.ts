@@ -1,11 +1,14 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
+import { legacyGuard } from '@/lib/legacyGuard'
 import { prisma } from '@/lib/prisma'
 import { InputError, textValue } from '@/lib/lifeUpdates'
 
 // GET all quirks
 export async function GET() {
+  const denied = await legacyGuard()
+  if (denied) return denied
   try {
     const quirks = await prisma.quirk.findMany({
       orderBy: { name: 'asc' },
@@ -23,6 +26,8 @@ export async function GET() {
 
 // POST create a new quirk
 export async function POST(request: Request) {
+  const denied = await legacyGuard()
+  if (denied) return denied
   try {
     const body = await request.json()
     if (!body || typeof body !== 'object' || Array.isArray(body)) throw new InputError('Expected an object')

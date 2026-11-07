@@ -2,14 +2,17 @@ import Link from 'next/link'
 import { notFound } from 'next/navigation'
 import BuilderApp from '@/components/builder/BuilderApp'
 import { getSheet } from '@/lib/sheet/store'
+import { canAccessCharacter } from '@/lib/auth'
+import { requirePageViewer } from '@/lib/pageAuth'
 
 export const dynamic = 'force-dynamic'
 type Props = { params: Promise<{ slug: string }>; searchParams: Promise<{ levelup?: string }> }
 
 export default async function EditBuildPage({ params, searchParams }: Props) {
   const { slug } = await params
+  const viewer = await requirePageViewer(`/c/${slug}/build`)
   const sheet = await getSheet(slug)
-  if (!sheet) notFound()
+  if (!sheet || !(await canAccessCharacter(viewer, sheet, 'write'))) notFound()
   if (!sheet.doc.build) {
     return (
       <main className="v2 flex min-h-screen items-center justify-center p-6 font-ui" data-theme={sheet.doc.theme?.name ?? 'ember'}>

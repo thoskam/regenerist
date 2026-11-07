@@ -1,4 +1,5 @@
 import { getSpellSelectionLimits } from '@/lib/spellSlots'
+import { legacyGuard } from '@/lib/legacyGuard'
 import { Prisma } from '@prisma/client'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
@@ -137,6 +138,8 @@ export async function POST(
   request: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const denied = await legacyGuard()
+  if (denied) return denied
   const routeParams = await params
   try {
     // Find the character by slug

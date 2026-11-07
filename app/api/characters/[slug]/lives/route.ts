@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
+import { legacyGuard } from '@/lib/legacyGuard'
 import { prisma } from '@/lib/prisma'
 
 // GET all lives for a character
@@ -8,6 +9,8 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const denied = await legacyGuard()
+  if (denied) return denied
   const routeParams = await params
   try {
     const character = await prisma.character.findUnique({
@@ -41,6 +44,8 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const denied = await legacyGuard()
+  if (denied) return denied
   const routeParams = await params
   try {
     const character = await prisma.character.findUnique({

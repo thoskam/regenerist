@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { legacyGuard } from '@/lib/legacyGuard'
 import { getSkillData } from '@/lib/dndApi'
 import { entriesToText } from '@/lib/entryParser'
 
@@ -6,6 +7,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ name: string }> }
 ) {
+  const denied = await legacyGuard()
+  if (denied) return denied
   const { name } = await params
 
   if (!name) {

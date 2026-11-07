@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { Prisma } from '@prisma/client'
+import { legacyGuard } from '@/lib/legacyGuard'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { InputError, integer, prepareLifeUpdate } from '@/lib/lifeUpdates'
@@ -10,6 +11,8 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const denied = await legacyGuard()
+  if (denied) return denied
   const routeParams = await params
   try {
     const character = await prisma.character.findUnique({
@@ -43,6 +46,8 @@ export async function PUT(
   request: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const denied = await legacyGuard()
+  if (denied) return denied
   const routeParams = await params
   try {
     const body = await request.json()
@@ -119,6 +124,8 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const denied = await legacyGuard()
+  if (denied) return denied
   const routeParams = await params
   try {
     const character = await prisma.character.findUnique({

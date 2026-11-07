@@ -1,11 +1,14 @@
 export const dynamic = 'force-dynamic'
 
 import { Prisma } from '@prisma/client'
+import { legacyGuard } from '@/lib/legacyGuard'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { InputError, prepareLifeUpdate } from '@/lib/lifeUpdates'
 
 export async function GET(request: Request, { params }: { params: Promise<{ slug: string; lifeId: string }> }) {
+  const denied = await legacyGuard()
+  if (denied) return denied
   const routeParams = await params
   const id = Number(routeParams.lifeId)
   if (!Number.isSafeInteger(id) || id < 1) return NextResponse.json({ error: 'Invalid life ID' }, { status: 400 })
@@ -16,6 +19,8 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ slug: string; lifeId: string }> }) {
+  const denied = await legacyGuard()
+  if (denied) return denied
   const routeParams = await params
   const id = Number(routeParams.lifeId)
   if (!Number.isSafeInteger(id) || id < 1) return NextResponse.json({ error: 'Invalid life ID' }, { status: 400 })

@@ -1,6 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
+import { legacyGuard } from '@/lib/legacyGuard'
 import { prisma } from '@/lib/prisma'
 import { InputError, integer, scores, validateIdentity, textValue } from '@/lib/lifeUpdates'
 import { calculateMaxHp } from '@/lib/calculations'
@@ -9,6 +10,8 @@ import { applyASIs } from '@/lib/asiCalculator'
 
 // GET all characters with their current life
 export async function GET() {
+  const denied = await legacyGuard()
+  if (denied) return denied
   try {
     const characters = await prisma.character.findMany({
       include: {
@@ -44,6 +47,8 @@ export async function GET() {
 
 // POST create a new character
 export async function POST(request: Request) {
+  const denied = await legacyGuard()
+  if (denied) return denied
   try {
     const body = await request.json()
     if (!body || typeof body !== 'object' || Array.isArray(body)) throw new InputError('Expected an object')

@@ -19,7 +19,9 @@ export type SaveStatus = 'saved' | 'saving' | 'error' | 'conflict'
 
 export interface DamageRoll { label: string; dice: string; type?: string; extras?: Array<{ dice: string; type: string }>; critKey?: string; healing?: boolean }
 
-export function useSheet(slug: string, initial: { doc: CharacterDoc; state: PlayState; revision: number }) {
+export function useSheet(slug: string, initial: { doc: CharacterDoc; state: PlayState; revision: number; campaignId?: string | null }, opts: { readOnly?: boolean } = {}) {
+  const readOnly = !!opts.readOnly
+  const [campaignId, setCampaignId] = useState<string | null>(initial.campaignId ?? null)
   const [doc, setDoc] = useState(initial.doc)
   const [state, setStateRaw] = useState(initial.state)
   const [status, setStatus] = useState<SaveStatus>('saved')
@@ -44,6 +46,7 @@ export function useSheet(slug: string, initial: { doc: CharacterDoc; state: Play
   useEffect(() => { try { localStorage.setItem(logKey, JSON.stringify(log.slice(0, 50))) } catch { /* storage unavailable */ } }, [log, logKey])
 
   const flush = useCallback(async () => {
+    if (readOnly) { pending.current = null; return }
     if (inFlight.current || !pending.current) return
     const body = pending.current
     pending.current = null
@@ -63,7 +66,7 @@ export function useSheet(slug: string, initial: { doc: CharacterDoc; state: Play
       inFlight.current = false
       if (pending.current) timer.current = setTimeout(flush, 400)
     }
-  }, [slug])
+  }, [slug, readOnly])
 
   const setState = useCallback((next: PlayState | ((s: PlayState) => PlayState)) => {
     setStateRaw(prev => {
@@ -85,7 +88,9 @@ export function useSheet(slug: string, initial: { doc: CharacterDoc; state: Play
     seq.current += 1
     const entry = { ...e, id: seq.current, at: Date.now() }
     setLog(l => [entry, ...l].slice(0, 50))
-  }, [])
+    // Share with the party feed (best effort).
+    if (campaignId && !readOnly) fetch(`/api/campaigns/${campaignId}/rolls`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ characterSlug: slug, label: e.label, total: e.total, detail: e.detail, tag: e.tag }) }).catch(() => {})
+  }, [campaignId, readOnly, slug])
 
   const rollCheck = useCallback((label: string, modifier: number, opts: { critKey?: string; forceMode?: RollMode; reliable?: boolean; ability?: string; attack?: boolean } = {}) => {
     const m = opts.forceMode ?? mode
@@ -116,23 +121,32 @@ export function useSheet(slug: string, initial: { doc: CharacterDoc; state: Play
     if (crit) setCritKey(null)
   }, [critKey, push])
 
+  const joinCampaign = useCallback(async (id: string | null) => {
+    const res = await fetch(`/api/sheets/${slug}/campaign`, { method: 'PUT', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ campaignId: id }) })
+    if (res.ok) setCampaignId(id)
+    return res.ok
+  }, [slug])
+
   const saveTheme = useCallback(async (name: ThemeName, accent: string | null) => {
     setDoc(d => ({ ...d, theme: { name, accent } }))
+    if (readOnly) return
     const res = await fetch(`/api/sheets/${slug}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ theme: { name, accent } }) })
     if (res.ok) { const data = await res.json(); revision.current = data.revision }
-  }, [slug])
+  }, [slug, readOnly])
 
   const saveNotes = useCallback(async (notes: CharacterDoc['notes']) => {
     setDoc(d => ({ ...d, notes }))
+    if (readOnly) return
     setStatus('saving')
     const res = await fetch(`/api/sheets/${slug}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ notes }) })
     if (res.ok) { const data = await res.json(); revision.current = data.revision; setStatus('saved') } else setStatus('error')
-  }, [slug])
+  }, [slug, readOnly])
 
   const [docError, setDocError] = useState<string | null>(null)
   /** Inventory/currency edit: applied locally first (except catalog adds), then confirmed by the server. */
   const editDoc = useCallback(async (op: DocOp | { op: 'item.add'; catalogKey: string; id: string; quantity?: number; magicBonus?: number }) => {
     setDocError(null)
+    if (readOnly) { setDocError('View only: this character belongs to another player.'); return false }
     const before = docRef.current
     if (op.op !== 'item.add') {
       try { setDoc(applyDocOp(before, op as DocOp)) } catch (e) { setDocError((e as Error).message); return false }
@@ -148,9 +162,9 @@ export function useSheet(slug: string, initial: { doc: CharacterDoc; state: Play
       setDocError((e as Error).message)
       return false
     }
-  }, [slug])
+  }, [slug, readOnly])
 
-  return { doc, setDoc, editDoc, docError, setDocError, state, setState, sheet, status, mode, setMode, log, setLog, push, rollCheck, rollDamage, critKey, saveTheme, saveNotes }
+  return { readOnly, campaignId, joinCampaign, doc, setDoc, editDoc, docError, setDocError, state, setState, sheet, status, mode, setMode, log, setLog, push, rollCheck, rollDamage, critKey, saveTheme, saveNotes }
 }
 
 export type SheetApi = ReturnType<typeof useSheet>

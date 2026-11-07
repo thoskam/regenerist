@@ -69,10 +69,66 @@ model PlayerCharacter {
   avatarType String?
   /// D&D Beyond character id, when imported.
   ddbId      String?  @unique
-  /// Reserved for accounts (multi-user phase).
+  /// Owning user (null in open single-user mode).
   ownerId    String?
+  /// Party this character plays in.
+  campaignId String?
   createdAt  DateTime @default(now())
   updatedAt  DateTime @updatedAt
 
   @@index([ownerId])
+  @@index([campaignId])
+}
+
+/// v2 accounts. When no users exist the app runs in open single-user mode.
+model User {
+  id           String   @id @default(cuid())
+  username     String   @unique
+  displayName  String
+  passwordHash String
+  isAdmin      Boolean  @default(false)
+  createdAt    DateTime @default(now())
+}
+
+model Session {
+  /// SHA-256 of the session token (the token itself only lives in the cookie).
+  id        String   @id
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+}
+
+model Campaign {
+  id         String   @id @default(cuid())
+  name       String
+  inviteCode String   @unique
+  dmUserId   String?
+  createdAt  DateTime @default(now())
+}
+
+model CampaignMember {
+  campaignId String
+  userId     String
+  role       String   @default("player")
+  joinedAt   DateTime @default(now())
+
+  @@id([campaignId, userId])
+  @@index([userId])
+}
+
+model Roll {
+  id            String   @id @default(cuid())
+  campaignId    String
+  characterSlug String?
+  characterName String
+  userId        String?
+  label         String
+  total         Int
+  detail        String
+  tag           String?
+  createdAt     DateTime @default(now())
+
+  @@index([campaignId, createdAt])
 }

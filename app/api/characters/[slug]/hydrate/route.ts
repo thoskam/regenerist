@@ -1,4 +1,5 @@
 import { getSpellSlotInfo } from '@/lib/spellSlots'
+import { legacyGuard } from '@/lib/legacyGuard'
 import { NextRequest, NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import {
@@ -57,6 +58,8 @@ export async function GET(
   request: NextRequest,
   { params }: { params: Promise<{ slug: string }> }
 ) {
+  const denied = await legacyGuard()
+  if (denied) return denied
   const { slug } = await params
   const requestedLifeId = request.nextUrl.searchParams.get('lifeId')
   if (requestedLifeId !== null && (!/^\d+$/.test(requestedLifeId) || Number(requestedLifeId) < 1 || !Number.isSafeInteger(Number(requestedLifeId)))) {

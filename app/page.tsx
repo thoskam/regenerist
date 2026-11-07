@@ -1,11 +1,14 @@
 import Link from 'next/link'
 import { listSheets } from '@/lib/sheet/store'
+import { requirePageViewer } from '@/lib/pageAuth'
+import AccountMenu from '@/components/party/AccountMenu'
 import ImportForm from '@/components/home/ImportForm'
 
 export const dynamic = 'force-dynamic'
 
 export default async function Home() {
-  const characters = await listSheets()
+  const viewer = await requirePageViewer('/')
+  const characters = await listSheets(viewer)
   return (
     <main className="v2 min-h-screen font-ui text-sm" data-theme="ember">
       <div className="mx-auto flex max-w-5xl flex-col gap-6 px-4 py-8 sm:px-6 sm:py-12">
@@ -14,6 +17,7 @@ export default async function Home() {
             <h1 className="m-0 font-display text-4xl font-semibold">Characters</h1>
             <p className="m-0 mt-1 text-muted">Your sheets, rules, and rolls in one place.</p>
           </div>
+          <AccountMenu name={viewer.user?.displayName ?? null} isAdmin={!!viewer.user?.isAdmin} authEnabled={viewer.authEnabled} />
           <div className="flex flex-wrap gap-2">
             <Link href="/new" className="rounded-xl bg-accent px-4 py-2.5 text-[13px] font-semibold text-on-accent">+ New character</Link>
             <Link href="/regenerist" className="rounded-xl border border-line bg-panel px-4 py-2.5 text-[13px] font-semibold">Regenerist lives →</Link>

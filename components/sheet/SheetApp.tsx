@@ -27,11 +27,13 @@ const TABS: Array<{ id: Tab; label: string; mobileOnly?: boolean }> = [
 
 export interface SheetProps {
   slug: string
-  initial: { doc: CharacterDoc; state: PlayState; revision: number; hasAvatar: boolean }
+  initial: { doc: CharacterDoc; state: PlayState; revision: number; hasAvatar: boolean; campaignId?: string | null }
+  readOnly?: boolean
+  campaigns?: Array<{ id: string; name: string }>
 }
 
-export default function SheetApp({ slug, initial }: SheetProps) {
-  const api = useSheet(slug, initial)
+export default function SheetApp({ slug, initial, readOnly, campaigns = [] }: SheetProps) {
+  const api = useSheet(slug, initial, { readOnly })
   const { doc, sheet } = api
   const [tab, setTab] = useState<Tab>('actions')
   const [detail, setDetail] = useState<DetailContent | null>(null)
@@ -40,7 +42,8 @@ export default function SheetApp({ slug, initial }: SheetProps) {
   return (
     <div className="v2 min-h-screen font-ui text-sm" data-theme={doc.theme?.name ?? 'ember'} style={style}>
       <div className="mx-auto flex max-w-[1392px] flex-col gap-4 px-3 pb-36 pt-3 sm:px-6 sm:pt-6">
-        <Header api={api} slug={slug} hasAvatar={initial.hasAvatar} />
+        {readOnly && <div role="status" className="rounded-xl border border-line bg-panel px-4 py-2.5 text-[13px] text-muted">View only — this is another player’s character. You can roll, but changes aren’t saved.</div>}
+        <Header api={api} slug={slug} hasAvatar={initial.hasAvatar} campaigns={campaigns} />
         <VitalsRow api={api} onDetail={setDetail} />
 
         <div className="flex flex-wrap items-start gap-4">
@@ -86,7 +89,7 @@ function TabBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
   )
 }
 
-function Header({ api, slug, hasAvatar }: { api: SheetApi; slug: string; hasAvatar: boolean }) {
+function Header({ api, slug, hasAvatar, campaigns }: { api: SheetApi; slug: string; hasAvatar: boolean; campaigns: Array<{ id: string; name: string }> }) {
   const { doc, sheet, state, setState, mode, setMode, push, status } = api
   const [avatarVersion, setAvatarVersion] = useState(hasAvatar ? 1 : 0)
   const [avatarError, setAvatarError] = useState<string | null>(null)
@@ -123,7 +126,7 @@ function Header({ api, slug, hasAvatar }: { api: SheetApi; slug: string; hasAvat
       <div className="flex min-w-0 flex-[1_1_380px] items-center gap-4">
         <div className="group relative shrink-0">
           <button
-            type="button" onClick={() => fileRef.current?.click()} aria-label={avatarVersion ? 'Change portrait' : 'Upload portrait'}
+            type="button" disabled={api.readOnly} onClick={() => fileRef.current?.click()} aria-label={avatarVersion ? 'Change portrait' : 'Upload portrait'}
             className="flex h-16 w-16 items-center justify-center overflow-hidden rounded-2xl border border-accent bg-accent-soft font-display text-[26px] font-semibold text-accent"
           >
             {avatarVersion ? (
@@ -158,13 +161,22 @@ function Header({ api, slug, hasAvatar }: { api: SheetApi; slug: string; hasAvat
           {menu && (
             <div className="pop absolute right-0 top-12 z-30 flex w-64 flex-col gap-3 rounded-2xl border border-line bg-panel p-4 shadow-tray">
               <ThemePicker api={api} />
-              {doc.import && (
+              {!api.readOnly && (
+                <label className="flex flex-col gap-1 text-[11px] font-semibold uppercase tracking-[0.08em] text-muted">Party
+                  <select value={api.campaignId ?? ''} onChange={e => api.joinCampaign(e.target.value || null)} className="min-h-[40px] rounded-xl border border-line bg-raised px-2 text-[13px] normal-case tracking-normal text-ink">
+                    <option value="">Not in a party</option>
+                    {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+                  </select>
+                  {api.campaignId && <Link href={`/party/${api.campaignId}`} className="normal-case tracking-normal text-accent underline">Open party view</Link>}
+                </label>
+              )}
+              {doc.import && !api.readOnly && (
                 <button type="button" disabled={syncing} onClick={resync} className="min-h-[40px] rounded-xl border border-line bg-raised px-3 text-left text-[13px] font-semibold disabled:opacity-60">
                   {syncing ? 'Syncing…' : 'Re-sync from D&D Beyond'}
                 </button>
               )}
-              {doc.build && <Link href={`/c/${slug}/build?levelup=1`} className="min-h-[40px] rounded-xl bg-accent px-3 py-2.5 text-[13px] font-semibold text-on-accent">Level up</Link>}
-              {doc.build && <Link href={`/c/${slug}/build`} className="min-h-[40px] rounded-xl border border-line bg-raised px-3 py-2.5 text-[13px] font-semibold">Edit build</Link>}
+              {doc.build && !api.readOnly && <Link href={`/c/${slug}/build?levelup=1`} className="min-h-[40px] rounded-xl bg-accent px-3 py-2.5 text-[13px] font-semibold text-on-accent">Level up</Link>}
+              {doc.build && !api.readOnly && <Link href={`/c/${slug}/build`} className="min-h-[40px] rounded-xl border border-line bg-raised px-3 py-2.5 text-[13px] font-semibold">Edit build</Link>}
               {avatarVersion ? <button type="button" onClick={removeAvatar} className="min-h-[40px] rounded-xl border border-line bg-raised px-3 text-left text-[13px] font-semibold">Remove portrait</button> : null}
               <Link href="/" className="min-h-[40px] rounded-xl border border-line bg-raised px-3 py-2.5 text-[13px] font-semibold">All characters</Link>
               <div className="text-xs text-muted">{status === 'saved' ? 'All changes saved' : status === 'saving' ? 'Saving…' : status === 'conflict' ? 'Changed elsewhere — reload' : 'Not saved — retrying'}</div>
