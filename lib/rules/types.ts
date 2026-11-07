@@ -77,8 +77,22 @@ export interface RSpecies {
   armor?: string[]
   tools?: string[]
   traits: Array<{ name: string; description: string; activation?: Activation; uses?: RUses }>
+  /** Innate spells (Infernal Legacy, Elven Lineage…), by character level. `option` limits it to one sub-choice. */
+  spells?: RSpeciesSpell[]
   /** Sub-choices such as elven lineage or draconic ancestry. */
   options?: { label: string; choices: Array<{ name: string; resist?: string[]; description?: string }> }
+}
+
+export interface RSpeciesSpell {
+  name: string
+  level: number
+  option?: string
+  /** Casts per long rest without a slot; 'pb' = proficiency bonus. Absent = at will (cantrips). */
+  perDay?: number | 'pb'
+  /** Always cast at this spell level (Hellish Rebuke as a 2nd-level spell). */
+  castAt?: number
+  ability?: Ability
+  abilityChoice?: Ability[]
 }
 
 export interface RBackground {

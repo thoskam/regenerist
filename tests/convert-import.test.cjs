@@ -28,8 +28,9 @@ test('Flynnwrath converts to a build with the same sheet', opts, () => {
   assert.ok(next.build)
   const a = computeSheet(doc, state), b = computeSheet(next, state)
   for (const k of ['abilities', 'skills', 'initiative', 'ac', 'hp', 'speeds', 'senses', 'defenses', 'passives']) assert.deepEqual(JSON.parse(JSON.stringify(b[k])), JSON.parse(JSON.stringify(a[k])), k)
-  const noIds = s => JSON.parse(JSON.stringify(s.spellcasting.map(({ id, ...x }) => x)))
-  assert.deepEqual(noIds(b), noIds(a))
+  // Same spells, DCs, dice and uses (species spells now come from the rules, under the species' name).
+  const spells = s => s.spellcasting.flatMap(x => x.spells.map(y => [y.name, y.level, x.dc, x.attack, y.castDice ?? y.dice ?? null, y.resource?.max ?? null].join('|'))).sort()
+  assert.deepEqual(spells(b), spells(a))
   assert.deepEqual(b.attacks.map(x => [x.name, x.toHit, x.damage]), a.attacks.map(x => [x.name, x.toHit, x.damage]))
   assert.deepEqual(next.inventory, doc.inventory)
   assert.deepEqual(saved.classes[0].optional, ['Steady Aim'])

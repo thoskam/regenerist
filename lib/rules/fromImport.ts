@@ -32,7 +32,10 @@ const effectKey = (e: { type: string; subType: string; ability?: Ability | null 
 /** Spell sources and actions that the builder can't regenerate (species, feat, item spells; custom actions). */
 export function keptFromImport(doc: CharacterDoc, pack: RulesPack): NonNullable<Build['kept']> {
   const spellSources: SpellSource[] = []
+  // Species spells come back from the rules when the species has them there.
+  const speciesHasSpells = !!matchName(pack.species, doc.identity.species)?.spells?.length
   for (const src of doc.spellSources) {
+    if (speciesHasSpells && src.id.startsWith('race-')) continue
     if (src.id.startsWith('class-')) {
       // Class spells come back through the builder; keep only the ones the pack doesn't know.
       const unknown = src.spells.filter(s => !pack.spells.some(p => p.name === s.name))

@@ -2,6 +2,7 @@
 // Pure; used by the server when creating/levelling characters and by tests.
 
 import { sanitizeHtml } from '../sheet/sanitize'
+import { spellDice } from '../sheet/compute'
 import type { Ability, ActionEntry, CharacterDoc, ClassEntry, Effect, Feature, LimitedUse, SourceRef, SpellEntry, SpellSource } from '../sheet/types'
 import { ABILITIES } from '../sheet/types'
 import type { RClass, RFeature, RSpell, RSpecies, RulesPack, RUses } from './types'
@@ -306,6 +307,26 @@ export function generateDoc(pack: RulesPack, b: Build, prev?: CharacterDoc | nul
   }
   for (const l of [...(b.species.languages ?? []), ...(b.background.languages ?? []), ...(b.languages ?? [])]) prof(slug(l), speciesSrc, 'language')
 
+  // Species spells (Infernal Legacy, Elven Lineage…): cast without slots, uses per long rest.
+  const speciesSpells = (species?.spells ?? []).filter(x => (!x.option || x.option === b.species.option) && x.level <= level)
+  const speciesSpellSource: SpellSource | null = speciesSpells.length ? (() => {
+    const scores = abilityScores(pack, b)
+    const first = speciesSpells[0]
+    const ability = first.ability ?? (first.abilityChoice ?? ['cha']).reduce((best, a) => (scores[a as Ability] > scores[best as Ability] ? a : best)) as Ability
+    const spells = speciesSpells.map(x => {
+      const rs = pack.spells.find(sp => sp.name.toLowerCase() === x.name.toLowerCase())
+      if (!rs) return null
+      const key = `species-spell-${slug(rs.name)}`
+      const e = spellEntry(rs, key)
+      e.usesSlot = false
+      e.castAtLevel = x.castAt ?? null
+      if (x.castAt) e.castDice = spellDice(e, x.castAt, level)
+      if (x.perDay) e.uses = x.perDay === 'pb' ? { max: 0, addPb: true, reset: 'long', key } : { max: x.perDay, reset: 'long', key }
+      return e
+    }).filter(Boolean) as SpellEntry[]
+    return { id: `species-${slug(b.species.name)}`, label: b.species.option ? `${b.species.name} (${b.species.option})` : b.species.name, ability, spells }
+  })() : null
+
   // Background.
   if (bg) {
     for (const s of bg.skills) prof(skillName(s), bgSrc)
@@ -341,6 +362,7 @@ export function generateDoc(pack: RulesPack, b: Build, prev?: CharacterDoc | nul
     if (!chosen.length) continue
     spellSources.push({ id: `class-${slug(c.name)}`, label: c.name, ability: cls.spellcasting.ability, spells: chosen.sort((x, y) => x.level - y.level || x.name.localeCompare(y.name)).map(s => spellEntry(s, `spell-${slug(c.name)}-${slug(s.name)}`)) })
   }
+  if (speciesSpellSource?.spells.length) spellSources.push(speciesSpellSource)
   for (const src of b.kept?.spellSources ?? []) spellSources.push(src)
 
   const blank = { personality: undefined } as CharacterDoc['notes']

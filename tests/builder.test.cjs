@@ -101,3 +101,21 @@ test('Regenerist random builds are always valid in both editions', opts, () => {
   }
   for (let i = 0; i < 50; i++) { const l = driftLevel(1, rng); assert.ok(l >= 1 && l <= 3) }
 })
+
+test('species spells: 2014 Tiefling Infernal Legacy and 2024 Tiefling lineage', opts, () => {
+  const s14 = computeSheet(generateDoc(pack('2014'), flynn), emptyPlayState())
+  const tief = s14.spellcasting.find(x => x.label === 'Tiefling')
+  assert.deepEqual(tief.spells.map(x => x.name).sort(), ['Darkness', 'Hellish Rebuke', 'Thaumaturgy'])
+  const rebuke = tief.spells.find(x => x.name === 'Hellish Rebuke')
+  assert.equal(rebuke.castDice, '3d10') // cast as a 2nd-level spell
+  assert.equal(s14.actions.find(a => a.name === 'Hellish Rebuke').dice, '3d10')
+  assert.equal(rebuke.resource.max, 1)
+  assert.equal(tief.dc, 15) // 8 + PB 5 + CHA +2
+  const b = { version: 1, edition: '2024', name: 'T', species: { name: 'Tiefling', option: 'Infernal' }, background: { name: 'Acolyte', abilityBonuses: { wis: 2, int: 1 } },
+    abilities: { method: 'standard', base: { str: 8, dex: 14, con: 13, int: 12, wis: 15, cha: 10 } }, classes: [{ name: 'Cleric', level: 3, skills: ['insight', 'medicine'], expertise: [] }], asi: [], feats: [], spells: [], hpMode: 'average' }
+  const s24 = computeSheet(generateDoc(pack('2024'), b), emptyPlayState())
+  const block = s24.spellcasting.find(x => x.label === 'Tiefling (Infernal)')
+  assert.deepEqual(block.spells.map(x => x.name).sort(), ['Fire Bolt', 'Hellish Rebuke', 'Thaumaturgy'])
+  assert.equal(block.ability, 'wis') // highest of INT/WIS/CHA
+  assert.ok(pack('2024').classes.find(c => c.name === 'Rogue').subclasses.some(s => s.name === 'Thief' && s.features.some(f => f.name === 'Fast Hands')))
+})

@@ -101,6 +101,30 @@ function inferUses(text) {
 }
 
 /* ───────────────────────────── 2014 ───────────────────────────── */
+/** 5etools additionalSpells → [{ name, level, option?, perDay?, castAt?, ability?, abilityChoice? }]. */
+function speciesSpells(list) {
+  const out = []
+  const entries = (list || []).filter(e => e && (e.known || e.innate))
+  // Unnamed alternatives (pick one set): keep the first; named sets belong to species options.
+  const use = entries.some(e => e.name) ? entries : entries.slice(0, 1)
+  for (const e of use) {
+    const ability = typeof e.ability === 'string' ? e.ability : undefined
+    const abilityChoice = e.ability?.choose
+    const add = (ref, level, perDay) => {
+      if (typeof ref !== 'string') return // "choose a cantrip" entries are left to the player
+      const [nameSrc, tag] = ref.split('#')
+      const name = nameSrc.split('|')[0].replace(/\b\w/g, c => c.toUpperCase()).replace(/\b(Of|The|And|With|From|To)\b/g, w => w.toLowerCase())
+      out.push({ name, level: Number(level) || 1, option: e.name || undefined, perDay, castAt: /^\d$/.test(tag || '') ? Number(tag) : undefined, ability, abilityChoice })
+    }
+    for (const [lvl, v] of Object.entries(e.known || {})) for (const ref of Array.isArray(v) ? v : Object.values(v).flat()) add(ref, lvl)
+    for (const [lvl, v] of Object.entries(e.innate || {})) {
+      if (Array.isArray(v)) { for (const ref of v) add(ref, lvl); continue }
+      for (const [kind, per] of Object.entries(v || {})) if (kind === 'daily' || kind === 'rest') for (const [n, refs] of Object.entries(per || {})) for (const ref of [refs].flat()) add(ref, lvl, n === 'pb' ? 'pb' : Number(String(n).replace(/e$/, '')) || 1)
+    }
+  }
+  return out.length ? out : undefined
+}
+
 /* ───────── 5etools classes and subclasses (shared by both editions) ───────── */
 function classFiles() {
   return fs.readdirSync(path.join(SRC, 'class')).filter(f => /^class-(?!mystic|sidekick).*\.json$/.test(f)).map(f => readJson(path.join(SRC, 'class', f)))
@@ -259,7 +283,7 @@ function build2014From() {
       name, source: x.source, size, speed, darkvision: x.darkvision, abilities: Object.keys(abilities).length ? abilities : undefined,
       abilityChoice: abilityChoice.length ? abilityChoice : undefined, resist: (x.resist || []).filter(v => typeof v === 'string'),
       languages: langs, languageChoice: langChoice || undefined, skills: skills.length ? skills : undefined, skillChoice,
-      hpPerLevel: /Dwarven Toughness/.test(JSON.stringify(x.entries || [])) ? 1 : undefined, traits,
+      hpPerLevel: /Dwarven Toughness/.test(JSON.stringify(x.entries || [])) ? 1 : undefined, traits, spells: speciesSpells(x.additionalSpells),
       weapons: keysOf(x.weaponProficiencies).map(k => weaponName(k.split('|')[0])),
       armor: keysOf(x.armorProficiencies).map(armorName),
       tools: keysOf(x.toolProficiencies).filter(k => k !== 'any' && k !== 'choose').map(k => k.replace(/\b\w/g, c => c.toUpperCase())),
@@ -542,6 +566,7 @@ async function build2024() {
     const races = readJson(path.join(SRC, 'races.json')).race || []
     for (const sp of species) {
       const r = races.find(x => x.name === sp.name && x.source === 'XPHB')
+      sp.spells = speciesSpells(r?.additionalSpells)
       for (const e of (r?.entries || []).filter(e => e && e.name)) {
         const t = sp.traits.find(t => t.name.toLowerCase() === strip(e.name).toLowerCase())
         if (t) t.description = html([{ entries: e.entries }])

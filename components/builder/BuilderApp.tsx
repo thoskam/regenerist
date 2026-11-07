@@ -163,7 +163,7 @@ function Basics({ b, up, locked }: { b: Build; up: (p: Partial<Build>) => void; 
             <button key={e} type="button" aria-pressed={b.edition === e} onClick={() => up({ ...blankBuild(), name: b.name, edition: e })} className={chip(b.edition === e)}>{e === '2024' ? '2024 (5.5e) rules' : '2014 (5e) rules'}</button>
           ))}
         </div>
-        <p className="m-0 text-[13px] text-muted">{locked ? 'The edition is fixed once a character exists.' : '2024 uses the 2024 Free Rules classes (subclass features are entered by hand). 2014 uses your local PHB and supplement data, with all subclasses. Changing edition clears your choices.'}</p>
+        <p className="m-0 text-[13px] text-muted">{locked ? 'The edition is fixed once a character exists.' : '2024 uses the 2024 Player’s Handbook and later books, with 2014 subclasses also available. 2014 uses the 2014 Player’s Handbook and supplements. Changing edition clears your choices.'}</p>
       </fieldset>
       <fieldset className="flex flex-col gap-2">
         <legend className="mb-2 font-semibold">Hit points per level</legend>
@@ -310,6 +310,10 @@ function SpeciesStep({ b, up, pack }: StepProps) {
         <div className="flex flex-col gap-3 rounded-2xl bg-raised p-4">
           <p className="m-0 text-[13px] text-muted">{[sp.size, `speed ${sp.speed.walk} ft`, sp.darkvision ? `darkvision ${sp.darkvision} ft` : '', sp.resist?.length ? `resist ${sp.resist.join(', ')}` : '', sp.abilities ? Object.entries(sp.abilities).map(([a, v]) => `${a.toUpperCase()} +${v}`).join(', ') : ''].filter(Boolean).join(' · ')}</p>
           <p className="m-0 text-[13px]"><span className="text-muted">Traits: </span>{sp.traits.map(t => t.name).join(', ') || '—'}</p>
+          {(() => {
+            const spells = (sp.spells ?? []).filter(x => !x.option || x.option === b.species.option)
+            return spells.length ? <p className="m-0 text-[13px]"><span className="text-muted">Spells: </span>{spells.map(x => `${x.name}${x.level > 1 ? ` (level ${x.level})` : ''}`).join(', ')}</p> : null
+          })()}
           {sp.options && (
             <label className="flex flex-col gap-1 text-[13px] text-muted">{sp.options.label}
               <select value={b.species.option ?? ''} onChange={e => setSp({ option: e.target.value || null })} className={field}>
