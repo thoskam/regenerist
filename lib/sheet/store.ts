@@ -10,6 +10,8 @@ import { applyDocOp, DocOpError, type DocOp } from './docOps'
 import { catalogToItem } from '../catalog/items'
 import { generateDoc, normalizeBuild, validateBuild } from '../rules/build'
 import { loadPack } from '../rules/pack'
+import { driftLevel, randomBuild } from '../rules/random'
+import { generateStory } from '../regenerist/story'
 import { emptyPlayState } from './types'
 
 export class StoreError extends Error {
@@ -151,6 +153,7 @@ export interface SheetPatch {
   state?: unknown
   theme?: { name?: unknown; accent?: unknown }
   notes?: unknown
+  regenerist?: { enabled?: unknown }
 }
 
 const NOTE_KEYS = ['personality', 'ideals', 'bonds', 'flaws', 'appearance', 'backstory', 'allies', 'organizations', 'enemies', 'possessions', 'holdings', 'other'] as const
@@ -169,6 +172,11 @@ export async function updateSheet(slug: string, patch: SheetPatch): Promise<{ re
       const name = THEMES.includes(patch.theme.name as ThemeName) ? (patch.theme.name as ThemeName) : doc.theme?.name ?? 'ember'
       const accent = typeof patch.theme.accent === 'string' && /^#[0-9a-f]{6}$/i.test(patch.theme.accent) ? patch.theme.accent : null
       doc.theme = { name, accent }
+      docChanged = true
+    }
+    if (patch.regenerist && typeof patch.regenerist.enabled === 'boolean') {
+      if (!doc.build) throw new StoreError('Regenerist mode needs a character made in the builder.', 400)
+      doc.regenerist = { lifeNumber: 1, lives: [], ...(doc.regenerist ?? {}), enabled: patch.regenerist.enabled }
       docChanged = true
     }
     if (patch.notes && typeof patch.notes === 'object') {
@@ -261,4 +269,32 @@ export async function updateBuild(slug: string, input: unknown): Promise<{ slug:
   const doc = generateDoc(pack, build, prev)
   await prisma.playerCharacter.update({ where: { id: row.id }, data: { name: doc.name, doc: doc as unknown as Prisma.InputJsonValue } })
   return { slug }
+}
+
+/** Regenerate: archive the current life, roll a new random form, and reset table state. */
+export async function regenerate(slug: string): Promise<CharacterDoc> {
+  const row = await prisma.playerCharacter.findUnique({ where: { slug }, select: { id: true, doc: true, revision: true } })
+  if (!row) throw new StoreError('Character not found.', 404)
+  const prev = row.doc as unknown as CharacterDoc
+  if (!prev.build || !prev.regenerist?.enabled) throw new StoreError('Turn on Regenerist mode first.', 400)
+  const pack = loadPack(prev.build.edition)
+  const prevSheet = computeSheet(prev, emptyPlayState())
+  const summary = `${prev.identity.species} · ${prevSheet.classLabel}`
+  const build = randomBuild(pack, { name: prev.build.name, level: driftLevel(prevSheet.level) })
+  const draft = generateDoc(pack, build, prev)
+  const lifeNumber = prev.regenerist.lifeNumber + 1
+  const story = await generateStory({ name: draft.name, lifeNumber, species: draft.identity.species, classLabel: computeSheet(draft, emptyPlayState()).classLabel, background: build.background.name, previous: summary })
+  const doc: CharacterDoc = {
+    ...draft,
+    regenerist: {
+      enabled: true, lifeNumber, story,
+      lives: [{ number: prev.regenerist.lifeNumber, summary, story: prev.regenerist.story ?? null, endedAt: new Date().toISOString(), build: prev.build }, ...prev.regenerist.lives].slice(0, 100),
+    },
+  }
+  const written = await prisma.playerCharacter.updateMany({
+    where: { id: row.id, revision: row.revision },
+    data: { doc: doc as unknown as Prisma.InputJsonValue, state: emptyPlayState() as unknown as Prisma.InputJsonValue, revision: { increment: 1 } },
+  })
+  if (!written.count) throw new StoreError('This character changed somewhere else. Reload and try again.', 409)
+  return doc
 }

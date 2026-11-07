@@ -268,6 +268,15 @@ export interface CharacterDoc {
   import?: { source: 'ddb'; id: string; url: string; importedAt: string } | null
   /** Builder choices; present for characters made in the app (the doc is regenerated from it). */
   build?: Build | null
+  /** Regenerist mode: the soul takes a random new form on each regeneration. */
+  regenerist?: RegeneristState | null
+}
+
+export interface RegeneristState {
+  enabled: boolean
+  lifeNumber: number
+  story?: string | null
+  lives: Array<{ number: number; summary: string; story?: string | null; endedAt: string; build: Build }>
 }
 
 export interface PlayState {

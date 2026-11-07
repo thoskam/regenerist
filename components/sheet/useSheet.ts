@@ -164,7 +164,27 @@ export function useSheet(slug: string, initial: { doc: CharacterDoc; state: Play
     }
   }, [slug, readOnly])
 
-  return { readOnly, campaignId, joinCampaign, doc, setDoc, editDoc, docError, setDocError, state, setState, sheet, status, mode, setMode, log, setLog, push, rollCheck, rollDamage, critKey, saveTheme, saveNotes }
+  const setRegenerist = useCallback(async (enabled: boolean) => {
+    const res = await fetch(`/api/sheets/${slug}`, { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ regenerist: { enabled } }) })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) { setDocError(data.error || 'Could not change Regenerist mode.'); return }
+    setDoc(data.doc)
+  }, [slug])
+
+  /** Regenerate into a new random form. Returns false on failure. */
+  const regenerate = useCallback(async () => {
+    if (readOnly) return false
+    const res = await fetch(`/api/sheets/${slug}/regenerate`, { method: 'POST' })
+    const data = await res.json().catch(() => ({}))
+    if (!res.ok) { setDocError(data.error || 'Regeneration failed.'); return false }
+    if (timer.current) clearTimeout(timer.current)
+    pending.current = null
+    revision.current = data.revision
+    setDoc(data.doc); setStateRaw(data.state)
+    return true
+  }, [slug, readOnly])
+
+  return { setRegenerist, regenerate, readOnly, campaignId, joinCampaign, doc, setDoc, editDoc, docError, setDocError, state, setState, sheet, status, mode, setMode, log, setLog, push, rollCheck, rollDamage, critKey, saveTheme, saveNotes }
 }
 
 export type SheetApi = ReturnType<typeof useSheet>

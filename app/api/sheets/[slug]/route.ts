@@ -22,7 +22,7 @@ export async function PATCH(req: Request, { params }: Ctx) {
     await guardCharacter(slug, 'write')
     const body = await req.json().catch(() => null)
     if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Expected a JSON body.' }, { status: 400 })
-    return NextResponse.json(await updateSheet(slug, { revision: body.revision, state: body.state, theme: body.theme, notes: body.notes }))
+    return NextResponse.json(await updateSheet(slug, { revision: body.revision, state: body.state, theme: body.theme, notes: body.notes, regenerist: body.regenerist }))
   } catch (e) {
     return errorResponse(e)
   }

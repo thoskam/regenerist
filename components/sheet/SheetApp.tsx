@@ -9,12 +9,12 @@ import { ABILITIES } from '@/lib/sheet/types'
 import { useSheet, type SheetApi } from './useSheet'
 import { combineModes } from '@/lib/sheet/dice'
 import { Card, DetailDrawer, Label, SectionTitle, Segmented, cx, type DetailContent } from './ui'
-import { ActionsTab, FeaturesTab, NotesTab, SpellsTab } from './tabs'
+import { ActionsTab, FeaturesTab, LivesTab, NotesTab, SpellsTab } from './tabs'
 import { InventoryTab } from './inventory'
 import { RollTray } from './RollTray'
 import { ConditionsCard, HitPointsCard, ShortRestDialog } from './vitals'
 
-type Tab = 'abilities' | 'skills' | 'actions' | 'spells' | 'inventory' | 'features' | 'notes'
+type Tab = 'abilities' | 'skills' | 'actions' | 'spells' | 'inventory' | 'features' | 'notes' | 'lives'
 const TABS: Array<{ id: Tab; label: string; mobileOnly?: boolean }> = [
   { id: 'abilities', label: 'Abilities', mobileOnly: true },
   { id: 'skills', label: 'Skills', mobileOnly: true },
@@ -23,6 +23,7 @@ const TABS: Array<{ id: Tab; label: string; mobileOnly?: boolean }> = [
   { id: 'inventory', label: 'Inventory' },
   { id: 'features', label: 'Features & Traits' },
   { id: 'notes', label: 'Notes' },
+  { id: 'lives', label: 'Lives' },
 ]
 
 export interface SheetProps {
@@ -56,7 +57,7 @@ export default function SheetApp({ slug, initial, readOnly, campaigns = [] }: Sh
           <div className="flex min-w-0 flex-[3_1_560px] flex-col gap-4">
             <ConditionsCard api={api} />
             <Card className="flex flex-col">
-              <TabBar tab={tab} setTab={setTab} />
+              <TabBar tab={tab} setTab={setTab} showLives={!!doc.regenerist?.enabled} />
               <div className="flex flex-col gap-4 p-4">
                 {tab === 'abilities' && <AbilitiesColumn api={api} flat />}
                 {tab === 'skills' && <SkillsCard api={api} flat />}
@@ -65,6 +66,7 @@ export default function SheetApp({ slug, initial, readOnly, campaigns = [] }: Sh
                 {tab === 'inventory' && <InventoryTab api={api} onDetail={setDetail} />}
                 {tab === 'features' && <FeaturesTab api={api} onDetail={setDetail} />}
                 {tab === 'notes' && <NotesTab api={api} />}
+                {tab === 'lives' && <LivesTab api={api} />}
               </div>
             </Card>
           </div>
@@ -76,10 +78,10 @@ export default function SheetApp({ slug, initial, readOnly, campaigns = [] }: Sh
   )
 }
 
-function TabBar({ tab, setTab }: { tab: Tab; setTab: (t: Tab) => void }) {
+function TabBar({ tab, setTab, showLives }: { tab: Tab; setTab: (t: Tab) => void; showLives: boolean }) {
   return (
     <nav aria-label="Sheet sections" className="flex gap-1 overflow-x-auto border-b border-line px-3 pt-2">
-      {TABS.map(t => (
+      {TABS.filter(t => t.id !== 'lives' || showLives).map(t => (
         <button
           key={t.id} type="button" aria-pressed={tab === t.id} onClick={() => setTab(t.id)}
           className={cx('min-h-[44px] shrink-0 border-b-[3px] px-3 text-sm font-semibold', t.mobileOnly && 'lg:hidden', tab === t.id ? 'border-accent text-ink' : 'border-transparent text-muted')}
@@ -95,6 +97,16 @@ function Header({ api, slug, hasAvatar, campaigns }: { api: SheetApi; slug: stri
   const [avatarError, setAvatarError] = useState<string | null>(null)
   const [menu, setMenu] = useState(false)
   const [syncing, setSyncing] = useState(false)
+  const [regenPhase, setRegenPhase] = useState<'idle' | 'charging' | 'flash'>('idle')
+  const doRegenerate = async () => {
+    if (!window.confirm(`Regenerate ${doc.name}? This life ends: a new species, class, and level are rolled, and HP and resources reset.`)) return
+    setRegenPhase('charging')
+    const started = Date.now()
+    const ok = await api.regenerate()
+    await new Promise(r => setTimeout(r, Math.max(0, 1200 - (Date.now() - started))))
+    setRegenPhase(ok ? 'flash' : 'idle')
+    if (ok) setTimeout(() => setRegenPhase('idle'), 1100)
+  }
   const fileRef = useRef<HTMLInputElement>(null)
   const [resting, setResting] = useState(false)
   const initials = doc.name.split(/\s+/).map(w => w[0]).join('').slice(0, 2).toUpperCase()
@@ -150,7 +162,13 @@ function Header({ api, slug, hasAvatar, campaigns }: { api: SheetApi; slug: stri
         </div>
       </div>
       <div className="flex flex-wrap items-center gap-2.5">
-        <span className="rounded-full border border-line px-2.5 py-1.5 text-xs text-muted">Rules: {doc.rulesLabel}</span>
+        <span className="rounded-full border border-line px-2.5 py-1.5 text-xs text-muted">Rules: {doc.rulesLabel}{doc.regenerist?.enabled ? ` · life ${doc.regenerist.lifeNumber}` : ''}</span>
+        {doc.regenerist?.enabled && !api.readOnly && (
+          <button type="button" onClick={doRegenerate} disabled={regenPhase !== 'idle'} className={cx('min-h-[44px] rounded-xl border border-accent bg-accent-soft px-4 text-[13px] font-semibold', regenPhase === 'charging' && 'regen-charging')}>
+            {regenPhase === 'charging' ? 'Regenerating…' : 'Regenerate'}
+          </button>
+        )}
+        {regenPhase === 'flash' && <div aria-hidden="true" className="regen-flash pointer-events-none fixed inset-0 z-50" />}
         <Segmented label="Roll mode" value={mode} onChange={setMode} options={[{ value: 'normal', label: 'Normal' }, { value: 'advantage', label: 'Advantage' }, { value: 'disadvantage', label: 'Disadvantage' }]} />
         <button type="button" onClick={() => setResting(true)} className="min-h-[44px] rounded-xl border border-line bg-raised px-4 text-[13px] font-semibold">Short rest</button>
         <button type="button" onClick={() => { setState(s => longRest(doc, s)); push({ label: 'Long rest', total: 0, detail: 'HP, spell slots, and limited uses restored.', tag: 'REST' }) }} className="min-h-[44px] rounded-xl border border-line bg-raised px-4 text-[13px] font-semibold">Long rest</button>
@@ -168,6 +186,12 @@ function Header({ api, slug, hasAvatar, campaigns }: { api: SheetApi; slug: stri
                     {campaigns.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                   {api.campaignId && <Link href={`/party/${api.campaignId}`} className="normal-case tracking-normal text-accent underline">Open party view</Link>}
+                </label>
+              )}
+              {doc.build && !api.readOnly && (
+                <label className="flex min-h-[40px] items-center gap-2 rounded-xl border border-line bg-raised px-3 text-[13px] font-semibold">
+                  <input type="checkbox" checked={!!doc.regenerist?.enabled} onChange={e => api.setRegenerist(e.target.checked)} className="h-4 w-4 accent-[var(--accent)]" />
+                  Regenerist mode
                 </label>
               )}
               {doc.import && !api.readOnly && (

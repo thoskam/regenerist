@@ -83,3 +83,21 @@ test('every 2014 subclass has features and every class has a hit die and saves',
   assert.deepEqual(p.classes.flatMap(c => c.subclasses.filter(s => !s.features.length).map(s => `${c.name}: ${s.name}`)), [])
   for (const c of [...p.classes, ...pack('2024').classes]) { assert.ok(c.hitDie >= 6, c.name); assert.equal(c.saves.length, 2, c.name) }
 })
+
+test('Regenerist random builds are always valid in both editions', opts, () => {
+  const { randomBuild, driftLevel } = require('../lib/rules/random')
+  let seed = 7
+  const rng = () => { seed = (seed * 16807) % 2147483647; return (seed - 1) / 2147483646 }
+  for (const ed of ['2014', '2024']) {
+    const p = pack(ed)
+    for (let i = 0; i < 60; i++) {
+      const level = 1 + (i % 20)
+      const b = randomBuild(p, { name: 'Soul', level, rng })
+      const errors = validateBuild(p, b).filter(x => x.level === 'error')
+      assert.deepEqual(errors, [], `${ed} ${b.classes[0].name} ${level}`)
+      const s = computeSheet(generateDoc(p, b), emptyPlayState())
+      assert.ok(s.hp.max > 0 && s.level === level)
+    }
+  }
+  for (let i = 0; i < 50; i++) { const l = driftLevel(1, rng); assert.ok(l >= 1 && l <= 3) }
+})

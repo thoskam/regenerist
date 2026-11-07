@@ -342,6 +342,7 @@ export function generateDoc(pack: RulesPack, b: Build, prev?: CharacterDoc | nul
     theme: prev?.theme ?? { name: 'ember', accent: null },
     import: null,
     build: b,
+    regenerist: prev?.regenerist ?? null,
   }
 }
 

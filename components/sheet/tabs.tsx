@@ -315,3 +315,40 @@ export function NotesTab({ api }: { api: SheetApi }) {
     </div>
   )
 }
+
+/* ───────────────────────── Lives (Regenerist) ───────────────────────── */
+
+export function LivesTab({ api }: { api: SheetApi }) {
+  const r = api.doc.regenerist
+  if (!r) return <p className="m-0 text-muted">Regenerist mode is off.</p>
+  return (
+    <div className="flex flex-col gap-4">
+      <div className="flex flex-col gap-2 rounded-2xl border border-accent bg-accent-soft p-4">
+        <SectionTitle accent>Life {r.lifeNumber} · current</SectionTitle>
+        {r.story ? <StoryText text={r.story} /> : <p className="m-0 text-muted">This is the first recorded life. Press Regenerate to begin the cycle.</p>}
+      </div>
+      {r.lives.map(l => (
+        <details key={l.number} className="rounded-xl bg-raised px-3 py-2.5">
+          <summary className="cursor-pointer text-sm font-semibold">Life {l.number}: {l.summary} <span className="text-xs font-normal text-muted">· ended {new Date(l.endedAt).toLocaleDateString()}</span></summary>
+          {l.story ? <div className="mt-2"><StoryText text={l.story} /></div> : null}
+        </details>
+      ))}
+    </div>
+  )
+}
+
+/** Renders the Archivist's light markdown (## headings, *italics*, **bold**) as safe React text. */
+function StoryText({ text }: { text: string }) {
+  const inline = (t: string) => t.split(/(\*\*[^*]+\*\*|\*[^*]+\*)/g).map((part, i) =>
+    part.startsWith('**') ? <strong key={i}>{part.slice(2, -2)}</strong> : part.startsWith('*') && part.length > 2 ? <em key={i}>{part.slice(1, -1)}</em> : <span key={i}>{part}</span>)
+  return (
+    <div className="flex flex-col gap-2 text-sm leading-relaxed">
+      {text.split(/\n{2,}/).map((block, i) => {
+        const t = block.trim()
+        if (/^##\s/.test(t)) return <h4 key={i} className="m-0 font-display text-lg font-semibold">{t.replace(/^##\s*/, '')}</h4>
+        if (/^\|/.test(t)) return <pre key={i} className="m-0 overflow-x-auto whitespace-pre-wrap text-xs text-muted">{t}</pre>
+        return <p key={i} className="m-0 whitespace-pre-line">{inline(t)}</p>
+      })}
+    </div>
+  )
+}
