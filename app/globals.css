@@ -233,9 +233,35 @@ body {
   --shadow: 0 12px 32px rgba(60, 40, 20, 0.18);
   color-scheme: light;
 }
+.v2[data-theme="papyrus"] {
+  --bg: #f2ece0; --panel: #fdf9f3; --raised: #f4ecdc; --line: #dccdaa;
+  --ink: #2c1810; --muted: #65503d; --accent: #a3201c; --on-accent: #fff8f0;
+  --good: #2b6e3c; --bad: #a82418;
+  --r-uncommon: #2b7340; --r-rare: #2353ad; --r-very-rare: #7438b0; --r-legendary: #9a5200; --r-artifact: #a3271b;
+  --shadow: 0 12px 32px rgba(70, 45, 20, 0.16);
+  /* the original Papyrus paper grain */
+  --grain: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='400' height='400'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.75' numOctaves='4' stitchTiles='stitch'/%3E%3CfeColorMatrix type='saturate' values='0'/%3E%3C/filter%3E%3Crect width='400' height='400' filter='url(%23n)' opacity='0.045'/%3E%3C/svg%3E");
+  background: var(--grain), var(--bg);
+  color-scheme: light;
+}
+.v2[data-theme="verdant"] {
+  --bg: #0d1510; --panel: #142019; --raised: #1b2b21; --line: #2b4033;
+  --ink: #e8f0e6; --muted: #a6bba9; --accent: #9bd36b; --on-accent: #0d1a06;
+  --good: #7fe0c0; --bad: #ff9a8a;
+  --r-uncommon: #8fd6a0; --r-rare: #8fbaff; --r-very-rare: #d3adff; --r-legendary: #ffbe7a;
+}
+.v2[data-theme="frost"] {
+  --bg: #0c151b; --panel: #131f27; --raised: #1a2a34; --line: #2a3e4a;
+  --ink: #e8f2f6; --muted: #a3b8c2; --accent: #7fd3ea; --on-accent: #04212b;
+  --good: #8ee0b0; --bad: #ff9aa2;
+  --r-uncommon: #8fd6a0; --r-rare: #86c5ff; --r-very-rare: #d3adff; --r-legendary: #ffbe7a;
+}
 .v2 { --accent-soft: color-mix(in srgb, var(--accent) 14%, transparent); --backdrop: url(/backdrops/ember.svg); }
 .v2[data-theme="arcane"] { --backdrop: url(/backdrops/arcane.svg); }
 .v2[data-theme="parchment"] { --backdrop: url(/backdrops/parchment.svg); }
+.v2[data-theme="papyrus"] { --backdrop: url(/backdrops/papyrus.svg); }
+.v2[data-theme="verdant"] { --backdrop: url(/backdrops/verdant.svg); }
+.v2[data-theme="frost"] { --backdrop: url(/backdrops/frost.svg); }
 /* Scenic art behind the top of a page (original SVGs from scripts/backdrops.cjs), fading into --bg. */
 .v2-scene { position: relative; isolation: isolate; }
 .v2-scene::before {

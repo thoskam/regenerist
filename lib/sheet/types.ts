@@ -211,7 +211,7 @@ export interface Notes {
   other?: string
 }
 
-export type ThemeName = 'ember' | 'arcane' | 'parchment'
+export type ThemeName = 'ember' | 'arcane' | 'parchment' | 'papyrus' | 'verdant' | 'frost'
 
 export interface CharacterDoc {
   schema: 1

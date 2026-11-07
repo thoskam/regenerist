@@ -174,4 +174,136 @@ function parchment() {
   write('parchment', s, defs)
 }
 
-ember(); arcane(); parchment()
+/* ───── Papyrus: an ink-and-wash river scene — sun disc, pyramids, obelisk, papyrus reeds ───── */
+function papyrus() {
+  const r = rng(99)
+  const ink = '#4a3220'
+  const defs = `
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#f2ece0" stop-opacity="0"/><stop offset=".55" stop-color="#ecd9ae" stop-opacity=".55"/><stop offset=".8" stop-color="#e3c48a" stop-opacity=".6"/><stop offset="1" stop-color="#f2ece0" stop-opacity="0"/></linearGradient>
+<radialGradient id="sun"><stop offset="0" stop-color="#e9a94a" stop-opacity=".85"/><stop offset=".55" stop-color="#e6b464" stop-opacity=".5"/><stop offset="1" stop-color="#e6b464" stop-opacity="0"/></radialGradient>
+<linearGradient id="river" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#7f9c9a" stop-opacity=".45"/><stop offset="1" stop-color="#7f9c9a" stop-opacity=".15"/></linearGradient>
+<filter id="wash" x="-10%" y="-10%" width="120%" height="120%"><feTurbulence type="fractalNoise" baseFrequency=".02" numOctaves="3" seed="4"/><feDisplacementMap in="SourceGraphic" scale="14"/><feGaussianBlur stdDeviation="1.2"/></filter>`
+  let s = `<rect width="${W}" height="${H}" fill="url(#sky)"/>`
+  s += `<circle cx="1080" cy="230" r="170" fill="url(#sun)"/><circle cx="1080" cy="230" r="62" fill="#e7a548" opacity=".55" filter="url(#wash)"/>`
+  // dunes
+  s += `<path d="${ridge(r, { base: 410, rough: 4, step: 20 })}" fill="#d9bd85" opacity=".55" filter="url(#wash)"/>`
+  // pyramids: lit face + shaded face, ink outline
+  for (const [x, w, h] of [[300, 150, 120], [470, 110, 86], [1290, 170, 136], [1440, 90, 66]]) {
+    const y = 412
+    s += `<path d="M${x - w} ${y} L${x} ${y - h} L${x + w} ${y} Z" fill="#e2c089" opacity=".9" filter="url(#wash)"/>`
+    s += `<path d="M${x} ${y - h} L${x + w} ${y} L${x + w * 0.25} ${y} Z" fill="#b88d55" opacity=".55" filter="url(#wash)"/>`
+    s += `<path d="M${x - w} ${y} L${x} ${y - h} L${x + w} ${y} M${x} ${y - h} L${x + w * 0.25} ${y}" fill="none" stroke="${ink}" stroke-width="1.6" opacity=".55"/>`
+    for (let k = 1; k < 5; k++) { const t = k / 5; s += `<path d="M${f(x - w * t)} ${f(y - h + h * t)} L${f(x + w * t)} ${f(y - h + h * t)}" stroke="${ink}" stroke-width=".6" opacity=".25"/>` }
+  }
+  // obelisk
+  s += `<path d="M760 418 L768 250 L776 236 L784 250 L792 418 Z" fill="#cfa96b" stroke="${ink}" stroke-width="1.4" opacity=".75"/>`
+  // the river
+  s += `<path d="M0 470 C300 440 520 500 800 470 S1300 440 1600 468 L1600 540 C1300 520 1000 560 760 540 S260 520 0 548 Z" fill="url(#river)" filter="url(#wash)"/>`
+  for (let i = 0; i < 22; i++) { const x = r() * W, y = 480 + r() * 50; s += `<path d="M${f(x)} ${f(y)} h${f(14 + r() * 30)}" stroke="${ink}" stroke-width=".9" opacity=".3"/>` }
+  // birds
+  for (const [x, y, k] of [[560, 150, 9], [600, 130, 7], [640, 160, 8], [1220, 110, 6]]) s += `<path d="M${x - k} ${y} q${k / 2} ${-k / 2} ${k} 0 q${k / 2} ${-k / 2} ${k} 0" fill="none" stroke="${ink}" stroke-width="1.4" opacity=".55"/>`
+  // papyrus reeds in the foreground: stalks topped with umbels
+  const reed = (x, base, h, lean) => {
+    const tx = x + lean, ty = base - h
+    let g = `<path d="M${f(x)} ${base} Q${f(x + lean * 0.3)} ${f(base - h * 0.6)} ${f(tx)} ${f(ty)}" fill="none" stroke="#5f6b3a" stroke-width="2" opacity=".8"/>`
+    for (let k = 0; k < 9; k++) {
+      const a = -Math.PI / 2 + (k - 4) * 0.28 + lean / 200, len = 22 + r() * 10
+      g += `<path d="M${f(tx)} ${f(ty)} L${f(tx + Math.cos(a) * len)} ${f(ty + Math.sin(a) * len)}" stroke="#6f7c42" stroke-width="1.2" opacity=".75"/>`
+    }
+    return g
+  }
+  for (let i = 0; i < 16; i++) s += reed(10 + r() * 300, 640, 110 + r() * 90, (r() - 0.5) * 40)
+  for (let i = 0; i < 14; i++) s += reed(1300 + r() * 300, 640, 100 + r() * 80, (r() - 0.5) * 40)
+  s += `<path d="M0 600 Q400 580 800 600 T1600 596 L1600 ${H} L0 ${H} Z" fill="#f2ece0" opacity=".6"/>`
+  write('papyrus', s, defs)
+}
+
+/* ───── Verdant: a moonlit Feywild forest — an ancient tree, fireflies, glowing mushrooms ───── */
+function verdant() {
+  const r = rng(314)
+  const defs = `
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#050b08"/><stop offset=".55" stop-color="#10261c"/><stop offset="1" stop-color="#1d3a2a"/></linearGradient>
+<radialGradient id="moon"><stop offset="0" stop-color="#e6f5d8" stop-opacity=".6"/><stop offset="1" stop-color="#e6f5d8" stop-opacity="0"/></radialGradient>
+<radialGradient id="fly"><stop offset="0" stop-color="#f4ffb0"/><stop offset=".35" stop-color="#c9f06a" stop-opacity=".7"/><stop offset="1" stop-color="#9bd36b" stop-opacity="0"/></radialGradient>
+<radialGradient id="feyglow"><stop offset="0" stop-color="#5fd39a" stop-opacity=".35"/><stop offset="1" stop-color="#5fd39a" stop-opacity="0"/></radialGradient>
+<radialGradient id="shroom"><stop offset="0" stop-color="#7ff0e0" stop-opacity=".7"/><stop offset="1" stop-color="#7ff0e0" stop-opacity="0"/></radialGradient>`
+  let s = `<rect width="${W}" height="${H}" fill="url(#sky)"/><circle cx="1230" cy="140" r="170" fill="url(#moon)"/><circle cx="1230" cy="140" r="44" fill="#eef8e2" opacity=".92"/>`
+  // canopy layers: rows of overlapping round crowns on trunks
+  const forest = (base, size, color, n, op = 1, clearing = null) => {
+    let g = `<g fill="${color}" opacity="${op}">`
+    for (let i = 0; i < n; i++) {
+      const x = (i / (n - 1)) * (W + 100) - 50 + (r() - 0.5) * 40, h = size * (0.8 + r() * 0.6)
+      if (clearing && x > clearing[0] && x < clearing[1]) continue
+      g += `<rect x="${f(x - size * 0.06)}" y="${f(base - h)}" width="${f(size * 0.12)}" height="${f(h + 40)}"/>`
+      for (let k = 0; k < 4; k++) g += `<circle cx="${f(x + (r() - 0.5) * size * 0.7)}" cy="${f(base - h - (r()) * size * 0.4)}" r="${f(size * (0.3 + r() * 0.25))}"/>`
+    }
+    return g + `<rect x="0" y="${base}" width="${W}" height="${H - base}"/></g>`
+  }
+  s += forest(330, 90, '#1a3626', 22, 0.9)
+  s += forest(420, 120, '#132b1e', 16)
+  // a soft fey glow behind the ancient tree so its silhouette reads
+  s += `<ellipse cx="820" cy="300" rx="420" ry="260" fill="url(#feyglow)"/>`
+  // the ancient tree: wide trunk with roots, a vast crown
+  s += `<g fill="#0e1f16"><path d="M720 640 C730 560 760 470 770 380 C700 360 640 330 600 300 C680 310 740 330 780 340 C780 300 760 250 730 220 C790 250 810 300 815 340 C840 290 880 250 940 230 C880 280 850 330 840 380 C860 470 880 560 900 640 Z"/>`
+  for (const [x, y, rad] of [[700, 210, 110], [820, 160, 130], [950, 210, 110], [620, 260, 80], [1020, 270, 80], [800, 250, 120]]) s += `<circle cx="${x}" cy="${y}" r="${rad}"/>`
+  s += `</g>`
+  for (let i = 0; i < 9; i++) { const x = 600 + r() * 440, y = 240 + r() * 60; s += `<path d="M${f(x)} ${f(y)} q${f((r() - 0.5) * 20)} 60 ${f((r() - 0.5) * 10)} ${f(80 + r() * 90)}" stroke="#2c5a3c" stroke-width="2" fill="none" opacity=".7"/>` }
+  s += forest(560, 100, '#0d1a13', 14, 1, [560, 1040])
+  // glowing mushrooms
+  for (let i = 0; i < 9; i++) {
+    const x = 80 + r() * 1440, y = 600 + r() * 20, k = 6 + r() * 8
+    s += `<circle cx="${f(x)}" cy="${f(y - k)}" r="${f(k * 3.5)}" fill="url(#shroom)"/><rect x="${f(x - k * 0.18)}" y="${f(y - k)}" width="${f(k * 0.36)}" height="${f(k)}" fill="#bfeee6" opacity=".8"/><path d="M${f(x - k)} ${f(y - k)} a${f(k)} ${f(k * 0.8)} 0 0 1 ${f(k * 2)} 0 Z" fill="#7ff0e0" opacity=".9"/>`
+  }
+  for (let i = 0; i < 34; i++) { const x = r() * W, y = 180 + r() * 420, k = 4 + r() * 9; s += `<circle cx="${f(x)}" cy="${f(y)}" r="${f(k)}" fill="url(#fly)" opacity="${f(0.5 + r() * 0.5)}"/>` }
+  s += `<path d="${ridge(r, { base: 625, rough: 4 })}" fill="#0d1510"/>`
+  write('verdant', s, defs)
+}
+
+/* ───── Frost: snowy peaks at dawn, pines, a frozen lake, falling snow ───── */
+function frost() {
+  const r = rng(2718)
+  const defs = `
+<linearGradient id="sky" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#08121a"/><stop offset=".3" stop-color="#1b3a4c"/><stop offset=".5" stop-color="#6e9fb4"/><stop offset=".64" stop-color="#e8c9b8"/><stop offset=".72" stop-color="#c9e2ea"/></linearGradient>
+<linearGradient id="lake" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#9cc6d4" stop-opacity=".55"/><stop offset="1" stop-color="#2a4a5a" stop-opacity=".9"/></linearGradient>
+<filter id="soft"><feGaussianBlur stdDeviation="1.2"/></filter>`
+  let s = `<rect width="${W}" height="${H}" fill="url(#sky)"/>`
+  for (let i = 0; i < 120; i++) s += `<circle cx="${f(r() * W)}" cy="${f(r() * 200)}" r="${f(0.4 + r() * 0.9)}" fill="#fff" opacity="${f(0.2 + r() * 0.5)}"/>`
+  // sharp peaks with snowcaps
+  const peaks = (base, list, rock, snow) => {
+    let g = ''
+    for (const [x, h, w] of list) {
+      const ty = base - h, lw = w * (0.75 + r() * 0.5), rw = w * (0.75 + r() * 0.5)
+      // jagged edges: points from the summit down each side
+      const edge = (dir, width) => [0.15, 0.3, 0.5, 0.7, 0.85].map(t => [x + dir * width * t + (r() - 0.5) * 18, ty + h * t + (r() - 0.5) * 14])
+      const L = edge(-1, lw), R = edge(1, rw)
+      const pts = [[x - lw, base], ...L.slice().reverse(), [x, ty], ...R, [x + rw, base]]
+      g += `<path d="M${pts.map(p => `${f(p[0])} ${f(p[1])}`).join(' L')} Z" fill="${rock}"/>`
+      // snowcap down to the second edge point, with a ragged lower edge
+      const a = L[1], b = R[1]
+      let cap = `M${f(a[0])} ${f(a[1])} L${f(L[0][0])} ${f(L[0][1])} L${x} ${ty} L${f(R[0][0])} ${f(R[0][1])} L${f(b[0])} ${f(b[1])}`
+      for (let k = 1; k < 6; k++) { const t = k / 6; cap += ` L${f(b[0] + (a[0] - b[0]) * t)} ${f(b[1] + (a[1] - b[1]) * t + (k % 2 ? -h * 0.06 : h * 0.05))}` }
+      g += `<path d="${cap} Z" fill="${snow}"/>`
+      g += `<path d="M${x} ${ty} L${f(x + rw * 0.2)} ${f(ty + h * 0.5)} L${f(x + rw * 0.1)} ${base} L${f(x + rw)} ${base} L${R.map(p => `${f(p[0])} ${f(p[1])}`).reverse().join(' L')} Z" fill="#000" opacity=".2"/>`
+    }
+    return g
+  }
+  s += peaks(430, [[180, 220, 230], [520, 270, 260], [880, 230, 240], [1230, 300, 280], [1520, 220, 210]], '#3d6275', '#dcebf0')
+  s += peaks(470, [[350, 170, 200], [720, 190, 210], [1050, 160, 190], [1400, 180, 220]], '#2a4757', '#c4dbe3')
+  // frozen lake with reflections
+  s += `<rect x="0" y="470" width="${W}" height="70" fill="url(#lake)"/>`
+  for (let i = 0; i < 18; i++) { const x = r() * W, y = 480 + r() * 50; s += `<path d="M${f(x)} ${f(y)} h${f(30 + r() * 80)}" stroke="#e6f3f7" stroke-width="1" opacity=".35"/>` }
+  // pines
+  const pine = (x, base, h, c) => {
+    let g = `<rect x="${f(x - h * 0.03)}" y="${f(base - h * 0.15)}" width="${f(h * 0.06)}" height="${f(h * 0.15)}" fill="${c}"/>`
+    for (let k = 0; k < 4; k++) { const t = k / 4, w = h * (0.32 - t * 0.06), y0 = base - h * 0.12 - t * h * 0.24; g += `<path d="M${f(x - w)} ${f(y0)} L${f(x)} ${f(y0 - h * 0.42)} L${f(x + w)} ${f(y0)} Z" fill="${c}"/>` }
+    return g
+  }
+  for (let i = 0; i < 34; i++) { const x = r() * W; s += pine(x, 560 + r() * 10, 60 + r() * 50, '#14262f') }
+  s += `<path d="${ridge(r, { base: 590, rough: 4 })}" fill="#162a34"/>`
+  for (let i = 0; i < 26; i++) { const x = r() * W; s += pine(x, 640, 90 + r() * 70, '#0c151b') }
+  s += `<path d="${ridge(r, { base: 628, rough: 3 })}" fill="#0c151b"/>`
+  for (let i = 0; i < 160; i++) { const k = 0.8 + Math.pow(r(), 3) * 2.4; s += `<circle cx="${f(r() * W)}" cy="${f(r() * 600)}" r="${f(k)}" fill="#f4fbff" opacity="${f(0.35 + r() * 0.5)}"${k > 2 ? ' filter="url(#soft)"' : ''}/>` }
+  write('frost', s, defs)
+}
+
+ember(); arcane(); parchment(); papyrus(); verdant(); frost()

@@ -234,6 +234,9 @@ const THEME_SWATCHES: Array<{ name: ThemeName; label: string; bg: string; accent
   { name: 'ember', label: 'Ember', bg: '#13110e', accent: '#f0913f' },
   { name: 'arcane', label: 'Arcane', bg: '#0d1120', accent: '#a3b5ff' },
   { name: 'parchment', label: 'Parchment', bg: '#ebe3d2', accent: '#9e2b25' },
+  { name: 'papyrus', label: 'Papyrus', bg: '#f2ece0', accent: '#a3201c' },
+  { name: 'verdant', label: 'Verdant', bg: '#0d1510', accent: '#9bd36b' },
+  { name: 'frost', label: 'Frost', bg: '#0c151b', accent: '#7fd3ea' },
 ]
 const ACCENTS = ['#f0913f', '#e05d5d', '#d4a72c', '#5fb878', '#4fb3bf', '#a3b5ff', '#c28bf5', '#9e2b25']
 
