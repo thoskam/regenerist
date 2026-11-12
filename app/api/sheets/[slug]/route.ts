@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { guardCharacter } from '@/lib/sheet/access'
 import { deleteSheet, getSheet, updateSheet } from '@/lib/sheet/store'
 import { errorResponse } from '../errors'
+import { canUseRegenerist, hideRegenerist } from '@/lib/regeneristAccess'
 
 export const dynamic = 'force-dynamic'
 type Ctx = { params: Promise<{ slug: string }> }
@@ -9,8 +10,8 @@ type Ctx = { params: Promise<{ slug: string }> }
 export async function GET(_req: Request, { params }: Ctx) {
   try {
     const { slug } = await params
-    await guardCharacter(slug, 'read')
-    return NextResponse.json(await getSheet(slug))
+    const v = await guardCharacter(slug, 'read')
+    return NextResponse.json(hideRegenerist(await getSheet(slug), v))
   } catch (e) {
     return errorResponse(e)
   }
@@ -19,10 +20,11 @@ export async function GET(_req: Request, { params }: Ctx) {
 export async function PATCH(req: Request, { params }: Ctx) {
   try {
     const { slug } = await params
-    await guardCharacter(slug, 'write')
+    const v = await guardCharacter(slug, 'write')
     const body = await req.json().catch(() => null)
     if (!body || typeof body !== 'object') return NextResponse.json({ error: 'Expected a JSON body.' }, { status: 400 })
-    return NextResponse.json(await updateSheet(slug, { revision: body.revision, state: body.state, theme: body.theme, notes: body.notes, regenerist: body.regenerist }))
+    const regenerist = canUseRegenerist(v) ? body.regenerist : undefined
+    return NextResponse.json(hideRegenerist(await updateSheet(slug, { revision: body.revision, state: body.state, theme: body.theme, notes: body.notes, regenerist }), v))
   } catch (e) {
     return errorResponse(e)
   }

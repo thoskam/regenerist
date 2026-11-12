@@ -1,7 +1,7 @@
 export const dynamic = 'force-dynamic'
 
 import { NextResponse } from 'next/server'
-import { legacyGuard } from '@/lib/legacyGuard'
+import { regeneristGuard } from '@/lib/regeneristAccess'
 import { prisma } from '@/lib/prisma'
 
 // GET all lives for a character
@@ -9,7 +9,7 @@ export async function GET(
   request: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const denied = await legacyGuard()
+  const denied = await regeneristGuard()
   if (denied) return denied
   const routeParams = await params
   try {
@@ -44,7 +44,7 @@ export async function DELETE(
   request: Request,
   { params }: { params: Promise<{ slug: string }> }
 ) {
-  const denied = await legacyGuard()
+  const denied = await regeneristGuard()
   if (denied) return denied
   const routeParams = await params
   try {

@@ -1,13 +1,13 @@
 export const dynamic = 'force-dynamic'
 
 import { Prisma } from '@prisma/client'
-import { legacyGuard } from '@/lib/legacyGuard'
+import { regeneristGuard } from '@/lib/regeneristAccess'
 import { NextResponse } from 'next/server'
 import { prisma } from '@/lib/prisma'
 import { InputError, prepareLifeUpdate } from '@/lib/lifeUpdates'
 
 export async function GET(request: Request, { params }: { params: Promise<{ slug: string; lifeId: string }> }) {
-  const denied = await legacyGuard()
+  const denied = await regeneristGuard()
   if (denied) return denied
   const routeParams = await params
   const id = Number(routeParams.lifeId)
@@ -19,7 +19,7 @@ export async function GET(request: Request, { params }: { params: Promise<{ slug
 }
 
 export async function PUT(request: Request, { params }: { params: Promise<{ slug: string; lifeId: string }> }) {
-  const denied = await legacyGuard()
+  const denied = await regeneristGuard()
   if (denied) return denied
   const routeParams = await params
   const id = Number(routeParams.lifeId)

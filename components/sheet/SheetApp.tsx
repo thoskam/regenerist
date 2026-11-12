@@ -30,10 +30,12 @@ export interface SheetProps {
   slug: string
   initial: { doc: CharacterDoc; state: PlayState; revision: number; hasAvatar: boolean; campaignId?: string | null }
   readOnly?: boolean
+  /** Private extras (the Regenerist mode toggle), only for accounts allowed to use them. Neutral name: props show up in page source. */
+  extras?: boolean
   campaigns?: Array<{ id: string; name: string }>
 }
 
-export default function SheetApp({ slug, initial, readOnly, campaigns = [] }: SheetProps) {
+export default function SheetApp({ slug, initial, readOnly, campaigns = [], extras = false }: SheetProps) {
   const api = useSheet(slug, initial, { readOnly })
   const { doc, sheet } = api
   const [tab, setTab] = useState<Tab>('actions')
@@ -44,7 +46,7 @@ export default function SheetApp({ slug, initial, readOnly, campaigns = [] }: Sh
     <div className="v2 v2-scene min-h-screen font-ui text-sm" data-theme={doc.theme?.name ?? 'ember'} data-backdrop={doc.theme?.backdrop === false ? 'off' : undefined} style={style}>
       <div className={cx('mx-auto flex max-w-[1392px] flex-col gap-4 px-3 pb-36 sm:px-6', doc.theme?.backdrop === false ? 'pt-3 sm:pt-6' : 'pt-16 sm:pt-40')}>
         {readOnly && <div role="status" className="rounded-xl border border-line bg-panel px-4 py-2.5 text-[13px] text-muted">View only — this is another player’s character. You can roll, but changes aren’t saved.</div>}
-        <Header api={api} slug={slug} hasAvatar={initial.hasAvatar} campaigns={campaigns} />
+        <Header api={api} slug={slug} hasAvatar={initial.hasAvatar} campaigns={campaigns} extras={extras} />
         {/* Two columns on wide screens: abilities, saves and skills on the left; stats, HP and the tabs on the right.
             Narrower screens stack them, and saves/skills move into tabs. */}
         <div className="flex flex-col gap-4 xl:grid xl:grid-cols-[minmax(0,9fr)_minmax(0,10fr)] xl:items-start">
@@ -93,7 +95,7 @@ function TabBar({ tab, setTab, showLives }: { tab: Tab; setTab: (t: Tab) => void
   )
 }
 
-function Header({ api, slug, hasAvatar, campaigns }: { api: SheetApi; slug: string; hasAvatar: boolean; campaigns: Array<{ id: string; name: string }> }) {
+function Header({ api, slug, hasAvatar, campaigns, extras }: { api: SheetApi; slug: string; hasAvatar: boolean; campaigns: Array<{ id: string; name: string }>; extras: boolean }) {
   const { doc, sheet, state, setState, mode, setMode, push, status } = api
   const [avatarVersion, setAvatarVersion] = useState(hasAvatar ? 1 : 0)
   const [avatarError, setAvatarError] = useState<string | null>(null)
@@ -196,7 +198,7 @@ function Header({ api, slug, hasAvatar, campaigns }: { api: SheetApi; slug: stri
                   {api.campaignId && <Link href={`/party/${api.campaignId}`} className="normal-case tracking-normal text-accent underline">Open party view</Link>}
                 </label>
               )}
-              {doc.build && !api.readOnly && (
+              {extras && doc.build && !api.readOnly && (
                 <label className="flex min-h-[40px] items-center gap-2 rounded-xl border border-line bg-raised px-3 text-[13px] font-semibold">
                   <input type="checkbox" checked={!!doc.regenerist?.enabled} onChange={e => api.setRegenerist(e.target.checked)} className="h-4 w-4 accent-[var(--accent)]" />
                   Regenerist mode

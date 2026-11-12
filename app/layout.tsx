@@ -6,7 +6,7 @@ const display = Fraunces({ subsets: ['latin'], weight: ['500', '600'], variable:
 const ui = Inter({ subsets: ['latin'], weight: ['400', '500', '600', '700'], variable: '--font-ui', display: 'swap' })
 
 export const metadata: Metadata = {
-  title: 'Regenerist — D&D character sheets',
+  title: 'Land of Dragons — D&D character sheets',
   description: 'D&D 5e character sheets with rules, rolling, and table tracking.',
 }
 

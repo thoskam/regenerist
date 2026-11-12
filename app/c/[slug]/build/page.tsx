@@ -4,6 +4,7 @@ import BuilderApp from '@/components/builder/BuilderApp'
 import { getSheet } from '@/lib/sheet/store'
 import { canAccessCharacter } from '@/lib/auth'
 import { requirePageViewer } from '@/lib/pageAuth'
+import { hideRegenerist } from '@/lib/regeneristAccess'
 import { loadPack } from '@/lib/rules/pack'
 import { importToBuild } from '@/lib/rules/fromImport'
 
@@ -16,7 +17,7 @@ export default async function EditBuildPage({ params, searchParams }: Props) {
   const sheet = await getSheet(slug)
   if (!sheet || !(await canAccessCharacter(viewer, sheet, 'write'))) notFound()
   const { levelup } = await searchParams
-  if (sheet.doc.build) return <BuilderApp initial={sheet.doc.build} slug={slug} levelUp={levelup === '1'} current={sheet.doc} />
+  if (sheet.doc.build) return <BuilderApp initial={sheet.doc.build} slug={slug} levelUp={levelup === '1'} current={hideRegenerist(sheet.doc, viewer)} />
   if (!sheet.doc.import) notFound()
   // Imported character: convert it into builder choices for the player to review.
   let converted: ReturnType<typeof importToBuild>
@@ -33,5 +34,5 @@ export default async function EditBuildPage({ params, searchParams }: Props) {
       </main>
     )
   }
-  return <BuilderApp initial={converted.build} slug={slug} conversion={converted.report} current={sheet.doc} />
+  return <BuilderApp initial={converted.build} slug={slug} conversion={converted.report} current={hideRegenerist(sheet.doc, viewer)} />
 }

@@ -3,6 +3,7 @@ import { listSheets } from '@/lib/sheet/store'
 import { requirePageViewer } from '@/lib/pageAuth'
 import AccountMenu from '@/components/party/AccountMenu'
 import ImportForm from '@/components/home/ImportForm'
+import { canUseRegenerist } from '@/lib/regeneristAccess'
 
 export const dynamic = 'force-dynamic'
 
@@ -20,7 +21,7 @@ export default async function Home() {
           <AccountMenu name={viewer.user?.displayName ?? null} isAdmin={!!viewer.user?.isAdmin} authEnabled={viewer.authEnabled} />
           <div className="flex flex-wrap gap-2">
             <Link href="/new" className="rounded-xl bg-accent px-4 py-2.5 text-[13px] font-semibold text-on-accent">+ New character</Link>
-            <Link href="/regenerist" className="rounded-xl border border-line bg-panel px-4 py-2.5 text-[13px] font-semibold">Regenerist lives →</Link>
+            {canUseRegenerist(viewer) && <Link href="/regenerist" className="rounded-xl border border-line bg-panel px-4 py-2.5 text-[13px] font-semibold">Regenerist lives →</Link>}
           </div>
         </header>
 
