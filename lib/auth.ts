@@ -152,6 +152,55 @@ export async function resetPassword(v: Viewer, userIdIn: unknown, nextIn: unknow
   return user.username
 }
 
+/** Admins: rename an account (username and/or display name). Usernames follow the sign-up rules. */
+export async function updateAccount(v: Viewer, userIdIn: unknown, input: { username?: unknown; displayName?: unknown }): Promise<{ username: string; displayName: string }> {
+  if (!v.user?.isAdmin) throw new AuthError('Admins only.', 403)
+  const userId = typeof userIdIn === 'string' ? userIdIn : ''
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, username: true, displayName: true } })
+  if (!user) throw new AuthError('Account not found.', 404)
+  const data: { username?: string; displayName?: string } = {}
+  if (input.username !== undefined) {
+    const u = typeof input.username === 'string' ? input.username.trim().toLowerCase() : ''
+    if (!/^[a-z0-9_.-]{3,32}$/.test(u)) throw new AuthError('Usernames are 3–32 letters, numbers, dots, dashes, or underscores.', 400)
+    if (u !== user.username) {
+      const taken = await prisma.user.findUnique({ where: { username: u }, select: { id: true } })
+      if (taken) throw new AuthError('That username is taken.', 409)
+      data.username = u
+    }
+  }
+  if (input.displayName !== undefined) {
+    const d = typeof input.displayName === 'string' ? input.displayName.trim().slice(0, 40) : ''
+    if (!d) throw new AuthError('Display names can’t be empty.', 400)
+    data.displayName = d
+  }
+  const out = Object.keys(data).length ? await prisma.user.update({ where: { id: user.id }, data, select: { username: true, displayName: true } }) : user
+  return { username: out.username, displayName: out.displayName }
+}
+
+/**
+ * Admins: delete another account. Nothing the player made is lost: their characters and any parties
+ * they DM move to the admin doing the delete. Their sessions and party memberships are removed; past
+ * rolls stay in party logs under the character's name.
+ */
+export async function deleteAccount(v: Viewer, userIdIn: unknown): Promise<{ username: string; characters: number }> {
+  if (!v.user?.isAdmin) throw new AuthError('Admins only.', 403)
+  const userId = typeof userIdIn === 'string' ? userIdIn : ''
+  if (userId === v.user.id) throw new AuthError('You can’t delete your own account.', 400)
+  const user = await prisma.user.findUnique({ where: { id: userId }, select: { id: true, username: true } })
+  if (!user) throw new AuthError('Account not found.', 404)
+  const adminId = v.user.id
+  const dmOf = (await prisma.campaign.findMany({ where: { dmUserId: user.id }, select: { id: true } })).map(c => c.id)
+  const [moved] = await prisma.$transaction([
+    prisma.playerCharacter.updateMany({ where: { ownerId: user.id }, data: { ownerId: adminId } }),
+    prisma.campaign.updateMany({ where: { dmUserId: user.id }, data: { dmUserId: adminId } }),
+    prisma.campaignMember.deleteMany({ where: { userId: user.id } }),
+    prisma.campaignMember.createMany({ data: dmOf.map(campaignId => ({ campaignId, userId: adminId, role: 'dm' })), skipDuplicates: true }),
+    prisma.session.deleteMany({ where: { userId: user.id } }),
+    prisma.user.delete({ where: { id: user.id } }),
+  ])
+  return { username: user.username, characters: moved.count }
+}
+
 export function inviteCode(): string {
   const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
   return Array.from(randomBytes(8), b => alphabet[b % alphabet.length]).join('')

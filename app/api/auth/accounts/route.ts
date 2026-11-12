@@ -11,7 +11,9 @@ export async function GET() {
     const v = await getViewer()
     if (!v.user?.isAdmin) throw new AuthError('Admins only.', 403)
     const users = await prisma.user.findMany({ orderBy: { createdAt: 'asc' }, select: { id: true, username: true, displayName: true, isAdmin: true, createdAt: true } })
-    return NextResponse.json({ users })
+    const counts = await prisma.playerCharacter.groupBy({ by: ['ownerId'], _count: { _all: true } })
+    const owned = new Map(counts.map(c => [c.ownerId, c._count._all]))
+    return NextResponse.json({ users: users.map(u => ({ ...u, characters: owned.get(u.id) ?? 0 })) })
   } catch (e) {
     return errorResponse(e)
   }
