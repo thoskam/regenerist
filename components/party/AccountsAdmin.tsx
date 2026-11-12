@@ -3,8 +3,20 @@
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 
-interface U { id: string; username: string; displayName: string; isAdmin: boolean; characters?: number }
+interface U { id: string; username: string; displayName: string; isAdmin: boolean; characters?: number; lastSeenAt?: string | null }
 const field = 'min-h-[42px] rounded-xl border border-line bg-raised px-3 text-sm text-ink'
+
+function seen(iso?: string | null): string {
+  if (!iso) return 'never signed in'
+  const min = Math.floor((Date.now() - new Date(iso).getTime()) / 60_000)
+  if (min < 10) return 'active now'
+  if (min < 60) return `seen ${min} min ago`
+  const h = Math.floor(min / 60)
+  if (h < 24) return `seen ${h} hour${h === 1 ? '' : 's'} ago`
+  const d = Math.floor(h / 24)
+  if (d < 30) return `seen ${d} day${d === 1 ? '' : 's'} ago`
+  return `seen ${new Date(iso).toLocaleDateString()}`
+}
 
 export default function AccountsAdmin({ selfId }: { selfId: string }) {
   const [users, setUsers] = useState<U[]>([])
@@ -65,7 +77,7 @@ export default function AccountsAdmin({ selfId }: { selfId: string }) {
               </form>
             ) : (
               <div className="flex flex-wrap items-center gap-2">
-                <span className="min-w-0 flex-1"><strong>{u.displayName}</strong> <span className="text-muted">@{u.username}{u.isAdmin ? ' · admin' : ''}{u.characters ? ` · ${u.characters} character${u.characters === 1 ? '' : 's'}` : ''}</span></span>
+                <span className="min-w-0 flex-1"><strong>{u.displayName}</strong> <span className="text-muted">@{u.username}{u.isAdmin ? ' · admin' : ''}</span><span className="block text-xs text-muted" title={u.lastSeenAt ? new Date(u.lastSeenAt).toLocaleString() : undefined}>{u.characters ?? 0} character{u.characters === 1 ? '' : 's'} · {seen(u.lastSeenAt)}</span></span>
                 <button type="button" onClick={() => { setMsg(null); setEdit({ id: u.id, username: u.username, displayName: u.displayName }) }} className={btn}>Edit</button>
                 {u.id !== selfId && <button type="button" onClick={() => reset(u)} className={btn}>Reset password</button>}
                 {u.id !== selfId && <button type="button" onClick={() => remove(u)} className={`${btn} text-bad hover:border-bad`}>Delete</button>}

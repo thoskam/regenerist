@@ -9,6 +9,7 @@ import { prisma } from './prisma'
 const scrypt = promisify(scryptCb) as (pw: string, salt: Buffer, len: number) => Promise<Buffer>
 export const SESSION_COOKIE = 'rg_session'
 const SESSION_DAYS = 30
+const SEEN_EVERY_MS = 5 * 60_000
 
 export interface Viewer { authEnabled: boolean; user: { id: string; username: string; displayName: string; isAdmin: boolean } | null }
 
@@ -80,7 +81,12 @@ export async function getViewer(): Promise<Viewer> {
   if (!token) return { authEnabled: true, user: null }
   const session = await prisma.session.findUnique({ where: { id: tokenHash(token) } })
   if (!session || session.expiresAt < new Date()) return { authEnabled: true, user: null }
-  const user = await prisma.user.findUnique({ where: { id: session.userId }, select: { id: true, username: true, displayName: true, isAdmin: true } })
+  const row = await prisma.user.findUnique({ where: { id: session.userId }, select: { id: true, username: true, displayName: true, isAdmin: true, lastSeenAt: true } })
+  if (!row) return { authEnabled: true, user: null }
+  const { lastSeenAt, ...user } = row
+  if (!lastSeenAt || Date.now() - lastSeenAt.getTime() > SEEN_EVERY_MS) {
+    await prisma.user.update({ where: { id: user.id }, data: { lastSeenAt: new Date() } }).catch(() => {})
+  }
   return { authEnabled: true, user }
 }
 
@@ -125,6 +131,7 @@ export async function login(usernameIn: unknown, passwordIn: unknown): Promise<v
   const ok = user ? await verifyPassword(password, user.passwordHash) : (await hashPassword(password), false)
   if (!user || !ok) throw new AuthError('Wrong username or password.', 401)
   await startSession(user.id)
+  await prisma.user.update({ where: { id: user.id }, data: { lastSeenAt: new Date() } })
 }
 
 /** Change your own password (needs the current one). Signs out your other devices. */
