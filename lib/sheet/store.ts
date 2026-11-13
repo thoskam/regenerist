@@ -83,6 +83,39 @@ export interface SheetSummary {
   concentration: string | null
   exhaustion: number
   ownerId: string | null
+  campaignId: string | null
+}
+
+/** Extra table detail for the party view. */
+export interface PartySheetSummary extends SheetSummary {
+  tempHp: number
+  initiative: number
+  speed: number
+  pb: number
+  abilities: Record<string, { mod: number; save: number; saveProf: boolean }>
+  spellDc: number | null
+  spellAttack: number | null
+  slots: Array<{ level: number; max: number; used: number; pact?: boolean }>
+  deathSaves: { successes: number; failures: number } | null
+}
+
+export function partyDetail(s: SheetSummary, doc: CharacterDoc, state: PlayState): PartySheetSummary {
+  const sheet = computeSheet(doc, state)
+  const caster = sheet.spellcasting.find(b => b.dc != null)
+  return {
+    ...s,
+    tempHp: sheet.hp.temp, initiative: sheet.initiative, speed: sheet.speeds.find(x => x.kind === 'walk')?.value ?? sheet.speeds[0]?.value ?? 0, pb: sheet.pb,
+    abilities: Object.fromEntries(Object.entries(sheet.abilities).map(([k, a]) => [k, { mod: a.mod, save: a.save, saveProf: a.saveProf }])),
+    spellDc: caster?.dc ?? null, spellAttack: caster?.attack ?? null,
+    slots: [...sheet.spellSlots.filter(x => x.max > 0), ...(sheet.pactSlots && sheet.pactSlots.max > 0 ? [{ ...sheet.pactSlots, pact: true }] : [])],
+    deathSaves: sheet.hp.current === 0 ? { successes: state.deathSaves.success, failures: state.deathSaves.fail } : null,
+  }
+}
+
+export async function listPartySheets(viewer: Viewer, campaignId: string): Promise<PartySheetSummary[]> {
+  const rows = await prisma.playerCharacter.findMany({ where: { campaignId }, orderBy: { name: 'asc' }, select: { slug: true, doc: true, state: true, ownerId: true, campaignId: true } })
+  const summaries = new Map((await listSheets(viewer, { campaignId })).map(s => [s.slug, s]))
+  return rows.filter(r => summaries.has(r.slug)).map(r => partyDetail(summaries.get(r.slug)!, r.doc as unknown as CharacterDoc, normalizeState(r.state)))
 }
 
 export async function listSheets(viewer: Viewer, opts: { campaignId?: string } = {}): Promise<SheetSummary[]> {
@@ -101,7 +134,7 @@ export async function listSheets(viewer: Viewer, opts: { campaignId?: string } =
       theme: doc.theme?.name ?? 'ember', hasAvatar: !!r.avatarType, hp: { current: sheet.hp.current, max: sheet.hp.max },
       updatedAt: r.updatedAt.toISOString(), importedFrom: doc.import?.source ?? null,
       ac: sheet.ac.value, passivePerception: sheet.passives.perception, conditions: normalizeState(r.state).conditions,
-      concentration: normalizeState(r.state).concentration ?? null, exhaustion: normalizeState(r.state).exhaustion, ownerId: r.ownerId,
+      concentration: normalizeState(r.state).concentration ?? null, exhaustion: normalizeState(r.state).exhaustion, ownerId: r.ownerId, campaignId: r.campaignId,
     }
   })
 }

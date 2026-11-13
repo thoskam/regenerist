@@ -13,7 +13,7 @@ export default async function PartiesPage() {
       <div className="mx-auto flex max-w-3xl flex-col gap-5 px-4 py-8">
         <Link href="/" className="text-xs text-muted underline">All characters</Link>
         <h1 className="m-0 font-display text-4xl font-semibold">Parties</h1>
-        <p className="m-0 text-muted">A party shares a live roll feed and lets the DM see everyone’s HP, AC, and conditions. {v.authEnabled ? 'Players join with the invite code.' : 'Turn on accounts to invite other players; until then parties are just for you.'}</p>
+        <p className="m-0 text-muted">A party shows everyone’s characters side by side (HP, AC, ability modifiers, saves, spell slots, conditions) with a live feed of every roll, dice and modifiers included. {v.authEnabled ? 'Players join with the invite code.' : 'Turn on accounts to invite other players; until then parties are just for you.'}</p>
         <PartyList campaigns={campaigns.map(c => ({ id: c.id, name: c.name }))} canJoin={!!v.user} />
       </div>
     </main>

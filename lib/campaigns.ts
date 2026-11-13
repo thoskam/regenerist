@@ -58,6 +58,8 @@ export async function postRoll(v: Viewer, campaignId: string, body: Record<strin
 }
 
 export async function recentRolls(campaignId: string, after?: Date) {
-  const rows = await prisma.roll.findMany({ where: { campaignId, ...(after ? { createdAt: { gt: after } } : {}) }, orderBy: { createdAt: 'desc' }, take: 50 })
-  return rows.reverse()
+  const rows = await prisma.roll.findMany({ where: { campaignId, ...(after ? { createdAt: { gt: after } } : {}) }, orderBy: { createdAt: 'desc' }, take: 100 })
+  const ids = [...new Set(rows.map(r => r.userId).filter((x): x is string => !!x))]
+  const names = new Map((ids.length ? await prisma.user.findMany({ where: { id: { in: ids } }, select: { id: true, displayName: true } }) : []).map(u => [u.id, u.displayName]))
+  return rows.reverse().map(r => ({ ...r, playerName: r.userId ? names.get(r.userId) ?? null : null }))
 }
